@@ -7,8 +7,10 @@ import {
   createInitialState,
   enterFloor,
   enterWorld,
+  exportSaveFile,
   machineCost,
   MAX_OFFLINE_SECONDS,
+  parseImportedSave,
   parseSavedState,
   performRebirth,
   productionPerSecond,
@@ -141,6 +143,39 @@ describe('tycoon economy', () => {
     expect(migrated.crumbs).toBe(75);
     expect(migrated.machines['cookie-valley']['brick-oven']).toBe(2);
     expect(migrated.currentWorld).toBe('cookie-valley');
+  });
+
+  it('exports and imports a portable save without changing progress', () => {
+    const state = {
+      ...createInitialState(100),
+      crumbs: 345.5,
+      lifetimeCrumbs: 900,
+      runCrumbsEarned: 500,
+      rebirths: 1,
+      currentWorld: 'choco-moon' as WorldId,
+      currentFloor: 1,
+      unlockedWorlds: ['cookie-valley', 'choco-moon'] as WorldId[],
+    };
+    state.machines['choco-moon']['conveyor-oven'] = 2;
+    const encoded = exportSaveFile(state, 1000);
+    const loaded = parseImportedSave(encoded, 1000);
+    expect(loaded).not.toBeNull();
+    expect(loaded?.crumbs).toBe(345.5);
+    expect(loaded?.rebirths).toBe(1);
+    expect(loaded?.currentWorld).toBe('choco-moon');
+    expect(loaded?.currentFloor).toBe(1);
+    expect(loaded?.machines['choco-moon']['conveyor-oven']).toBe(2);
+  });
+
+  it('refuses malformed import text instead of replacing progress with a new game', () => {
+    expect(parseImportedSave('not a save file', 123)).toBeNull();
+    expect(parseImportedSave(JSON.stringify({ format: 'ovenfall-save', version: 99, state: {} }), 123)).toBeNull();
+    expect(parseImportedSave(JSON.stringify({
+      crumbs: -1,
+      lifetimeCrumbs: 0,
+      ovens: 0,
+      lastSavedAt: 1,
+    }), 123)).toBeNull();
   });
 
   it('resets corrupted saves safely', () => {

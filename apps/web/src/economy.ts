@@ -364,3 +364,88 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
     return createInitialState(now);
   }
 }
+
+
+export interface SaveFileV1 {
+  format: 'ovenfall-save';
+  version: 1;
+  exportedAt: string;
+  state: GameState;
+}
+
+/** Serialize a transferable, human-readable save file. */
+export function exportSaveFile(state: GameState, now = Date.now()): string {
+  return JSON.stringify({
+    format: 'ovenfall-save',
+    version: 1,
+    exportedAt: new Date(now).toISOString(),
+    state: { ...state, lastSavedAt: now },
+  } satisfies SaveFileV1, null, 2);
+}
+
+/**
+ * Import a save exported by Ovenfall, a raw current-format state, or the
+ * previous oven-only local-save format. Returns null rather than resetting
+ * progress when the supplied import is malformed.
+ */
+export function parseImportedSave(raw: string, now = Date.now()): GameState | null {
+  try {
+    const root: unknown = JSON.parse(raw);
+    if (!root || typeof root !== 'object' || Array.isArray(root)) return null;
+    const rootRecord = root as Record<string, unknown>;
+    let candidate: unknown = root;
+
+    if ('format' in rootRecord || 'version' in rootRecord || 'state' in rootRecord) {
+      if (rootRecord.format !== 'ovenfall-save' || rootRecord.version !== 1 ||
+          !rootRecord.state || typeof rootRecord.state !== 'object' ||
+          Array.isArray(rootRecord.state)) return null;
+      candidate = rootRecord.state;
+    }
+
+    if (!candidate || typeof candidate !== 'object' || Array.isArray(candidate)) return null;
+    const value = candidate as Record<string, unknown>;
+
+    // Accept old local saves from the original prototype, so users can migrate
+    // a save made before the multi-world tycoon was introduced.
+    if (!('machines' in value)) {
+      if (
+        !isFiniteNonNegative(value.crumbs) ||
+        !isFiniteNonNegative(value.lifetimeCrumbs) ||
+        !Number.isSafeInteger(value.ovens) || (value.ovens as number) < 0 ||
+        !isFiniteNonNegative(value.lastSavedAt)
+      ) return null;
+      const migrated = parseSavedState(JSON.stringify(value), now);
+      return { ...migrated, lastSavedAt: now };
+    }
+
+    if (
+      !isFiniteNonNegative(value.crumbs) ||
+      !isFiniteNonNegative(value.lifetimeCrumbs) ||
+      !isFiniteNonNegative(value.runCrumbsEarned) ||
+      !Number.isSafeInteger(value.rebirths) || (value.rebirths as number) < 0 ||
+      !isFiniteNonNegative(value.lastSavedAt) ||
+      !WORLD_IDS.includes(value.currentWorld as WorldId) ||
+      !Number.isSafeInteger(value.currentFloor) || (value.currentFloor as number) < 0 || (value.currentFloor as number) > 2 ||
+      !Array.isArray(value.unlockedWorlds) ||
+      !value.unlockedWorlds.every((id) => typeof id === 'string' && WORLD_IDS.includes(id as WorldId)) ||
+      !value.unlockedWorlds.includes(value.currentWorld) ||
+      !value.machines || typeof value.machines !== 'object' || Array.isArray(value.machines)
+    ) return null;
+
+    const sourceMachines = value.machines as Record<string, unknown>;
+    for (const worldId of WORLD_IDS) {
+      const counts = sourceMachines[worldId];
+      if (!counts || typeof counts !== 'object' || Array.isArray(counts)) return null;
+      const worldCounts = counts as Record<string, unknown>;
+      for (const machineId of MACHINE_IDS) {
+        const count = worldCounts[machineId];
+        if (!Number.isSafeInteger(count) || (count as number) < 0) return null;
+      }
+    }
+
+    const parsed = parseSavedState(JSON.stringify(value), now);
+    return { ...parsed, lastSavedAt: now };
+  } catch {
+    return null;
+  }
+}

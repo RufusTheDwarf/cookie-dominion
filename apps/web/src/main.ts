@@ -3,14 +3,16 @@ import {
   addCrumbs,
   buyMachine,
   canRebirth,
-  collectCookies,
   COOKIE_CLICK_VALUE,
+  createInitialState,
   enterFloor,
+  exportSaveFile,
   enterWorld,
   getMachine,
   getWorld,
   MACHINES,
   machineCost,
+  parseImportedSave,
   parseSavedState,
   performRebirth,
   productionPerSecond,
@@ -35,6 +37,20 @@ app.innerHTML = `
       <div class="brand"><div class="eyebrow">COOKIE INDUSTRIES // TYCOON LABS</div><h1>OVEN<span>FALL</span></h1><p class="subtitle">Construis. Automatise. Recommence plus fort.</p></div>
       <div class="header-stats"><div><span class="eyebrow">MONDE</span><strong id="world-name">Cookie Valley</strong></div><div><span class="eyebrow">SAUVEGARDE</span><strong id="save-state">LOCALE</strong></div></div>
     </header>
+    <section class="panel save-toolbar">
+      <div class="save-toolbar-heading"><div><div class="eyebrow">GESTION DE LA PARTIE</div><strong>SAUVEGARDE / CHARGEMENT</strong><small>Export JSON, import d'une autre sauvegarde ou effacement complet.</small></div></div>
+      <div class="save-actions">
+        <button id="save-now" class="save-action">SAUVEGARDER</button>
+        <button id="export-save" class="save-action">EXPORTER DATA</button>
+        <button id="copy-save" class="save-action">COPIER</button>
+        <button id="import-save" class="save-action">CHARGER TEXTE</button>
+        <button id="import-file-button" class="save-action">CHARGER FICHIER</button>
+        <button id="erase-save" class="save-action danger">EFFACER LA PARTIE</button>
+        <input id="import-file" type="file" accept=".json,.txt,application/json,text/plain" hidden />
+      </div>
+      <textarea id="save-data-text" rows="3" spellcheck="false" aria-label="Données de sauvegarde" placeholder="Clique sur EXPORTER DATA pour générer une sauvegarde à copier ou conserver. Colle ici un export pour le charger."></textarea>
+      <div class="save-toolbar-note">Les données restent dans ce navigateur, sauf si tu exportes le fichier. Le chargement remplace la partie actuelle.</div>
+    </section>
     <section class="dashboard">
       <aside class="panel stats-panel">
         <div class="eyebrow">TRÉSORERIE</div><div class="crumb-total" id="crumb-total">0</div><div class="muted">cookies disponibles</div>
@@ -53,8 +69,19 @@ app.innerHTML = `
       </aside>
       <section class="panel map-panel">
         <div class="panel-heading"><div><div class="eyebrow">USINE EN 2D</div><h2 id="floor-title">ÉTAGE 1 — ATELIER</h2></div><div class="live-dot">EN DIRECT</div></div>
+        <div class="map-toolbar"><div><strong>TON PERSONNAGE</strong><small>Clique sur un endroit de la carte pour t'y déplacer.</small></div><span id="player-position">Position : …</span></div>
         <div id="game-canvas" class="game-canvas"></div>
-        <div class="map-legend"><span><i class="legend-cookie"></i> Cookie en transit</span><span><i class="legend-player"></i> Toi</span><span id="map-hint">E : interagir</span></div>
+        <div class="movement-toolbar">
+          <div class="movement-copy"><strong>SE DÉPLACER</strong><small>WASD / flèches, clic sur la carte ou les boutons.</small><small>Approche-toi d'une machine puis appuie sur E.</small></div>
+          <div class="dpad" aria-label="Commandes de déplacement">
+            <button type="button" class="move-up" data-move="up" aria-label="Aller vers le haut">▲</button>
+            <button type="button" class="move-left" data-move="left" aria-label="Aller à gauche">◀</button>
+            <button type="button" class="move-down" data-move="down" aria-label="Aller vers le bas">▼</button>
+            <button type="button" class="move-right" data-move="right" aria-label="Aller à droite">▶</button>
+          </div>
+          <button id="interact-button" class="interact-button" type="button"><strong>E</strong><span>INTERAGIR</span></button>
+        </div>
+        <div class="map-legend"><span><i class="legend-cookie"></i> Cookie en transit</span><span><i class="legend-player"></i> Toi</span><span id="map-hint">Déplacement actif · E pour interagir</span></div>
         <div class="nav-block">
           <div class="nav-heading"><span class="eyebrow">ÉTAGES</span><span class="muted">Escaliers sur la carte ou accès rapide</span></div>
           <div class="nav-buttons">
@@ -91,6 +118,10 @@ try {
 }
 let saveTimer = 0;
 let statusTimer = 0;
+let renderTimer = 0;
+let previousFrame = performance.now();
+type MoveDirection = 'up' | 'down' | 'left' | 'right';
+const activeMoveControls = new Set<MoveDirection>();
 let machineUiKey = '';
 let worldUiKey = '';
 let bakeryScene: TycoonScene | undefined;
@@ -121,6 +152,125 @@ function save(): void {
     setStatus('Sauvegarde indisponible dans ce navigateur.');
   }
 }
+
+function exportSave(): void {
+  save();
+  $<HTMLTextAreaElement>('save-data-text').value = exportSaveFile(state, state.lastSavedAt);
+  $<HTMLTextAreaElement>('save-data-text').focus();
+  $<HTMLTextAreaElement>('save-data-text').select();
+  setStatus('Export généré. Copie le texte ou utilise le bouton COPIER.');
+}
+
+async function copySave(): Promise<void> {
+  const text = $<HTMLTextAreaElement>('save-data-text').value;
+  if (!text.trim()) {
+    exportSave();
+  }
+  const textarea = $<HTMLTextAreaElement>('save-data-text');
+  try {
+    await navigator.clipboard.writeText(textarea.value);
+    setStatus('Sauvegarde copiée dans le presse-papiers.');
+  } catch {
+    textarea.focus();
+    textarea.select();
+    setStatus('Sélectionne le texte puis fais Ctrl+C.');
+  }
+}
+
+function loadSaveText(raw: string): boolean {
+  const imported = parseImportedSave(raw);
+  if (!imported) {
+    setStatus('Import refusé : ce texte ne contient pas une sauvegarde Ovenfall valide.');
+    return false;
+  }
+  state = imported;
+  machineUiKey = '';
+  worldUiKey = '';
+  render();
+  bakeryScene?.loadWorld();
+  save();
+  $<HTMLTextAreaElement>('save-data-text').value = '';
+  setStatus('Sauvegarde chargée. La partie actuelle a été remplacée.');
+  return true;
+}
+
+function eraseSave(): void {
+  const accepted = window.confirm(
+    'Effacer définitivement la sauvegarde Ovenfall de ce navigateur ? Cette action réinitialise les cookies, machines, rebirths et mondes débloqués. Exporte une sauvegarde avant de continuer si tu veux la conserver.',
+  );
+  if (!accepted) return;
+  state = createInitialState();
+  machineUiKey = '';
+  worldUiKey = '';
+  activeMoveControls.clear();
+  try {
+    localStorage.removeItem(SAVE_KEY);
+  } catch {
+    setStatus('Le navigateur a refusé l’effacement de sa mémoire locale.');
+  }
+  $<HTMLTextAreaElement>('save-data-text').value = '';
+  render();
+  bakeryScene?.loadWorld();
+  save();
+  setStatus('Partie effacée : nouvelle usine créée.');
+}
+
+$('save-now').addEventListener('click', () => {
+  save();
+  setStatus('Partie sauvegardée sur cet appareil.');
+});
+$('export-save').addEventListener('click', exportSave);
+$('copy-save').addEventListener('click', () => { void copySave(); });
+$('import-save').addEventListener('click', () => {
+  const textarea = $<HTMLTextAreaElement>('save-data-text');
+  if (!textarea.value.trim()) {
+    setStatus('Colle d’abord les données de sauvegarde dans le champ.');
+    textarea.focus();
+    return;
+  }
+  if (window.confirm('Charger cette sauvegarde et remplacer la partie actuelle ?')) {
+    loadSaveText(textarea.value);
+  }
+});
+$('import-file-button').addEventListener('click', () => $('import-file').click());
+$('import-file').addEventListener('change', async (event) => {
+  const input = event.currentTarget as HTMLInputElement;
+  const file = input.files?.[0];
+  if (!file) return;
+  try {
+    const raw = await file.text();
+    if (window.confirm('Charger « ' + file.name + ' » et remplacer la partie actuelle ?')) {
+      loadSaveText(raw);
+    }
+  } catch {
+    setStatus('Impossible de lire ce fichier de sauvegarde.');
+  } finally {
+    input.value = '';
+  }
+});
+$('erase-save').addEventListener('click', eraseSave);
+
+document.querySelectorAll<HTMLButtonElement>('[data-move]').forEach((button) => {
+  const direction = button.dataset.move as MoveDirection;
+  const release = () => {
+    activeMoveControls.delete(direction);
+    button.classList.remove('is-pressed');
+  };
+  button.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    activeMoveControls.add(direction);
+    button.classList.add('is-pressed');
+    try { button.setPointerCapture(event.pointerId); } catch { /* Some browsers do not support capture. */ }
+  });
+  button.addEventListener('pointerup', release);
+  button.addEventListener('pointercancel', release);
+  button.addEventListener('lostpointercapture', release);
+});
+window.addEventListener('blur', () => {
+  activeMoveControls.clear();
+  document.querySelectorAll<HTMLButtonElement>('[data-move]').forEach((button) => button.classList.remove('is-pressed'));
+});
+$('interact-button').addEventListener('click', () => bakeryScene?.requestInteract());
 
 function renderMachineCards(): void {
   const signature = [
@@ -212,8 +362,8 @@ function buyMachineById(machineId: MachineId): void {
   state = buyMachine(state, machineId);
   if (state === previous) {
     const machine = getMachine(machineId);
-    setStatus(machine.floor > state.currentFloor
-      ? 'Monte à l’étage ' + (machine.floor + 1) + ' pour acheter cette machine.'
+    setStatus(machine.floor !== state.currentFloor
+      ? 'Passe à l’étage ' + (machine.floor + 1) + ' pour acheter cette machine.'
       : 'Pas assez de cookies pour cette machine.');
     return;
   }
@@ -278,7 +428,9 @@ class TycoonScene extends Phaser.Scene {
   private packets = new Set<Phaser.GameObjects.Container>();
   private spawnEvent?: Phaser.Time.TimerEvent;
   private collectorLabel?: Phaser.GameObjects.Text;
-  private interactLatch = false;
+  private moveTarget: { x: number; y: number } | null = null;
+  private interactRequested = false;
+  private lastPositionUpdate = 0;
 
   constructor() {
     super('TycoonScene');
@@ -312,8 +464,15 @@ class TycoonScene extends Phaser.Scene {
     this.drawFloorDecoration(world.accent);
     this.refreshMachines();
 
-    this.player = this.createPlayer(610, 570, world.accent);
+    this.player = this.createPlayer(260, 390, world.accent);
     this.cameras.main.startFollow(this.player, true, 0.09, 0.09);
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
+      const point = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
+      this.moveTarget = {
+        x: Phaser.Math.Clamp(point.x, 110, 1090),
+        y: Phaser.Math.Clamp(point.y, 115, 655),
+      };
+    });
     const keyboard = this.input.keyboard;
     if (!keyboard) throw new Error('Keyboard input unavailable');
     this.cursors = keyboard.createCursorKeys();
@@ -333,30 +492,58 @@ class TycoonScene extends Phaser.Scene {
 
   update(_time: number, delta: number): void {
     if (!this.player?.active) return;
-    const speed = 210;
+    const speed = 260;
     let vx = 0;
     let vy = 0;
-    if (this.cursors.left.isDown || this.keys.A.isDown) vx -= 1;
-    if (this.cursors.right.isDown || this.keys.D.isDown) vx += 1;
-    if (this.cursors.up.isDown || this.keys.W.isDown) vy -= 1;
-    if (this.cursors.down.isDown || this.keys.S.isDown) vy += 1;
+    if (this.cursors.left.isDown || this.keys.A.isDown || activeMoveControls.has('left')) vx -= 1;
+    if (this.cursors.right.isDown || this.keys.D.isDown || activeMoveControls.has('right')) vx += 1;
+    if (this.cursors.up.isDown || this.keys.W.isDown || activeMoveControls.has('up')) vy -= 1;
+    if (this.cursors.down.isDown || this.keys.S.isDown || activeMoveControls.has('down')) vy += 1;
+    if (vx !== 0 || vy !== 0) {
+      this.moveTarget = null;
+    } else if (this.moveTarget) {
+      const dx = this.moveTarget.x - this.player.x;
+      const dy = this.moveTarget.y - this.player.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < 8) {
+        this.moveTarget = null;
+      } else {
+        vx = dx / distance;
+        vy = dy / distance;
+      }
+    }
     if (vx !== 0 && vy !== 0) {
       vx *= Math.SQRT1_2;
       vy *= Math.SQRT1_2;
     }
     this.player.x = Phaser.Math.Clamp(this.player.x + vx * speed * delta / 1000, 110, 1090);
     this.player.y = Phaser.Math.Clamp(this.player.y + vy * speed * delta / 1000, 115, 655);
+    if (this.moveTarget && Phaser.Math.Distance.Between(this.player.x, this.player.y, this.moveTarget.x, this.moveTarget.y) < 8) {
+      this.moveTarget = null;
+    }
     this.player.setDepth(this.player.y);
+    if (this.time.now - this.lastPositionUpdate > 120) {
+      $('player-position').textContent = 'Position : ' + Math.round(this.player.x) + ' · ' + Math.round(this.player.y);
+      this.lastPositionUpdate = this.time.now;
+    }
     this.checkInteract();
   }
 
   private createPlayer(x: number, y: number, accent: number): Phaser.GameObjects.Container {
-    const shadow = this.add.ellipse(0, 13, 40, 14, 0x070605, 0.42);
-    const body = this.add.rectangle(0, 5, 22, 28, accent).setStrokeStyle(2, 0xf5e2c7);
-    const head = this.add.circle(0, -15, 11, 0xf1c39b).setStrokeStyle(2, 0x3d291b);
-    const hair = this.add.arc(0, -19, 11, 190, 350, false, 0x38231b).setStrokeStyle(4, 0x38231b);
-    const player = this.add.container(x, y, [shadow, body, head, hair]);
+    const shadow = this.add.ellipse(0, 18, 54, 20, 0x070605, 0.56);
+    const glow = this.add.circle(0, 0, 35, 0xa6e2b1, 0.16).setStrokeStyle(3, 0xffe6b5, 0.95);
+    const body = this.add.rectangle(0, 8, 30, 38, accent).setStrokeStyle(3, 0xf9e5c5);
+    const belt = this.add.rectangle(0, 15, 27, 5, 0x25170f);
+    const head = this.add.circle(0, -18, 15, 0xf1c39b).setStrokeStyle(3, 0x3d291b);
+    const hair = this.add.arc(0, -23, 15, 190, 350, false, 0x38231b).setStrokeStyle(5, 0x38231b);
+    const face = this.add.text(0, -18, '• •', { fontFamily: 'monospace', fontSize: '11px', color: '#2e2118', fontStyle: 'bold' }).setOrigin(0.5);
+    const tag = this.add.text(0, -58, '▼ TOI', {
+      fontFamily: 'monospace', fontSize: '13px', color: '#ffffff',
+      backgroundColor: '#24563e', padding: { x: 8, y: 4 }, stroke: '#102015', strokeThickness: 3,
+    }).setOrigin(0.5);
+    const player = this.add.container(x, y, [shadow, glow, body, belt, head, hair, face, tag]);
     player.setDepth(y);
+    this.tweens.add({ targets: tag, y: -63, duration: 480, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     return player;
   }
 
@@ -465,16 +652,15 @@ class TycoonScene extends Phaser.Scene {
   }
 
   private spawnCookiePacket(): void {
-    const rate = productionPerSecond(state);
-    if (rate <= 0 || !this.scene.isActive()) return;
+    if (!this.scene.isActive()) return;
     const active = MACHINES.filter((machine) => {
       return machine.floor === state.currentFloor && state.machines[state.currentWorld][machine.id] > 0;
     });
-    const machine = active.length ? active[Phaser.Math.Between(0, active.length - 1)] : undefined;
-    const sourceX = machine?.x ?? 250;
+    if (active.length === 0) return;
+    const machine = active[Phaser.Math.Between(0, active.length - 1)]!;
+    const sourceX = machine.x;
     const world = getWorld(state.currentWorld);
     const packet = this.makePacket(sourceX, 370, world.accent);
-    const packetValue = rate * 0.65;
     this.tweens.chain({
       targets: packet,
       tweens: [
@@ -485,24 +671,25 @@ class TycoonScene extends Phaser.Scene {
           onComplete: () => {
             packet.destroy();
             this.packets.delete(packet);
-            state = collectCookies(state, packetValue);
-            render();
-            if (Math.random() < 0.2) save();
+            if (this.collectorLabel?.active) {
+              this.tweens.add({ targets: this.collectorLabel, scale: 1.08, duration: 90, yoyo: true });
+            }
           },
         },
       ],
     });
   }
 
+  requestInteract(): void {
+    this.interactRequested = true;
+  }
+
   private checkInteract(): void {
     const keyboard = this.input.keyboard;
     if (!keyboard) return;
-    const pressed = Phaser.Input.Keyboard.JustDown(this.keys.E);
-    if (!pressed || this.interactLatch) {
-      this.interactLatch = !this.keys.E.isDown ? false : this.interactLatch;
-      return;
-    }
-    this.interactLatch = true;
+    const pressed = Phaser.Input.Keyboard.JustDown(this.keys.E) || this.interactRequested;
+    this.interactRequested = false;
+    if (!pressed) return;
     const playerX = this.player.x;
     const playerY = this.player.y;
     if (Phaser.Math.Distance.Between(playerX, playerY, 1037, 612) < 105) {
@@ -559,11 +746,22 @@ new Phaser.Game({
   scene: [TycoonScene],
 });
 
-function animationTick(): void {
-  saveTimer += 1 / 60;
+function animationTick(now: number): void {
+  const elapsed = Math.min(1, Math.max(0, (now - previousFrame) / 1000));
+  previousFrame = now;
+  const production = productionPerSecond(state);
+  if (production > 0 && elapsed > 0) {
+    state = addCrumbs(state, production * elapsed);
+  }
+  saveTimer += elapsed;
+  renderTimer += elapsed;
   if (saveTimer >= 8) {
     save();
     saveTimer = 0;
+  }
+  if (renderTimer >= 0.12) {
+    render();
+    renderTimer = 0;
   }
   requestAnimationFrame(animationTick);
 }
