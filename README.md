@@ -11,12 +11,19 @@ A browser-first incremental bakery/tycoon prototype. Working title only; name av
 
 This is an early vertical slice, not the complete game. It does not yet include accounts, multiplayer, server persistence, tower defense, missions, exploration mini-games, or a Windows installer.
 
-## Requirements
+## Run in a browser without installing Node.js locally
 
-- Node.js 22+
-- npm 10+
+This repository includes a GitHub Codespaces development container with Node.js 22 and npm. Sign in to GitHub, open this repository, select **Code → Codespaces → Create codespace on main**. Once it finishes preparing the environment, open the terminal and run:
 
-## Run
+```bash
+npm run dev
+```
+
+Vite should forward port 5173 and offer **Open in Browser**. Codespaces availability and usage quotas depend on your GitHub account and plan.
+
+## Run locally
+
+Requirements: Node.js 22+ and npm 10+.
 
 ```bash
 npm install
