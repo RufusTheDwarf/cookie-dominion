@@ -4,12 +4,12 @@
 
 | Path | Purpose | State | Verification |
 |---|---|---|---|
-| `apps/web/src/main.ts` | Phaser map, keyboard movement, floors, worlds, portals, machines and moving cookies | Implemented in the current tycoon pass | Awaiting CI on this commit and hands-on browser smoke test |
-| `apps/web/src/economy.ts` | Machine costs/output, world multipliers, rebirths, save migration and offline progress | Implemented | Awaiting unit test run for this pass |
+| `apps/web/src/main.ts` | Phaser map, keyboard movement, floors, worlds, portals, machines and moving cookies | Implemented in the current tycoon pass | Typecheck and Vite build passed; hands-on browser smoke test remains |
+| `apps/web/src/economy.ts` | Machine costs/output, world multipliers, rebirths, save migration and offline progress | Implemented | Vitest suite passed on commit `3204fc2` |
 | `apps/web/src/style.css` | Responsive tycoon HUD and factory panels | Implemented | Source review only; visual viewport test pending |
-| `tests/economy.test.ts` | Economy, floor/world locks, rebirth and migration tests | Expanded | Awaiting CI |
+| `tests/economy.test.ts` | Economy, floor/world locks, rebirth and migration tests | Expanded | Vitest passed on commit `3204fc2` |
 | `.devcontainer/devcontainer.json` | Browser-based development environment for Node.js/npm | Present | Codespaces environment creation not manually tested |
-| `.github/workflows/ci.yml` | GitHub Actions install, typecheck, test and build | Present | Previous commit passed all steps; latest feature pass pending |
+| `.github/workflows/ci.yml` | GitHub Actions install, typecheck, test and build | Present | CI passed all steps on feature commit `3204fc2` |
 | `docs/ROADMAP.md` | Development milestones | Updated | Source reviewed |
 
 ## Design choices in this pass
@@ -24,7 +24,7 @@
 ## Verification notes
 
 - Before this feature pass, GitHub Actions passed installation, strict TypeScript checking, Vitest and the Vite production build.
-- The new feature pass must pass CI before it is considered technically verified.
+- GitHub Actions on feature commit `3204fc2` passed npm install, strict TypeScript check, Vitest and Vite production build.
 - A real browser visual/playtest has not yet been performed by the assistant. Verify movement, stairs, portal access, machine purchases, packet delivery, rebirth and save/load in Codespaces.
 - Local builds require Node.js 22+ and npm 10+. The included Codespaces setup is intended for users who do not want to install Node.js on their PC.
 
