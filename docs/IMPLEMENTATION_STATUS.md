@@ -1,32 +1,34 @@
 # Implementation status — 2026-10-26
 
-## Local project state
+## Current project state
 
-| Path | Purpose | State | Verification | Remaining work |
-|---|---|---|---|---|
-| `index.html` | Web entry point | Created | Source inspected | Browser smoke test |
-| `apps/web/src/main.ts` | Phaser scene and UI wiring | Created | Source inspected | Typecheck, build, browser test |
-| `apps/web/src/economy.ts` | Deterministic incremental economy | Created | Six direct Node assertion checks passed | Expand overflow and progression tests |
-| `apps/web/src/style.css` | Responsive presentation | Created | Source inspected | Visual regression / viewport review |
-| `tests/economy.test.ts` | Vitest economy tests | Created | Not run under Vitest; dependency missing | Run after npm install |
-| `package.json` | Scripts and dependencies | Created | Inspected | Generate `package-lock.json` when registry is reachable |
-| `.github/workflows/ci.yml` | GitHub Actions CI | Runs on pushes and pull requests to `main` | Workflow run on commit `8032464` passed install, typecheck, Vitest and Vite build | Add browser smoke test and later performance checks |
-| `docs/PLATFORM_DECISION.md` | Platform choice | Created | Source/URL list reviewed | Revisit if true 3D becomes mandatory |
-| `docs/ARCHITECTURE.md` | System boundaries | Created | Source inspected | Expand as multiplayer is designed |
-| `docs/RESEARCH.md` | Initial official references | Created | URLs recorded | Recheck versions and pricing before deployment |
-| `docs/ROADMAP.md` | Milestones | Created | Source inspected | Update at each completed milestone |
+| Path | Purpose | State | Verification |
+|---|---|---|---|
+| `apps/web/src/main.ts` | Phaser map, keyboard movement, floors, worlds, portals, machines and moving cookies | Implemented in the current tycoon pass | Awaiting CI on this commit and hands-on browser smoke test |
+| `apps/web/src/economy.ts` | Machine costs/output, world multipliers, rebirths, save migration and offline progress | Implemented | Awaiting unit test run for this pass |
+| `apps/web/src/style.css` | Responsive tycoon HUD and factory panels | Implemented | Source review only; visual viewport test pending |
+| `tests/economy.test.ts` | Economy, floor/world locks, rebirth and migration tests | Expanded | Awaiting CI |
+| `.devcontainer/devcontainer.json` | Browser-based development environment for Node.js/npm | Present | Codespaces environment creation not manually tested |
+| `.github/workflows/ci.yml` | GitHub Actions install, typecheck, test and build | Present | Previous commit passed all steps; latest feature pass pending |
+| `docs/ROADMAP.md` | Development milestones | Updated | Source reviewed |
 
-## Verification performed
+## Design choices in this pass
 
-- Runtime available: Node.js 22.16.0, npm 10.9.2, Git 2.47.3.
-- Six direct Node assertions passed against `apps/web/src/economy.ts` using Node's experimental TypeScript stripping.
-- `npm test` could not run because `vitest` is not installed.
-- `npm install` timed out while attempting to reach the npm registry; offline install confirmed that the Phaser package is not cached.
-- The first GitHub Actions run on commit `0c4da80` failed at typecheck because `createInitialState` was imported but unused in `apps/web/src/main.ts`. The import was removed in commit `8032464`; the subsequent workflow run passed TypeScript typecheck, Vitest and Vite production build.
-- No dependency lockfile exists. Generate and commit it after registry access is available.
+- Web/Phaser remains the target so the game can run in a browser without a Roblox-only release.
+- The game has three floors and three worlds; each machine belongs to a floor.
+- Cookie packets visibly travel along the belt to the collector. The value of each delivered packet is credited as spendable cookies.
+- Rebirth resets owned machines and spendable/run earnings, keeps lifetime earnings and raises income by ×1.75.
+- Choco Moon unlocks after the first rebirth; Galaxy Oven unlocks after the third. Worlds scale costs and production at different rates.
+- The existing oven-only local save format is migrated into the new machine format when loaded.
 
-## GitHub state
+## Verification notes
 
-- GitHub repository: `RufusTheDwarf/cookie-dominion`, private, default branch `main`.
-- Project source, tests, documentation and CI workflow were published in commit `0c4da80` (`chore: publish Ovenfall vertical slice`). The unused import was fixed in commit `8032464`; CI passed on that commit.
-- The existing GitHub `LICENSE` file contains the MIT License. Confirm this licensing choice before any public release, because the original local project license file had been marked undecided.
+- Before this feature pass, GitHub Actions passed installation, strict TypeScript checking, Vitest and the Vite production build.
+- The new feature pass must pass CI before it is considered technically verified.
+- A real browser visual/playtest has not yet been performed by the assistant. Verify movement, stairs, portal access, machine purchases, packet delivery, rebirth and save/load in Codespaces.
+- Local builds require Node.js 22+ and npm 10+. The included Codespaces setup is intended for users who do not want to install Node.js on their PC.
+
+## Repository state
+
+- Repository: `RufusTheDwarf/cookie-dominion` (private; default branch `main`).
+- Existing `LICENSE` file contains the MIT License. Confirm this remains the intended license before a public release.
