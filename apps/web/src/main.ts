@@ -91,6 +91,8 @@ try {
 }
 let saveTimer = 0;
 let statusTimer = 0;
+let machineUiKey = '';
+let worldUiKey = '';
 let bakeryScene: TycoonScene | undefined;
 
 const $ = <T extends HTMLElement>(id: string): T => {
@@ -121,6 +123,18 @@ function save(): void {
 }
 
 function renderMachineCards(): void {
+  const signature = [
+    state.currentWorld,
+    state.currentFloor,
+    ...MACHINES.map((machine) => [
+      machine.id,
+      state.machines[state.currentWorld][machine.id],
+      machineCost(state, machine.id),
+      state.crumbs >= machineCost(state, machine.id) ? 1 : 0,
+    ].join(':')),
+  ].join('|');
+  if (signature === machineUiKey) return;
+  machineUiKey = signature;
   $('machine-list').innerHTML = MACHINES.map((machine) => {
     const owned = state.machines[state.currentWorld][machine.id];
     const cost = machineCost(state, machine.id);
@@ -139,6 +153,12 @@ function renderMachineCards(): void {
 }
 
 function renderWorldButtons(): void {
+  const signature = [
+    state.currentWorld,
+    ...WORLDS.map((world) => state.unlockedWorlds.includes(world.id) ? world.id : 'locked-' + world.id),
+  ].join('|');
+  if (signature === worldUiKey) return;
+  worldUiKey = signature;
   $('world-buttons').innerHTML = WORLDS.map((world) => {
     const unlocked = state.unlockedWorlds.includes(world.id);
     const active = state.currentWorld === world.id;
@@ -184,7 +204,7 @@ function bake(): void {
 }
 
 function saveSoon(): void {
-  saveTimer = Math.max(saveTimer, 4);
+  saveTimer = Math.max(saveTimer, 7.5);
 }
 
 function buyMachineById(machineId: MachineId): void {
