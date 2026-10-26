@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import {
   addCrumbs,
   buyOven,
-  createInitialState,
   ovenCost,
   parseSavedState,
   productionPerSecond,

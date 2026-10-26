@@ -10,7 +10,7 @@
 | `apps/web/src/style.css` | Responsive presentation | Created | Source inspected | Visual regression / viewport review |
 | `tests/economy.test.ts` | Vitest economy tests | Created | Not run under Vitest; dependency missing | Run after npm install |
 | `package.json` | Scripts and dependencies | Created | Inspected | Generate `package-lock.json` when registry is reachable |
-| `.github/workflows/ci.yml` | GitHub Actions CI | Created; cache setting removed because no lockfile exists | Not run remotely | Confirm successful workflow after first push |
+| `.github/workflows/ci.yml` | GitHub Actions CI | Runs on pushes and pull requests to `main` | Initial run failed at strict typecheck because of an unused import; fix committed, rerun pending | Confirm next workflow run passes |
 | `docs/PLATFORM_DECISION.md` | Platform choice | Created | Source/URL list reviewed | Revisit if true 3D becomes mandatory |
 | `docs/ARCHITECTURE.md` | System boundaries | Created | Source inspected | Expand as multiplayer is designed |
 | `docs/RESEARCH.md` | Initial official references | Created | URLs recorded | Recheck versions and pricing before deployment |
@@ -22,12 +22,11 @@
 - Six direct Node assertions passed against `apps/web/src/economy.ts` using Node's experimental TypeScript stripping.
 - `npm test` could not run because `vitest` is not installed.
 - `npm install` timed out while attempting to reach the npm registry; offline install confirmed that the Phaser package is not cached.
-- Typecheck, Vite build, visual browser test, GitHub Actions, remote repository creation, and push are not yet verified.
+- The first GitHub Actions run on commit `0c4da80` failed at typecheck because `createInitialState` was imported but unused in `apps/web/src/main.ts`. The import has been removed in the follow-up commit; verify the next workflow run. Build and Vitest are only reached if earlier steps pass.
 - No dependency lockfile exists. Generate and commit it after registry access is available.
 
 ## GitHub state
 
-- Authenticated GitHub account confirmed as `RufusTheDwarf`.
-- Existing repositories were inspected; no `Cookie-Dominion` / `Ovenfall` repository was found in the listed account repositories.
-- The available GitHub integration exposes repository inspection and file/commit operations but no create-repository operation. An empty private repository must be created through GitHub's web UI before remote publication.
-- No remote repository, push, or remote commit is claimed to exist.
+- GitHub repository: `RufusTheDwarf/cookie-dominion`, private, default branch `main`.
+- Project source, tests, documentation and CI workflow were published in commit `0c4da80` (`chore: publish Ovenfall vertical slice`).
+- The existing GitHub `LICENSE` file contains the MIT License. Confirm this licensing choice before any public release, because the original local project license file had been marked undecided.
