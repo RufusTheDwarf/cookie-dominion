@@ -1,26 +1,26 @@
 # Roadmap
 
-- [x] Phase 0: inspect available local tools and identify GitHub access blocker.
-- [x] Phase 1: compare Web and Roblox; choose Web/Phaser for portability and independent distribution.
-- [x] Phase 2: record platform, architecture and initial vertical-slice decisions.
-- [x] Phase 3: click-to-earn, deterministic machine economy, local save migration and capped offline earnings.
-- [x] Phase 4: CI workflow, economy tests, TypeScript check and production build.
-- [x] Phase 5: first 2D tycoon slice with movement, three floors, visible conveyor deliveries, collector, three worlds and rebirth progression.
-- [ ] Phase 6: hands-on browser smoke test, tune movement/camera/UI and verify the game on desktop and mobile viewports.
-- [ ] Phase 7: add further factory lines, upgrades and world-specific objectives.
-- [ ] Phase 8: design and test authoritative multiplayer sessions and server-backed saves.
-- [ ] Phase 9: deploy a public browser build and gather playtest feedback.
-- [ ] Phase 10: decide whether Tauri packaging has sufficient value.
+- [x] Phase 0–2: inspecter les outils, choisir Web/Phaser et définir l’architecture de départ.
+- [x] Phase 3: économie déterministe, machines, sauvegarde locale et progrès hors ligne plafonné.
+- [x] Phase 4: CI, tests unitaires, vérification TypeScript et build de production.
+- [x] Phase 5: tycoon 2D avec personnage contrôlable, trois étages, convoyeurs visibles, collecteur, trois mondes et rebirths.
+- [x] Phase 6: contrôles visibles (clavier, D-pad, clic pour se déplacer) et gestion des sauvegardes (export/import/effacement confirmé).
+- [ ] Phase 7: test manuel dans un navigateur, ajuster caméra/déplacements et vérifier différentes tailles d’écran.
+- [ ] Phase 8: ajouter des lignes d’usine, améliorations et objectifs spécifiques aux mondes.
+- [ ] Phase 9: concevoir et tester des sessions multijoueurs autoritaires et des sauvegardes cloud.
+- [ ] Phase 10: déployer une version web publique et organiser des tests de joueurs.
+- [ ] Phase 11: décider si le packaging Tauri a de la valeur.
 
-## Current slice acceptance criteria
+## Critères d’acceptation pour la tranche actuelle
 
-- Player can move in 2D with keyboard controls.
-- Player can travel among three floors and unlocked worlds.
-- Clicking or pressing Space earns starter cookies.
-- Machine purchases are gated by the current floor and displayed price.
-- Owned machines generate animated cookie packets on a conveyor; deliveries are credited as spendable cookies at the collector.
-- Rebirth resets the current factory run while increasing the permanent income multiplier and unlocking worlds at configured milestones.
-- Progress is saved locally and loaded on restart.
-- Offline production is capped at eight hours.
-- Legacy oven-only saves migrate, and corrupted saves do not crash startup.
-- CI runs typecheck, unit tests and a production build on pushes to main.
+- Le personnage peut se déplacer en 2D par clavier, commandes tactiles ou clic sur la carte.
+- Le personnage peut se rendre aux étages et aux mondes déverrouillés.
+- Le bouton de cookie et la barre d’espace donnent des cookies.
+- L’achat d’une machine est limité à son étage et au prix affiché.
+- Des cookies animés avancent sur le convoyeur vers le collecteur ; la production automatique est calculée par l’économie pour toutes les machines.
+- Le rebirth réinitialise les machines du run, conserve les gains à vie et augmente le multiplicateur permanent.
+- Les changements se sauvegardent automatiquement en local.
+- Export JSON, import depuis texte/fichier et effacement avec confirmation sont disponibles.
+- L’import rejette les données mal formées et migre l’ancien format où seuls les fours étaient stockés.
+- Les progrès hors ligne sont limités à huit heures.
+- CI exécute installation, typecheck, tests et build de production sur les commits vers main.

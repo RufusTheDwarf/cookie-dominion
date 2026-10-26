@@ -1,84 +1,67 @@
-<div align="center">
-
 # Ovenfall
 
-**Working title // not final, not trademark-cleared.**
+**Titre de travail — nom et marque non vérifiés.**
 
-A browser-first incremental bakery/tycoon prototype.
+Tycoon de boulangerie 2D jouable dans le navigateur, construit avec TypeScript, Phaser 3 et Vite.
 
-[![GitHub last commit](https://img.shields.io/github/last-commit/RufusTheDwarf/cookie-dominion?style=flat-square)](https://github.com/RufusTheDwarf/cookie-dominion/commits/main)
-[![GitHub repo size](https://img.shields.io/github/repo-size/RufusTheDwarf/cookie-dominion?style=flat-square)](https://github.com/RufusTheDwarf/cookie-dominion)
-[![Node.js](https://img.shields.io/badge/node-%3E%3D22-339933?style=flat-square&logo=node.js&logoColor=white)](https://nodejs.org/)
-[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![Phaser 3](https://img.shields.io/badge/Phaser-3-8A2BE2?style=flat-square)](https://phaser.io/)
-[![Vite](https://img.shields.io/badge/Vite-646CFF?style=flat-square&logo=vite&logoColor=white)](https://vitejs.dev/)
-[![Vitest](https://img.shields.io/badge/Vitest-6E9F18?style=flat-square&logo=vitest&logoColor=white)](https://vitest.dev/)
-[![Status](https://img.shields.io/badge/status-vertical%20slice-F6C453?style=flat-square)](#current-scope)
-[![License](https://img.shields.io/badge/license-TBD-lightgrey?style=flat-square)](#license)
+## Boucle de jeu
 
-</div>
+- Déplacement du personnage avec **WASD**, les **flèches**, les boutons directionnels à l’écran ou un clic sur la carte.
+- Approche-toi d’une machine, du portail ou des escaliers puis appuie sur **E** ou utilise le bouton **INTERAGIR**.
+- Achète des machines sur l’étage correspondant. Les cookies animés apparaissent sur le convoyeur et avancent vers le collecteur.
+- Les machines produisent des cookies automatiquement. Les gains sont calculés par l’économie du jeu et continuent sur les autres étages.
+- Trois étages, trois mondes, cinq types de machines et des rebirths qui multiplient durablement les revenus.
+- Le premier rebirth déverrouille Choco Moon ; trois rebirths déverrouillent Galaxy Oven.
+- Sauvegarde automatique locale, progrès hors ligne limité à huit heures, export de sauvegarde JSON, import depuis texte/fichier et effacement avec confirmation.
 
----
+## Contrôles
 
-## Current scope
-
-This repository is an **early vertical slice**, not the complete game. It validates the core loop:
-
-- Click or press **Space** to bake crumbs.
-- Buy **Brick Ovens** for passive production.
-- Local autosave and capped offline production.
-- Responsive browser UI and Phaser-rendered bakery floor.
-
-**Not yet included:** accounts, multiplayer, server persistence, tower defense, missions, exploration mini-games, or a Windows installer.
-
----
-
-## Tech stack
-
-| Layer | Choice |
+| Action | Contrôle |
 |---|---|
-| Language | TypeScript |
-| Game engine | Phaser 3 |
-| Build tool | Vite |
-| Tests | Vitest |
-| Hosting | Static web client (no backend yet) |
+| Se déplacer | WASD, flèches, D-pad à l’écran ou clic sur l’endroit de la carte |
+| Interagir avec une machine / un portail / les escaliers | E ou bouton INTERAGIR quand tu es proche |
+| Produire des cookies au début | Bouton FAIRE UN COOKIE ou barre d’espace |
+| Changer d’étage | Escaliers + E ou boutons d’étage |
+| Changer de monde | Portail + E ou boutons de monde après déblocage |
 
-The platform decision and trade-offs are documented in [`docs/PLATFORM_DECISION.md`](docs/PLATFORM_DECISION.md).
+## Sauvegarde et données
 
----
+Le panneau **Gestion de la partie** permet de :
 
-## Quick start
+- **Sauvegarder** immédiatement dans le stockage de ce navigateur.
+- **Exporter data** : produit un bloc JSON que tu peux copier et garder comme sauvegarde.
+- **Copier** : copie le bloc JSON lorsque le navigateur autorise l’accès au presse-papiers.
+- **Charger texte** : importe le bloc JSON collé dans le champ.
+- **Charger fichier** : importe un fichier JSON exporté.
+- **Effacer la partie** : demande confirmation, puis réinitialise cookies, machines, rebirths et mondes débloqués.
 
-### Option A // GitHub Codespaces (no local Node.js install)
+L’import contrôle le format pour éviter qu’un texte invalide remplace accidentellement la sauvegarde avec une partie vide. Les anciennes sauvegardes du prototype avec seulement le compteur de fours peuvent aussi être migrées. Les sauvegardes restent locales : elles ne sont pas synchronisées entre appareils.
 
-This repository includes a development container with Node.js 22 and npm.
+## Lancer dans le navigateur sans installer Node.js localement
 
-1. Sign in to GitHub.
-2. Open this repository.
-3. Select **Code → Codespaces → Create codespace on main**.
-4. Wait for the environment to finish preparing.
-5. In the terminal, run:
+Le dépôt privé contient une configuration GitHub Codespaces.
+
+1. Ouvre le dépôt, puis sélectionne **Code → Codespaces → Create codespace on main**.
+2. Dans le terminal intégré, exécute :
 
 ```bash
 npm run dev
 ```
 
-Vite should forward port `5173` and offer **Open in Browser**.
+3. Ouvre le port **5173** via **Open in Browser**.
 
-> Codespaces availability and usage quotas depend on your GitHub account and plan.
+La disponibilité et les quotas de Codespaces dépendent du compte GitHub.
 
-### Option B // Local install
+## Lancer en local
 
-**Requirements:** Node.js **22+** and npm **10+**.
+Prérequis : Node.js 22+ et npm 10+.
 
 ```bash
 npm install
 npm run dev
 ```
 
----
-
-## Verify the project
+## Vérifier le projet
 
 ```bash
 npm run typecheck
@@ -86,67 +69,29 @@ npm test
 npm run build
 ```
 
-These commands correspond to the scripts currently defined in `package.json`.
+Les vérifications automatiques de ces commandes sont exécutées par GitHub Actions sur les mises à jour de main.
 
----
+## Stack et limites
+
+| Couche | Technologie |
+|---|---|
+| Jeu 2D | Phaser 3 |
+| Langage | TypeScript |
+| Dev/build | Vite |
+| Tests | Vitest |
+| Sauvegarde actuelle | LocalStorage et fichier JSON |
+| Hébergement actuel | Prototype web ; aucun backend distant ni compte utilisateur |
+
+Multijoueur, sauvegardes cloud, quêtes, combat, serveur autoritaire et installateur Windows ne sont pas encore implémentés.
 
 ## Documentation
 
-- [`docs/PLATFORM_DECISION.md`](docs/PLATFORM_DECISION.md) // why Web + Phaser was chosen over Roblox, and the associated trade-offs.
-- [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) // module layout and technical structure.
-- [`docs/RESEARCH.md`](docs/RESEARCH.md) // background research and references.
-- [`docs/ROADMAP.md`](docs/ROADMAP.md) // phased plan from vertical slice to multiplayer and packaging.
-- [`docs/IMPLEMENTATION_STATUS.md`](docs/IMPLEMENTATION_STATUS.md) // what is actually implemented, with CI verification notes.
+- [Décision de plateforme](docs/PLATFORM_DECISION.md)
+- [Architecture](docs/ARCHITECTURE.md)
+- [Recherche technique](docs/RESEARCH.md)
+- [Roadmap](docs/ROADMAP.md)
+- [État d’implémentation](docs/IMPLEMENTATION_STATUS.md)
 
----
+## Licence
 
-## Roadmap (summary)
-
-The project is being built in narrow, validated phases rather than attempting the full feature set at once.
-
-| Phase | Focus |
-|---|---|
-| 0–2 | Tools inspection, platform choice, preliminary architecture, vertical-slice scope |
-| 3 | Validate click-to-earn, building purchase, passive production, save/load, offline cap |
-| 4 | CI, unit tests, browser smoke test, performance baseline |
-| 5 | Expand economy and data-driven buildings/missions |
-| 6 | Tower defense and exploration activities |
-| 7 | Authoritative multiplayer sessions |
-| 8 | Deploy Web build and test with external players |
-| 9 | Decide whether Tauri packaging has sufficient value |
-
-The detailed acceptance criteria for the current slice are in [`docs/ROADMAP.md`](docs/ROADMAP.md).
-
----
-
-## Known limitations
-
-- This is a **vertical slice**, not a complete game.
-- The name **Ovenfall** is a working title; trademark/domain/app-store clearance has not been performed.
-- Multiplayer, tower defense, missions, exploration, and the Windows installer are **planned but not yet implemented**.
-- The project currently targets a static web build; no backend or authoritative server exists yet.
-
----
-
-## License
-
-See [`LICENSE`](LICENSE) for the current license status. No final license has been chosen at this stage.
-
----
-
-## Contributing
-
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contribution guidelines and the current definition of done for the vertical slice.
-
----
-
-<div align="center">
-
-**Authors**
-
-[![RufusTheDwarf](https://img.shields.io/badge/author-RufusTheDwarf-3D405B?style=flat-square&logo=github&logoColor=white)](https://github.com/RufusTheDwarf)
-[![ChatGPT](https://img.shields.io/badge/co--author-ChatGPT-10A37F?style=flat-square&logo=openai&logoColor=white)](https://chatgpt.com/)
-
-<sub>Made by <a href="https://github.com/RufusTheDwarf">RufusTheDwarf</a> with <a href="https://chatgpt.com/">ChatGPT</a>.</sub>
-
-</div>
+Le dépôt comporte un fichier LICENSE avec la licence MIT. Confirme que c’est bien la licence voulue avant une publication publique.

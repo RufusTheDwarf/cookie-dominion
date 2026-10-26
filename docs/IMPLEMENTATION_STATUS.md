@@ -1,34 +1,32 @@
-# Implementation status — 2026-10-26
+# État d’implémentation — 2026-10-26
 
-## Current project state
+## État de la tranche actuelle
 
-| Path | Purpose | State | Verification |
+| Fichier | Rôle | État | Vérification |
 |---|---|---|---|
-| `apps/web/src/main.ts` | Phaser map, keyboard movement, floors, worlds, portals, machines and moving cookies | Implemented in the current tycoon pass | Typecheck and Vite build passed; hands-on browser smoke test remains |
-| `apps/web/src/economy.ts` | Machine costs/output, world multipliers, rebirths, save migration and offline progress | Implemented | Vitest suite passed on commit `3204fc2` |
-| `apps/web/src/style.css` | Responsive tycoon HUD and factory panels | Implemented | Source review only; visual viewport test pending |
-| `tests/economy.test.ts` | Economy, floor/world locks, rebirth and migration tests | Expanded | Vitest passed on commit `3204fc2` |
-| `.devcontainer/devcontainer.json` | Browser-based development environment for Node.js/npm | Present | Codespaces environment creation not manually tested |
-| `.github/workflows/ci.yml` | GitHub Actions install, typecheck, test and build | Present | CI passed all steps on feature commit `3204fc2` |
-| `docs/ROADMAP.md` | Development milestones | Updated | Source reviewed |
+| apps/web/src/main.ts | Carte Phaser, déplacement, étages, mondes, machines, convoyeur, HUD, sauvegardes | Implémenté | TypeScript, tests et build passés sur le commit gameplay précédent ; test visuel manuel restant |
+| apps/web/src/economy.ts | Coûts/revenus des machines, multiplicateurs, rebirth, sauvegarde locale, import/export et migration | Implémenté | Tests Vitest passés |
+| apps/web/src/style.css | HUD responsive, D-pad, gestion des sauvegardes | Implémenté | Vérification source ; test visuel de différentes tailles restant |
+| tests/economy.test.ts | Économie, verrous d’étage/monde, rebirth, migration et import/export | Étendu | Tests Vitest passés |
+| .devcontainer/devcontainer.json | Environnement Codespaces pour Node.js/npm | Présent | Codespaces non lancé manuellement par l’assistant |
+| .github/workflows/ci.yml | Installation, typecheck, tests et build | Présent | CI passée sur le commit gameplay 152bc668 |
 
-## Design choices in this pass
+## Comportement de cette version
 
-- Web/Phaser remains the target so the game can run in a browser without a Roblox-only release.
-- The game has three floors and three worlds; each machine belongs to a floor.
-- Cookie packets visibly travel along the belt to the collector. The value of each delivered packet is credited as spendable cookies.
-- Rebirth resets owned machines and spendable/run earnings, keeps lifetime earnings and raises income by ×1.75.
-- Choco Moon unlocks after the first rebirth; Galaxy Oven unlocks after the third. Worlds scale costs and production at different rates.
-- The existing oven-only local save format is migrated into the new machine format when loaded.
+- Le personnage est volontairement plus visible : contour lumineux, étiquette « TOI » et position affichée dans le HUD.
+- Le déplacement est possible avec WASD, les flèches, le D-pad à l’écran et un clic sur la carte.
+- Le bouton E / INTERAGIR sert quand le personnage est proche d’une machine, des escaliers ou d’un portail.
+- La production automatique est calculée par le modèle économique, indépendamment des animations qui montrent les cookies en transit. Cela évite de compter deux fois les revenus.
+- Le panneau Gestion de la partie permet la sauvegarde locale, l’export JSON, la copie, l’import de texte/fichier et l’effacement confirmé.
+- L’import valide la structure avant de remplacer l’état courant et prend en charge la migration de l’ancien format « fours uniquement ».
 
-## Verification notes
+## Vérification
 
-- Before this feature pass, GitHub Actions passed installation, strict TypeScript checking, Vitest and the Vite production build.
-- GitHub Actions on feature commit `3204fc2` passed npm install, strict TypeScript check, Vitest and Vite production build.
-- A real browser visual/playtest has not yet been performed by the assistant. Verify movement, stairs, portal access, machine purchases, packet delivery, rebirth and save/load in Codespaces.
-- Local builds require Node.js 22+ and npm 10+. The included Codespaces setup is intended for users who do not want to install Node.js on their PC.
+- GitHub Actions sur le commit 152bc668 a réussi l’installation npm, le typecheck TypeScript, les tests Vitest et le build Vite.
+- Le test visuel manuel dans un vrai navigateur n’a pas encore été effectué par l’assistant.
+- La sauvegarde actuelle reste locale au navigateur ; aucun backend distant, compte ou synchronisation inter-appareils n’existe.
 
-## Repository state
+## Dépôt
 
-- Repository: `RufusTheDwarf/cookie-dominion` (private; default branch `main`).
-- Existing `LICENSE` file contains the MIT License. Confirm this remains the intended license before a public release.
+- Dépôt privé : RufusTheDwarf/cookie-dominion, branche main.
+- Le fichier LICENSE contient la licence MIT. Confirmer le choix avant toute publication publique.
