@@ -4,6 +4,7 @@ import {
   buyMachine,
   buyUpgrade,
   canClaimMission,
+  canUnlockFloor,
   canRebirth,
   canTotalRebirth,
   canCompleteCustomerOrder,
@@ -13,6 +14,7 @@ import {
   customerOrderCost,
   customerOrderReward,
   enterFloor,
+  floorUnlockCost,
   exportSaveFile,
   enterWorld,
   ESSENCE_PRESTIGE_VALUE,
@@ -33,6 +35,7 @@ import {
   rebirthCost,
   rebirthMultiplier,
   totalRebirthRequiredLevel,
+  unlockFloor,
   upgradeCost,
   UPGRADES,
   WORLDS,
@@ -156,8 +159,8 @@ app.innerHTML = `
           <div class="nav-heading"><span class="eyebrow">ÉTAGES</span><span class="muted">Escaliers sur la carte ou accès rapide</span></div>
           <div class="nav-buttons">
             <button class="nav-button is-active" data-floor="0">01 · Atelier</button>
-            <button class="nav-button" data-floor="1">02 · Production</button>
-            <button class="nav-button" data-floor="2">03 · Laboratoire</button>
+            <button class="nav-button" data-floor="1" hidden disabled>02 · Escaliers</button>
+            <button class="nav-button" data-floor="2" hidden disabled>03 · Laboratoire</button>
           </div>
         </div>
         <div class="nav-block">
@@ -588,6 +591,7 @@ function renderMachineCards(): void {
   const signature = [
     state.currentWorld,
     state.currentFloor,
+    state.unlockedFloors.join(','),
     ...MACHINES.map((machine) => [
       machine.id,
       state.machines[state.currentWorld][machine.id],
@@ -597,7 +601,7 @@ function renderMachineCards(): void {
   ].join('|');
   if (signature === machineUiKey) return;
   machineUiKey = signature;
-  $('machine-list').innerHTML = MACHINES.map((machine) => {
+  $('machine-list').innerHTML = MACHINES.filter((machine) => state.unlockedFloors.includes(machine.floor)).map((machine) => {
     const owned = state.machines[state.currentWorld][machine.id];
     const cost = machineCost(state, machine.id);
     const inaccessible = machine.floor !== state.currentFloor;
@@ -677,7 +681,12 @@ function render(): void {
       : 'Chaque essence vaut 1 000 000 points de valeur d’empire et ajoute +75 % de rendement. Gagne encore ' + format(Math.max(0, rebirthCost(state.rebirths) - state.runCrumbsEarned)) + ' parfums avant l’ascension totale.';
   document.querySelectorAll<HTMLButtonElement>('[data-floor]').forEach((button) => {
     const floor = Number(button.dataset.floor);
+    const unlocked = state.unlockedFloors.includes(floor);
+    button.hidden = !unlocked;
+    button.disabled = !unlocked;
     button.classList.toggle('is-active', floor === state.currentFloor);
+    if (floor === 1) button.textContent = '02 · Atelier haut';
+    if (floor === 2) button.textContent = '03 · Laboratoire';
   });
   renderUpgradeCards();
   renderMissionCards();
@@ -744,7 +753,12 @@ function changeWorld(worldId: WorldId): void {
 }
 
 function changeFloor(floor: number): void {
-  state = enterFloor(state, floor);
+  const next = enterFloor(state, floor);
+  if (next === state) {
+    setStatus('Cet étage est encore fermé. Construis les escaliers depuis l’étage précédent.');
+    return;
+  }
+  state = next;
   render();
   bakeryScene?.loadFloor();
   save();
@@ -838,12 +852,24 @@ class TycoonScene extends Phaser.Scene {
     this.add.rectangle(MAP_WIDTH / 2, MAP_HEIGHT / 2, MAP_WIDTH, MAP_HEIGHT, world.background);
     const floor = this.add.graphics();
     floor.fillStyle(world.floorColor, 1);
-    floor.fillRoundedRect(70, 70, 1060, 620, 18);
-    floor.lineStyle(4, world.accent, 0.75);
-    floor.strokeRoundedRect(70, 70, 1060, 620, 18);
-    floor.lineStyle(1, world.accent, 0.14);
-    for (let x = 88; x < 1120; x += 36) floor.lineBetween(x, 80, x, 680);
-    for (let y = 88; y < 680; y += 36) floor.lineBetween(80, y, 1120, y);
+    floor.fillRect(70, 70, 1060, 620);
+    floor.lineStyle(2, 0x625842, 0.28);
+    floor.strokeRect(70, 70, 1060, 620);
+    // Quiet plank seams instead of a uniform tile grid; slight alternation keeps the room handmade.
+    floor.lineStyle(1, 0x6a5b44, 0.16);
+    for (let y = 116; y < 685; y += 48) {
+      floor.lineBetween(72, y, 1128, y);
+      const offset = (Math.floor(y / 48) % 2) * 45;
+      for (let x = 115 + offset; x < 1120; x += 135) {
+        floor.lineBetween(x, y - 48, x, y);
+      }
+    }
+    floor.fillStyle(0x77674e, 0.05);
+    for (let index = 0; index < 74; index += 1) {
+      const x = 88 + ((index * 137) % 1010);
+      const y = 88 + ((index * 79) % 580);
+      floor.fillCircle(x, y, index % 3 === 0 ? 2 : 1);
+    }
     this.exteriorWalls = this.add.graphics().setDepth(8);
 
     this.add.text(110, 105, world.name.toUpperCase() + ' / FLOOR 0' + (state.currentFloor + 1), {
@@ -852,14 +878,13 @@ class TycoonScene extends Phaser.Scene {
     }).setDepth(3);
 
     if (state.rampBuilt) {
-      this.drawConveyor(world.accent, world.belt);
-      this.drawCollector(world.accent);
-      this.drawPortal(world.accent);
-      this.drawStairs(world.accent);
+      this.drawBuiltRamp(world.accent);
       this.drawFloorDecoration(world.accent);
-      this.drawCharacters(world.accent);
       this.drawExteriorExtensions(world.accent);
       this.refreshMachines();
+      if (state.unlockedWorlds.length > 1) this.drawPortal(world.accent);
+      if (state.unlockedFloors.includes(state.currentFloor + 1)) this.drawStairs(world.accent);
+      else this.drawFloorBuildPad(world.accent);
     } else {
       this.drawRampBuildButton();
     }
