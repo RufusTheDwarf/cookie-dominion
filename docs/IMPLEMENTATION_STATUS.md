@@ -10,7 +10,8 @@
 | Flacons animés | Implémenté | Flacons colorés sur la ligne d’embouteillage ; l’animation ne double pas les revenus |
 | Mondes | Implémenté | Jardin de Verre, Maison d’Ambre et Palais Astral |
 | Améliorations | Implémenté | Rendement, puissance de création et réduction des coûts, dix niveaux chacun |
-| Contrats | Implémenté | Cinq objectifs avec progression et récompenses réclamables |
+| Contrats | Implémenté | Six objectifs avec progression et récompenses réclamables, dont le premier client VIP |
+| Commandes VIP | Implémenté | Approche le client et appuie sur E, dépense de préparation, paiement croissant et progression sauvegardée |
 | Flacon mythique | Implémenté | Fenêtre de récupération, récompense instantanée et production ×2 pendant 20 secondes |
 | Rebirth normal | Implémenté | Réinitialise les machines et le solde du run, conserve les recherches et augmente le multiplicateur |
 | Ascension totale | Implémenté | Après 10 rebirths normaux ; réinitialise la progression normale et récompense des Essences originelles |
@@ -27,7 +28,7 @@ Les sauvegardes restent locales au navigateur. L’import/export JSON sert de tr
 
 ## Vérifications
 
-- Tests Vitest : économie, machines, recherches, contrats, rebirth normal, ascension totale, essences, migration et import/export.
+- Tests Vitest : économie, machines, recherches, contrats, commandes VIP, rebirth normal, ascension totale, essences, migration et import/export.
 - GitHub Actions : installation npm, typecheck TypeScript, tests et build Vite.
 - Test visuel manuel dans un vrai navigateur : à effectuer.
 - Vérifications finales de l’interface sur ordinateur, tablette et petit écran : à effectuer.
