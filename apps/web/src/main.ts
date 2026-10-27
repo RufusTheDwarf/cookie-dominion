@@ -331,7 +331,7 @@ function renderGoldenCookie(now: number): void {
 
   button.disabled = true;
   button.classList.remove('is-ready');
-  status.textContent = 'Prochain bonus dans ' + Math.max(0, Math.ceil((goldenReadyAt - now) / 1000)) + ' s';
+  status.textContent = 'Prochain bonus dans ' + Math.max(0, Math.ceil((goldenReadyAt - now) / 1000)) + ' s · récupérés : ' + goldenCookiesClaimed;
 }
 
 function claimGoldenCookie(): void {
