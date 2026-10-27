@@ -4,7 +4,6 @@ import {
   buyMachine,
   buyUpgrade,
   canClaimMission,
-  canUnlockFloor,
   canRebirth,
   canTotalRebirth,
   canCompleteCustomerOrder,
@@ -1021,7 +1020,7 @@ class TycoonScene extends Phaser.Scene {
     const bottleNeck = this.add.rectangle(27, -4, 5, 5, 0xd5bf8d).setStrokeStyle(1, ink);
     const bottleCap = this.add.rectangle(27, -8, 7, 4, 0x6d503b).setStrokeStyle(1, ink);
     this.playerFaceParts = { leftEye: eyeLeft, rightEye: eyeRight, nose, hairLock, hair, hairCurl, browLeft, browRight, cheekLeft, cheekRight, bottle, bottleLabel, bottleNeck, bottleCap };
-    this.playerLimbs = { leftLeg, rightLeg, leftArm, rightArm };
+    this.playerLimbs = { leftLeg: legLeft, rightLeg: legRight, leftArm: armLeft, rightArm: armRight };
     const player = this.add.container(x, y, [
       shadow, legLeft, legRight, shoeLeft, shoeRight, body, apron, apronBib, apronPocket,
       strapLeft, strapRight, armLeft, armRight, cuffLeft, cuffRight, neck, head, hair, hairLock,
@@ -1122,10 +1121,9 @@ class TycoonScene extends Phaser.Scene {
     line.lineBetween(250, 449, 950, 449);
     line.lineBetween(250, 500, 950, 500);
     for (let x = 260; x < 945; x += 58) {
-      const roller = this.add.ellipse(x, 503, 8, 8, 0x796c54).setStrokeStyle(1, 0x40382e).setDepth(2);
-
+      this.add.ellipse(x, 503, 8, 8, 0x796c54).setStrokeStyle(1, 0x40382e).setDepth(2);
     }
-    const label = this.add.text(600, 526, 'LIGNE D’EMBOUTEILLAGE', {
+    this.add.text(600, 526, 'LIGNE D’EMBOUTEILLAGE', {
       fontFamily: 'Georgia, serif', fontSize: '10px', color: '#45392e',
       backgroundColor: '#e8dec5', padding: { x: 7, y: 3 }, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(2);
@@ -1165,6 +1163,8 @@ class TycoonScene extends Phaser.Scene {
     stairs.fillRect(990, 569, 96, 72);
     stairs.lineStyle(2, 0x40382e, 1);
     stairs.strokeRect(990, 569, 96, 72);
+    stairs.lineStyle(1, accent, 0.72);
+    stairs.lineBetween(998, 575, 1078, 575);
     stairs.fillStyle(0xc0a47a, 1);
     for (let y = 578; y <= 632; y += 11) {
       stairs.fillRect(998, y, 80, 5);
@@ -1218,7 +1218,6 @@ class TycoonScene extends Phaser.Scene {
     const ink = 0x443b30;
 
     const keep = (object: Phaser.GameObjects.GameObject) => {
-      object.setDepth(5);
       this.machineObjects.push(object);
       return object;
     };
@@ -1446,7 +1445,7 @@ class TycoonScene extends Phaser.Scene {
       }
       const opened = unlockFloor(state, nextFloor);
       if (opened === state) {
-        setStatus('Les escaliers coûtent ' + format(floorUnlockCost(nextFloor)) + ' parfums. Il t’en manque ' + format(Math.max(0, floorUnlockCost(nextFloor) - state.crumbs) + '.'));
+        setStatus('Les escaliers coûtent ' + format(floorUnlockCost(nextFloor)) + ' parfums. Il t’en manque ' + format(Math.max(0, floorUnlockCost(nextFloor) - state.crumbs)) + '.');
         return;
       }
       state = opened;
