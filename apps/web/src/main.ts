@@ -542,10 +542,10 @@ function render(): void {
   $('total-rebirth-reward').textContent = '+' + format(1 + state.totalRebirths) + ' ESSENCE' + (1 + state.totalRebirths > 1 ? 'S' : '');
   $('total-rebirth-button').toggleAttribute('disabled', !canTotalRebirth(state));
   $('total-rebirth-info').textContent = state.rebirths < totalRequired
-    ? 'Atteins ' + totalRequired + ' rebirths normaux. Progression : ' + state.rebirths + ' / ' + totalRequired + '.'
+    ? 'Atteins ' + totalRequired + ' rebirths normaux. Progression : ' + state.rebirths + ' / ' + totalRequired + '. Une Essence vaut 1 000 000 points de valeur d’empire et ajoute +75 % de rendement.'
     : canTotalRebirth(state)
-      ? 'Ascension prête. Tout sera effacé sauf tes Essences originelles et ton nombre d’ascensions.'
-      : 'Niveau atteint. Gagne encore ' + format(Math.max(0, rebirthCost(state.rebirths) - state.runCrumbsEarned)) + ' parfums avant l’ascension totale.';
+      ? 'Ascension prête : tout sera effacé sauf tes Essences originelles et ton nombre d’ascensions. Tu recevras ' + (1 + state.totalRebirths) + ' essence(s).'
+      : 'Chaque essence vaut 1 000 000 points de valeur d’empire et ajoute +75 % de rendement. Gagne encore ' + format(Math.max(0, rebirthCost(state.rebirths) - state.runCrumbsEarned)) + ' parfums avant l’ascension totale.';
   document.querySelectorAll<HTMLButtonElement>('[data-floor]').forEach((button) => {
     const floor = Number(button.dataset.floor);
     button.classList.toggle('is-active', floor === state.currentFloor);
@@ -785,7 +785,7 @@ class TycoonScene extends Phaser.Scene {
     const eyeLeft = this.add.rectangle(-6, -29, 3, 4, 0x243a2a);
     const eyeRight = this.add.rectangle(6, -29, 3, 4, 0x243a2a);
     const nose = this.add.rectangle(0, -24, 4, 3, 0xd99c75);
-    const collar = this.add.triangle(0, -15, -7, -5, 7, -5, 0xfffdf0).setStrokeStyle(1, 0x324c39);
+    const collar = this.add.rectangle(0, -14, 12, 5, 0xfffdf0).setStrokeStyle(1, 0x324c39);
     const miniBottle = this.add.rectangle(28, 5, 10, 15, 0x81d8c3).setStrokeStyle(2, 0x24543e);
     const bottleNeck = this.add.rectangle(28, -5, 5, 5, 0xffefb5).setStrokeStyle(1, 0x24543e);
     const bottleCap = this.add.rectangle(28, -9, 7, 4, 0xb88752).setStrokeStyle(1, 0x553d29);
