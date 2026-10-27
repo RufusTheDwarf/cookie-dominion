@@ -82,7 +82,7 @@ app.innerHTML = `
           <div><div class="eyebrow">TON ATELIER</div><h2>JEUNE PARFUMEUR</h2><small id="owner-rank">Maison indépendante · Rang 1</small></div>
         </div>
         <div class="manual-production">
-          <div class="manual-label"><span>CRÉATION MANUELLE</span><strong>+<b id="manual-value">10</b></strong></div>
+          <div class="manual-label"><span>CRÉATION MANUELLE</span><strong>+<b id="manual-value">10</b> parfums</strong></div>
           <button class="primary" id="bake-button"><span class="spray-icon">✦</span><span>CRÉER UN PARFUM</span><span class="button-value">+10</span></button>
           <small>Chaque flacon vendu finance la prochaine machine.</small>
         </div>
@@ -105,7 +105,7 @@ app.innerHTML = `
           <div class="prestige-heading"><span class="eyebrow">PRESTIGE II</span><span class="prestige-pill ultimate-pill">ENDGAME</span></div>
           <h2>ASCENSION TOTALE</h2>
           <div class="total-rebirth-level"><strong id="total-rebirth-level">REBIRTHS 0 / 10</strong><span id="essence-multiplier">ESSENCE ×1,00</span></div>
-          <p class="prestige-desc">Efface toute la progression normale. En échange, gagne une Essence originelle, une monnaie rare qui augmente durablement tes revenus.</p>
+          <p class="prestige-desc" id="total-rebirth-info">Efface la progression normale. L’Essence originelle donne un bonus de rendement permanent.</p>
           <button class="total-rebirth-button" id="total-rebirth-button" type="button" disabled><span>TOUT SACRIFIER</span><strong id="total-rebirth-reward">+1 ESSENCE</strong></button>
         </section>
         <div class="rule"></div>
@@ -235,7 +235,7 @@ async function copySave(): Promise<void> {
 function loadSaveText(raw: string): boolean {
   const imported = parseImportedSave(raw);
   if (!imported) {
-    setStatus('Import refusé : ce texte ne contient pas une sauvegarde Ovenfall valide.');
+    setStatus('Import refusé : ce texte ne contient pas une sauvegarde Parfum Empire valide.');
     return false;
   }
   state = imported;
@@ -373,7 +373,7 @@ function claimGoldenCookie(): void {
   renderGoldenCookie(now);
   save();
   bakeryScene?.pulsePlayer();
-  setStatus('Cookie doré récupéré : +' + format(reward) + ' cookies et production ×2 pendant 20 secondes.');
+  setStatus('Flacon mythique récupéré : +' + format(reward) + ' parfums et ventes ×2 pendant 20 secondes.');
 }
 
 function renderUpgradeCards(): void {
@@ -437,7 +437,7 @@ function buyUpgradeById(upgradeId: UpgradeId): void {
   if (state === previous) {
     setStatus(state.upgrades[upgradeId] >= MAX_UPGRADE_LEVEL
       ? 'Cette amélioration est déjà au niveau maximal.'
-      : 'Pas assez de cookies pour cette amélioration.');
+      : 'Pas assez de parfums pour cette amélioration.');
     return;
   }
   render();
@@ -456,7 +456,7 @@ function claimMissionReward(missionId: MissionId): void {
   const mission = MISSION_DEFINITIONS.find((item) => item.id === missionId);
   render();
   save();
-  if (mission) setStatus('Contrat terminé : +' + format(mission.reward) + ' cookies.');
+  if (mission) setStatus('Contrat terminé : +' + format(mission.reward) + ' parfums.');
 }
 
 function renderMachineCards(): void {
@@ -570,7 +570,7 @@ function buyMachineById(machineId: MachineId): void {
     const machine = getMachine(machineId);
     setStatus(machine.floor !== state.currentFloor
       ? 'Passe à l’étage ' + (machine.floor + 1) + ' pour acheter cette machine.'
-      : 'Pas assez de cookies pour cette machine.');
+      : 'Pas assez de parfums pour cet équipement.');
     return;
   }
   render();
@@ -793,7 +793,7 @@ class TycoonScene extends Phaser.Scene {
     collector.add(this.add.rectangle(0, 8, 112, 105, 0x12100e).setStrokeStyle(3, accent));
     collector.add(this.add.rectangle(0, -12, 90, 45, accent, 0.9));
     collector.add(this.add.rectangle(0, -12, 65, 22, 0x211811).setStrokeStyle(2, 0xf7e0b1));
-    collector.add(this.add.text(0, -12, 'COOKIE', {fontFamily:'monospace',fontSize:'10px',fontStyle:'bold',color:'#fff0d9'}).setOrigin(0.5));
+    collector.add(this.add.text(0, -12, 'PARFUM', {fontFamily:'monospace',fontSize:'10px',fontStyle:'bold',color:'#fff0d9'}).setOrigin(0.5));
     collector.add(this.add.text(0, 34, 'COLLECTEUR', {fontFamily:'monospace',fontSize:'10px',color:'#f3d7a6'}).setOrigin(0.5));
     collector.setDepth(5);
     this.collectorLabel = this.add.text(1000, 410, '0 / s', {
@@ -982,11 +982,11 @@ function animationTick(now: number): void {
   if (goldenDeadline === 0 && now >= goldenReadyAt && now >= goldenBoostUntil) {
     goldenDeadline = now + 12_000;
     goldenReadyAt = Number.POSITIVE_INFINITY;
-    setStatus('Un cookie doré est apparu ! Réclame-le avant qu’il disparaisse.');
+    setStatus('Un flacon mythique apparaît ! Récupère-le avant qu’il disparaisse.');
   } else if (goldenDeadline > 0 && now >= goldenDeadline) {
     goldenDeadline = 0;
     goldenReadyAt = now + 45_000 + Math.random() * 25_000;
-    setStatus('Le cookie doré a disparu. Un autre arrivera bientôt.');
+    setStatus('Le flacon mythique a disparu. Un autre arrivera bientôt.');
   }
   renderGoldenCookie(now);
   const boostMultiplier = now < goldenBoostUntil ? 2 : 1;
