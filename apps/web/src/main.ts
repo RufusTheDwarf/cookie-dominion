@@ -9,6 +9,7 @@ import {
   canTotalRebirth,
   canCompleteCustomerOrder,
   claimMission,
+  collectHerb,
   createInitialState,
   completeCustomerOrder,
   customerOrderCost,
@@ -18,6 +19,7 @@ import {
   exportSaveFile,
   enterWorld,
   ESSENCE_PRESTIGE_VALUE,
+  HERB_CLICKS_PER_PERFUME,
   essenceMultiplier,
   getMachine,
   getWorld,
@@ -51,6 +53,10 @@ import './style.css';
 const SAVE_KEY = 'cookie-dominion-save-v1';
 const MAP_WIDTH = 1800;
 const MAP_HEIGHT = 1200;
+const STAIRS_X = 940;
+const STAIRS_Y = 520;
+const ROOM_BOUNDS = { left: 165, right: 1000, top: 220, bottom: 552 };
+const GATE_BOUNDS = { top: 335, bottom: 435 };
 const DARK_MODE_KEY = 'parfum-empire-dark-mode-v1';
 const INTRO_TUTORIAL_KEY = 'parfum-empire-intro-tutorial-v1';
 const COACHMARKS_KEY = 'parfum-empire-ui-coachmarks-v1';
@@ -97,9 +103,9 @@ app.innerHTML = `
           <div><div class="eyebrow">TON ATELIER</div><h2>JEUNE PARFUMEUR</h2><small id="owner-rank">Maison indépendante · Rang 1</small></div>
         </div>
         <div id="manual-production" class="manual-production">
-          <div class="manual-label"><span>CRÉATION MANUELLE</span><strong>+<b id="manual-value">10</b> parfums</strong></div>
-          <button class="primary" id="bake-button"><span class="spray-icon">✦</span><span>CRÉER UN PARFUM</span><span class="button-value">+10</span></button>
-          <small>Chaque flacon vendu finance la prochaine machine.</small>
+          <div class="manual-label"><span>RÉCOLTE D’HERBES</span><strong><b id="manual-value">1</b> parfum / recette</strong></div>
+          <button class="primary" id="bake-button"><span class="spray-icon">✦</span><span>CUEILLIR DES HERBES</span><span class="button-value">0/5</span></button>
+          <small>Chaque clic récolte une herbe. Il en faut cinq pour composer un parfum ; les améliorations augmentent le rendement d’une recette.</small>
         </div>
         <section id="customer-order-panel" class="customer-order-card" hidden>
           <div class="order-heading"><span class="eyebrow">CLIENT VIP</span><span class="order-count">LIVRAISONS <strong id="orders-completed">0</strong></span></div>
@@ -949,7 +955,7 @@ function render(): void {
     ? 'Commande prête : rejoins le client sur la carte et appuie sur E pour livrer.'
     : 'Il manque ' + format(customerOrderCost(state) - state.crumbs) + ' parfums pour préparer cette commande.';
   const bakeValue = $('bake-button').querySelector('.button-value');
-  if (bakeValue) bakeValue.textContent = '+' + format(manualCookieValue(state));
+  if (bakeValue) bakeValue.textContent = state.herbClicks + '/' + HERB_CLICKS_PER_PERFUME;
   $('world-name').textContent = world.name;
   $('world-tagline').textContent = world.tagline.toUpperCase();
   $('essence-total').textContent = format(state.essences);
@@ -993,10 +999,17 @@ function render(): void {
 
 function bake(): void {
   if (gameIsPaused || !state.rampBuilt) return;
-  state = addCrumbs(state, manualCookieValue(state));
+  const result = collectHerb(state);
+  state = result.state;
   render();
   bakeryScene?.pulsePlayer();
   saveSoon();
+  if (result.perfumeMade > 0) {
+    setStatus('Recette terminée : +' + format(result.perfumeMade) + ' parfum(s). Tu peux réutiliser les cinq herbes.');
+  } else {
+    setStatus('Herbe récoltée : ' + result.herbClicks + '/' + HERB_CLICKS_PER_PERFUME + '. Encore ' +
+      (HERB_CLICKS_PER_PERFUME - result.herbClicks) + ' clic(s) avant de composer un parfum.');
+  }
 }
 
 function completeVipOrder(): void {
@@ -1173,11 +1186,15 @@ class TycoonScene extends Phaser.Scene {
     }).setDepth(3);
 
     if (state.rampBuilt) {
-      this.drawBuiltRamp();
-      this.drawExteriorExtensions(world.accent);
+      if (state.currentFloor === 0) {
+        this.drawBuiltRamp();
+        this.drawExteriorExtensions(world.accent);
+      }
       this.refreshMachines();
-      if (state.unlockedWorlds.length > 1) this.drawPortal(world.accent);
-      if (state.currentFloor < 2 && state.unlockedFloors.includes(state.currentFloor + 1)) this.drawStairs(world.accent);
+      if (state.unlockedWorlds.length > 1 && state.currentFloor === 0) this.drawPortal(world.accent);
+      if (state.currentFloor === 2 || (state.currentFloor < 2 && state.unlockedFloors.includes(state.currentFloor + 1))) {
+        this.drawStairs(world.accent);
+      }
     } else {
       this.drawLandPurchaseButton();
     }
@@ -1255,8 +1272,17 @@ class TycoonScene extends Phaser.Scene {
       this.playerLimbs.leftArm.rotation = 0;
       this.playerLimbs.rightArm.rotation = 0;
     }
-    this.player.x = Phaser.Math.Clamp(this.player.x + vx * speed * delta / 1000, 24, MAP_WIDTH - 24);
-    this.player.y = Phaser.Math.Clamp(this.player.y + vy * speed * delta / 1000, 24, MAP_HEIGHT - 24);
+    const previousX = this.player.x;
+    const previousY = this.player.y;
+    const nextX = Phaser.Math.Clamp(previousX + vx * speed * delta / 1000, 24, MAP_WIDTH - 24);
+    const nextY = Phaser.Math.Clamp(previousY + vy * speed * delta / 1000, 24, MAP_HEIGHT - 24);
+    if (this.canMoveTo(nextX, this.player.y)) this.player.x = nextX;
+    if (this.canMoveTo(this.player.x, nextY)) this.player.y = nextY;
+    // A click-to-move target should not make the character push forever against a wall.
+    // When one axis is blocked but the other advances, keep moving around the corner.
+    if (this.moveTarget && Math.abs(this.player.x - previousX) < 0.01 && Math.abs(this.player.y - previousY) < 0.01) {
+      this.moveTarget = null;
+    }
     if (this.moveTarget && Phaser.Math.Distance.Between(this.player.x, this.player.y, this.moveTarget.x, this.moveTarget.y) < 8) {
       this.moveTarget = null;
     }
@@ -1268,6 +1294,29 @@ class TycoonScene extends Phaser.Scene {
     }
     this.updateInteractionPrompt();
     this.checkInteract();
+  }
+
+  private canMoveTo(x: number, y: number): boolean {
+    if (x < 24 || x > MAP_WIDTH - 24 || y < 24 || y > MAP_HEIGHT - 24) return false;
+    const insideRoom = (px: number, py: number) =>
+      px >= ROOM_BOUNDS.left && px <= ROOM_BOUNDS.right &&
+      py >= ROOM_BOUNDS.top && py <= ROOM_BOUNDS.bottom;
+
+    // Upper floors are enclosed by construction: the player must use the stairs
+    // or the floor navigation instead of walking off the map into the garden.
+    if (state.currentFloor > 0) return insideRoom(x, y);
+    if (!state.wallsBuilt) return true;
+
+    const currentInside = insideRoom(this.player.x, this.player.y);
+    const targetInside = insideRoom(x, y);
+    if (currentInside === targetInside) return true;
+
+    // The ground-floor building has a single doorway on its eastern wall.
+    // All other wall segments are solid, including corners.
+    const insideDoorway = y >= GATE_BOUNDS.top && y <= GATE_BOUNDS.bottom;
+    const crossingEastWall = Math.max(this.player.x, x) >= ROOM_BOUNDS.right - 18 &&
+      Math.min(this.player.x, x) <= ROOM_BOUNDS.right + 18;
+    return insideDoorway && crossingEastWall;
   }
 
   private createPlayer(x: number, y: number, accent: number): Phaser.GameObjects.Container {
@@ -1464,21 +1513,25 @@ class TycoonScene extends Phaser.Scene {
 
   private drawStairs(accent: number): void {
     const stairs = this.add.graphics().setDepth(4);
+    const left = STAIRS_X - 49;
+    const top = STAIRS_Y - 43;
     stairs.fillStyle(0x554334, 0.18);
-    stairs.fillRect(988, 575, 100, 76);
+    stairs.fillRect(left - 2, top + 6, 100, 76);
     stairs.fillStyle(0x8b6c4a, 1);
-    stairs.fillRect(990, 569, 96, 72);
+    stairs.fillRect(left, top, 96, 72);
     stairs.lineStyle(2, 0x40382e, 1);
-    stairs.strokeRect(990, 569, 96, 72);
+    stairs.strokeRect(left, top, 96, 72);
     stairs.lineStyle(1, accent, 0.72);
-    stairs.lineBetween(998, 575, 1078, 575);
+    stairs.lineBetween(left + 8, top + 6, left + 88, top + 6);
     stairs.fillStyle(0xc0a47a, 1);
-    for (let y = 578; y <= 632; y += 11) {
-      stairs.fillRect(998, y, 80, 5);
+    for (let y = top + 9; y <= top + 63; y += 11) {
+      stairs.fillRect(left + 8, y, 80, 5);
       stairs.lineStyle(1, 0x5e4835, 0.9);
-      stairs.lineBetween(998, y + 5, 1078, y + 5);
+      stairs.lineBetween(left + 8, y + 5, left + 88, y + 5);
     }
-    this.add.text(1037, 660, 'ÉTAGES · E', {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#40382e',backgroundColor:'#e8dec5',padding:{x:5,y:3}}).setOrigin(0.5).setDepth(4);
+    this.add.text(STAIRS_X, STAIRS_Y + 49, state.currentFloor === 2 ? 'DESCENDRE · E' : 'ÉTAGES · E', {
+      fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#40382e',backgroundColor:'#e8dec5',padding:{x:5,y:3},
+    }).setOrigin(0.5).setDepth(4);
   }
 
   private drawFloorDecoration(): void {
@@ -1750,7 +1803,12 @@ class TycoonScene extends Phaser.Scene {
       completeVipOrder();
       return;
     }
-    if (state.currentFloor < 2 && Phaser.Math.Distance.Between(playerX, playerY, 1037, 612) < 105) {
+    if (state.currentFloor === 2 && Phaser.Math.Distance.Between(playerX, playerY, STAIRS_X, STAIRS_Y) < 105) {
+      changeFloor(1);
+      setStatus('Tu descends à l’étage 2.');
+      return;
+    }
+    if (state.currentFloor < 2 && Phaser.Math.Distance.Between(playerX, playerY, STAIRS_X, STAIRS_Y) < 105) {
       const nextFloor = state.currentFloor + 1;
       if (state.unlockedFloors.includes(nextFloor)) {
         changeFloor(nextFloor);
@@ -1863,100 +1921,109 @@ class TycoonScene extends Phaser.Scene {
   }
 
   private drawOutdoorGround(world: ReturnType<typeof getWorld>): void {
-    const groundTextureKey = 'parfum-outdoor-ground-' + world.id;
-    const ground = this.add.graphics().setDepth(0);
-    ground.fillStyle(world.background, 1);
-    ground.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+    const outdoor = state.currentFloor === 0;
+    const groundTextureKey = 'parfum-ground-v2-' + world.id + (outdoor ? '-outdoor' : '-indoor');
 
-    // Soft grass patches and hand-placed tufts avoid the feeling of an enclosed tiled room.
-    for (let index = 0; index < 260; index += 1) {
-      const x = 18 + ((index * 173) % (MAP_WIDTH - 36));
-      const y = 18 + ((index * 97) % (MAP_HEIGHT - 36));
-      ground.fillStyle(index % 3 === 0 ? 0xb7bd8e : index % 3 === 1 ? 0x748968 : 0x96a67e, 0.17);
-      ground.fillEllipse(x, y, 18 + (index % 5) * 7, 7 + (index % 3) * 3);
-      if (index % 2 === 0) {
-        ground.lineStyle(1, 0x52694b, 0.28);
-        ground.lineBetween(x, y + 5, x + (index % 2 ? 5 : -5), y - 4);
+    // Cache the static scene art as one texture. Upper floors use a clean backdrop;
+    // their only walkable space is the workshop room, not the outdoor meadow.
+    if (!this.textures.exists(groundTextureKey)) {
+      const ground = this.add.graphics().setDepth(0);
+      ground.fillStyle(world.background, 1);
+      ground.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+
+      if (outdoor) {
+        for (let index = 0; index < 260; index += 1) {
+          const x = 18 + ((index * 173) % (MAP_WIDTH - 36));
+          const y = 18 + ((index * 97) % (MAP_HEIGHT - 36));
+          ground.fillStyle(index % 3 === 0 ? 0xb7bd8e : index % 3 === 1 ? 0x748968 : 0x96a67e, 0.17);
+          ground.fillEllipse(x, y, 18 + (index % 5) * 7, 7 + (index % 3) * 3);
+          if (index % 2 === 0) {
+            ground.lineStyle(1, 0x52694b, 0.28);
+            ground.lineBetween(x, y + 5, x + (index % 2 ? 5 : -5), y - 4);
+          }
+        }
+
+        const pathPoints = [
+          [0, 650, 240, 600], [240, 600, 430, 510], [430, 510, 620, 425],
+          [620, 425, 900, 435], [900, 435, 1130, 525], [1130, 525, 1390, 600],
+          [1390, 600, 1790, 610],
+        ];
+        ground.lineStyle(88, 0x796c51, 0.32);
+        for (const [x1, y1, x2, y2] of pathPoints) ground.lineBetween(x1!, y1!, x2!, y2!);
+        ground.lineStyle(72, 0xc3b48b, 0.95);
+        for (const [x1, y1, x2, y2] of pathPoints) ground.lineBetween(x1!, y1!, x2!, y2!);
+        ground.lineStyle(48, 0xa8946d, 0.95);
+        for (const [x1, y1, x2, y2] of pathPoints) ground.lineBetween(x1!, y1!, x2!, y2!);
+
+        const flowerPatches = [[290, 210], [505, 680], [775, 130], [1110, 690], [1460, 375], [1650, 930]];
+        for (let index = 0; index < flowerPatches.length; index += 1) {
+          const [x, y] = flowerPatches[index]!;
+          for (let petal = 0; petal < 5; petal += 1) {
+            ground.fillStyle([0xd6bd86, 0xc88d79, 0xded8b5][(index + petal) % 3]!, 0.9);
+            ground.fillCircle(x! + Math.cos(petal * 1.256) * 7, y! + Math.sin(petal * 1.256) * 7, 4);
+          }
+          ground.fillStyle(0x566b45, 1);
+          ground.fillCircle(x!, y!, 3);
+        }
+      } else {
+        ground.fillStyle(0x3b4038, 1);
+        ground.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+        ground.fillStyle(world.background, 1);
+        ground.fillRect(135, 180, 900, 420);
       }
+
+      ground.generateTexture(groundTextureKey, MAP_WIDTH, MAP_HEIGHT);
+      ground.destroy();
     }
+    this.add.image(0, 0, groundTextureKey).setOrigin(0, 0).setDepth(0);
 
     if (state.rampBuilt) {
       const plot = this.add.graphics().setDepth(1);
-      plot.fillStyle(world.floorColor, 0.82);
+      plot.fillStyle(world.floorColor, outdoor ? 0.82 : 1);
       plot.fillRoundedRect(135, 180, 900, 420, 22);
       plot.lineStyle(4, 0x62533d, 0.8);
       plot.strokeRoundedRect(135, 180, 900, 420, 22);
-      plot.lineStyle(1, 0x7b6a4e, 0.3);
+      plot.lineStyle(1, 0x7b6a4e, outdoor ? 0.3 : 0.5);
       for (let y = 214; y < 590; y += 34) plot.lineBetween(151, y, 1019, y);
       for (let x = 171; x < 1017; x += 78) plot.lineBetween(x, 195, x, 585);
-      plot.fillStyle(0x637b58, 1);
-      plot.fillRoundedRect(147, 205, 24, 66, 5);
-      plot.fillRoundedRect(999, 500, 24, 66, 5);
-      plot.fillStyle(0x91a57b, 1);
-      for (const y of [217, 239, 261, 512, 534, 556]) {
-        plot.fillEllipse(159, y, 13, 8);
-        plot.fillEllipse(1011, y, 13, 8);
+      if (outdoor) {
+        plot.fillStyle(0x637b58, 1);
+        plot.fillRoundedRect(147, 205, 24, 66, 5);
+        plot.fillRoundedRect(999, 500, 24, 66, 5);
+        plot.fillStyle(0x91a57b, 1);
+        for (const y of [217, 239, 261, 512, 534, 556]) {
+          plot.fillEllipse(159, y, 13, 8);
+          plot.fillEllipse(1011, y, 13, 8);
+        }
       }
     }
 
-    // A continuous dirt path leads from the edge of the garden past the build site.
-    const path = ground;
-    const pathPoints = [
-      [0, 650, 240, 600], [240, 600, 430, 510], [430, 510, 620, 425],
-      [620, 425, 900, 435], [900, 435, 1130, 525], [1130, 525, 1390, 600],
-      [1390, 600, 1790, 610],
-    ];
-    path.lineStyle(88, 0x796c51, 0.32);
-    for (const [x1, y1, x2, y2] of pathPoints) path.lineBetween(x1!, y1!, x2!, y2!);
-    path.lineStyle(72, 0xc3b48b, 0.95);
-    for (const [x1, y1, x2, y2] of pathPoints) path.lineBetween(x1!, y1!, x2!, y2!);
-    path.lineStyle(48, 0xa8946d, 0.95);
-    for (const [x1, y1, x2, y2] of pathPoints) path.lineBetween(x1!, y1!, x2!, y2!);
-
-    // Trees are scenery only; the whole meadow remains walkable.
-    const trees = [
-      [70, 170], [115, 285], [90, 800], [180, 1010], [350, 90],
-      [655, 76], [1135, 95], [1340, 150], [1580, 120], [1710, 285],
-      [1610, 470], [1715, 790], [1590, 1000], [1370, 1080],
-      [1060, 1050], [850, 1110], [560, 1090], [320, 1100],
-      [1200, 760], [1440, 900],
-    ];
-    for (let index = 0; index < trees.length; index += 1) {
-      const [x, y] = trees[index]!;
-      const tree = this.add.graphics().setDepth(y! + 24);
-      tree.fillStyle(0x3a4b34, 0.18);
-      tree.fillEllipse(x!, y! + 24, 78, 20);
-      tree.fillStyle(0x77543a, 1);
-      tree.fillRect(x! - 6, y! - 4, 12, 43);
-      tree.fillStyle(index % 2 === 0 ? 0x536e49 : 0x647d53, 1);
-      tree.fillEllipse(x!, y! - 19, 61, 47);
-      tree.fillEllipse(x! - 17, y! - 7, 36, 32);
-      tree.fillEllipse(x! + 18, y! - 9, 36, 32);
-      tree.fillStyle(0x9eae7d, 0.72);
-      tree.fillEllipse(x! - 14, y! - 29, 23, 17);
-      tree.lineStyle(2, 0x3e5237, 0.8);
-      tree.strokeEllipse(x!, y! - 19, 61, 47);
-    }
-
-    const flowers = ground;
-    const flowerPatches = [[290, 210], [505, 680], [775, 130], [1110, 690], [1460, 375], [1650, 930]];
-    for (let index = 0; index < flowerPatches.length; index += 1) {
-      const [x, y] = flowerPatches[index]!;
-      for (let petal = 0; petal < 5; petal += 1) {
-        flowers.fillStyle([0xd6bd86, 0xc88d79, 0xded8b5][(index + petal) % 3]!, 0.9);
-        flowers.fillCircle(x! + Math.cos(petal * 1.256) * 7, y! + Math.sin(petal * 1.256) * 7, 4);
+    if (outdoor) {
+      // Trees retain their own depth so the character can walk behind their trunks.
+      const trees = [
+        [70, 170], [115, 285], [90, 800], [180, 1010], [350, 90],
+        [655, 76], [1135, 95], [1340, 150], [1580, 120], [1710, 285],
+        [1610, 470], [1715, 790], [1590, 1000], [1370, 1080],
+        [1060, 1050], [850, 1110], [560, 1090], [320, 1100],
+        [1200, 760], [1440, 900],
+      ];
+      for (let index = 0; index < trees.length; index += 1) {
+        const [x, y] = trees[index]!;
+        const tree = this.add.graphics().setDepth(y! + 24);
+        tree.fillStyle(0x3a4b34, 0.18);
+        tree.fillEllipse(x!, y! + 24, 78, 20);
+        tree.fillStyle(0x77543a, 1);
+        tree.fillRect(x! - 6, y! - 4, 12, 43);
+        tree.fillStyle(index % 2 === 0 ? 0x536e49 : 0x647d53, 1);
+        tree.fillEllipse(x!, y! - 19, 61, 47);
+        tree.fillEllipse(x! - 17, y! - 7, 36, 32);
+        tree.fillEllipse(x! + 18, y! - 9, 36, 32);
+        tree.fillStyle(0x9eae7d, 0.72);
+        tree.fillEllipse(x! - 14, y! - 29, 23, 17);
+        tree.lineStyle(2, 0x3e5237, 0.8);
+        tree.strokeEllipse(x!, y! - 19, 61, 47);
       }
-      flowers.fillStyle(0x566b45, 1);
-      flowers.fillCircle(x!, y!, 3);
     }
-
-    // Rasterize the hand-drawn outdoor scenery once; Phaser then draws a single image
-    // instead of replaying hundreds of Graphics commands on every frame.
-    if (!this.textures.exists(groundTextureKey)) {
-      ground.generateTexture(groundTextureKey, MAP_WIDTH, MAP_HEIGHT);
-    }
-    ground.destroy();
-    this.add.image(0, 0, groundTextureKey).setOrigin(0, 0).setDepth(0);
   }
 
   private drawBuiltRamp(): void {
@@ -1992,7 +2059,7 @@ class TycoonScene extends Phaser.Scene {
     if (!this.floorBuildRequirementReached()) return;
     const floor = state.currentFloor + 1;
     const cost = floorUnlockCost(floor);
-    const pad = this.add.container(1037, 612).setDepth(7);
+    const pad = this.add.container(STAIRS_X, STAIRS_Y).setDepth(7);
     pad.add(this.add.ellipse(0, 12, 96, 25, 0x3e3428, 0.15));
     const plaque = this.add.graphics();
     plaque.fillStyle(0xd8c49d, 1);
@@ -2077,6 +2144,7 @@ class TycoonScene extends Phaser.Scene {
   }
 
   private exteriorBuildPad(): { x: number; y: number; cost: number; kind: 'walls' | 'extension' } | null {
+    if (state.currentFloor !== 0) return null;
     const owned = this.totalMachinesInCurrentWorld();
     if (!state.wallsBuilt) return state.rampBuilt && owned >= 2 ? { x: 925, y: 330, cost: 250, kind: 'walls' } : null;
     if (state.outsideExpansions < 3 && owned >= state.outsideExpansions + 2) {
@@ -2146,7 +2214,12 @@ class TycoonScene extends Phaser.Scene {
       if (action) action.textContent = 'ACHETER';
       return;
     }
-    if (state.currentFloor < 2 && Phaser.Math.Distance.Between(this.player.x, this.player.y, 1037, 612) < 105) {
+    if (state.currentFloor === 2 && Phaser.Math.Distance.Between(this.player.x, this.player.y, STAIRS_X, STAIRS_Y) < 105) {
+      hint.textContent = 'E · DESCENDRE À L’ÉTAGE 2';
+      if (action) action.textContent = 'DESCENDRE';
+      return;
+    }
+    if (state.currentFloor < 2 && Phaser.Math.Distance.Between(this.player.x, this.player.y, STAIRS_X, STAIRS_Y) < 105) {
       const nextFloor = state.currentFloor + 1;
       hint.textContent = state.unlockedFloors.includes(nextFloor)
         ? 'E · MONTER À L’ÉTAGE SUIVANT'
@@ -2178,16 +2251,30 @@ class TycoonScene extends Phaser.Scene {
   private updateExteriorWalls(): void {
     if (!this.exteriorWalls || !this.player) return;
     this.exteriorWalls.clear();
-    if (!state.wallsBuilt) return;
-    // A garden fence marks the property without enclosing the playable exterior.
+    const enclosedFloor = state.currentFloor > 0;
+    if (!state.wallsBuilt && !enclosedFloor) return;
+    this.exteriorWalls.setDepth(10_000);
     this.exteriorWalls.fillStyle(0x8f7958, 1);
     this.exteriorWalls.fillRect(135, 180, 900, 8);
     this.exteriorWalls.fillRect(135, 592, 900, 8);
     this.exteriorWalls.fillRect(135, 180, 8, 420);
-    this.exteriorWalls.fillRect(1027, 180, 8, 115);
-    this.exteriorWalls.fillRect(1027, 475, 8, 125);
+    if (enclosedFloor) {
+      // Upstairs floors are closed rooms with no door leading directly into the garden.
+      this.exteriorWalls.fillRect(1027, 180, 8, 420);
+    } else {
+      // The ground floor has one usable doorway on the eastern wall.
+      this.exteriorWalls.fillRect(1027, 180, 8, 115);
+      this.exteriorWalls.fillRect(1027, 475, 8, 125);
+    }
     this.exteriorWalls.lineStyle(2, 0x4b5146, 0.72);
-    this.exteriorWalls.strokeRect(135, 180, 900, 420);
+    this.exteriorWalls.lineBetween(135, 180, 1035, 180);
+    this.exteriorWalls.lineBetween(135, 600, 1035, 600);
+    this.exteriorWalls.lineBetween(135, 180, 135, 600);
+    if (enclosedFloor) this.exteriorWalls.lineBetween(1035, 180, 1035, 600);
+    else {
+      this.exteriorWalls.lineBetween(1035, 180, 1035, 295);
+      this.exteriorWalls.lineBetween(1035, 475, 1035, 600);
+    }
   }
 
   pulsePlayer(): void {
