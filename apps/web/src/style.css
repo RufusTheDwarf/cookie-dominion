@@ -344,3 +344,101 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:17px;paddi
 .order-numbers>span{display:flex;flex-direction:column;gap:4px;padding:7px;border:1px solid #e3d29b;border-radius:8px;background:#fffdf3;color:#9a7840;font-size:7px;font-weight:1000;letter-spacing:.7px}
 .order-numbers strong{font-size:10px;line-height:1.2;color:#334a32;letter-spacing:0;overflow-wrap:anywhere}
 .customer-order-card>small{display:block;margin-top:8px;color:#8b7a52;font-size:8px;line-height:1.35}
+
+
+/* Onboarding, construction feedback, and scalable menus. */
+.main-menu{
+  position:fixed;inset:0;z-index:1000;display:grid;place-items:center;overflow:auto;
+  padding:24px;background:radial-gradient(ellipse at 18% 16%,rgba(104,157,126,.36),transparent 32%),
+  radial-gradient(ellipse at 84% 82%,rgba(192,153,93,.24),transparent 35%),#12281f;
+  opacity:1;visibility:visible;transition:opacity .24s ease,visibility .24s ease;
+}
+.main-menu.is-hidden{opacity:0;visibility:hidden;pointer-events:none}
+.menu-card{
+  width:min(100%,520px);padding:clamp(24px,5vw,44px);border:1px solid rgba(241,228,190,.25);border-radius:26px;
+  background:linear-gradient(155deg,rgba(34,64,48,.97),rgba(19,39,31,.98));color:#f4f0df;
+  box-shadow:0 28px 90px rgba(0,0,0,.38),inset 0 1px rgba(255,255,255,.08);text-align:center;
+}
+.menu-emblem{position:relative;display:grid;place-items:center;width:76px;height:76px;margin:0 auto 22px;border:2px solid #d7bc79;border-radius:22px;transform:rotate(-6deg);background:linear-gradient(140deg,#d9bd7b,#9d7440);color:#1c3828;box-shadow:0 8px 0 rgba(0,0,0,.16)}
+.menu-emblem span{font-family:Georgia,serif;font-size:27px;font-weight:900;letter-spacing:-3px}
+.menu-emblem i,.menu-emblem b{position:absolute;display:block;width:6px;height:20px;top:-13px;border-radius:5px;background:#f4e6b5;border:1px solid #876b3d}
+.menu-emblem i{left:22px;transform:rotate(23deg)}.menu-emblem b{right:21px;transform:rotate(-23deg)}
+.menu-card>.eyebrow{color:#d8c28e;font-size:10px;letter-spacing:2px}
+.menu-card h1{margin:12px 0 10px;font-family:Georgia,'Times New Roman',serif;font-size:clamp(28px,6vw,43px);line-height:1.03;letter-spacing:-1.5px;color:#fff7e4}
+.menu-card h1 span{color:#e4c77d}
+.menu-subtitle{max-width:380px;margin:0 auto 24px;color:#c8d8cb;font-size:14px;line-height:1.65}
+.menu-actions{display:grid;gap:9px;margin:0 auto;max-width:340px}
+.menu-primary,.menu-secondary,.menu-tertiary{
+  min-height:46px;padding:12px 16px;border-radius:11px;font-size:11px;font-weight:900;letter-spacing:1px;cursor:pointer;
+  transition:transform .16s ease,filter .16s ease,background .16s ease;
+}
+.menu-primary{border:1px solid #f2de9e;background:linear-gradient(180deg,#f4d98d,#d9b35b);color:#243b2b;box-shadow:0 4px 0 #9e8045}
+.menu-secondary{border:1px solid rgba(222,238,220,.18);background:rgba(234,243,230,.07);color:#edf5e9}
+.menu-tertiary{min-height:38px;border:1px solid rgba(222,238,220,.2);background:transparent;color:#d7e3d8}
+.menu-primary:hover,.menu-secondary:hover,.menu-tertiary:hover{filter:brightness(1.08);transform:translateY(-1px)}
+.menu-subpanel{margin:20px auto 0;padding:17px;border:1px solid rgba(230,222,185,.2);border-radius:14px;background:rgba(0,0,0,.14);text-align:left}
+.menu-subpanel[hidden]{display:none}
+.menu-subpanel h2{margin:0 0 12px;font-size:17px}.menu-subpanel p,.menu-subpanel small{color:#c4d6c8;font-size:12px;line-height:1.5}
+.theme-setting{position:relative;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 0;color:#f0f2e7;cursor:pointer}
+.theme-setting span:first-child{display:flex;flex-direction:column;gap:4px}
+.theme-setting small{color:#bdcfc0}
+.theme-setting input{position:absolute;right:0;width:44px;height:26px;opacity:0;cursor:pointer}
+.theme-switch{width:44px;height:26px;border-radius:20px;background:#4c6455;border:1px solid #89a38c;transition:background .2s}
+.theme-switch:after{content:"";display:block;width:18px;height:18px;margin:3px;border-radius:50%;background:#f3f1df;transition:transform .2s}
+.theme-setting input:checked+.theme-switch{background:#c4a55c}
+.theme-setting input:checked+.theme-switch:after{transform:translateX(18px)}
+.theme-setting input:focus-visible+.theme-switch{outline:3px solid #86c9ff;outline-offset:3px}
+.menu-subpanel textarea{display:block;width:100%;margin:12px 0;padding:12px;border:1px solid #58705f;border-radius:9px;background:#10251b;color:#f2f4e8;resize:vertical;font:11px/1.5 ui-monospace,monospace}
+.menu-import-actions{display:flex;gap:8px;align-items:center}.menu-import-actions>*{flex:1}
+.menu-footer{display:block;margin-top:24px;color:#9eb8a6;font-size:10px;letter-spacing:.2px;line-height:1.5}
+.tutorial-banner{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin:8px 0 12px;padding:13px 15px;border:1px solid #cbb879;border-left:4px solid #b58b39;border-radius:11px;background:linear-gradient(110deg,#fff7da,#fffdf4);color:#263e2d;box-shadow:0 4px 12px rgba(38,63,44,.07)}
+.tutorial-banner[hidden]{display:none}
+.tutorial-copy{min-width:0}.tutorial-copy .eyebrow{display:block;margin-bottom:5px;color:#8f6b2c;font-size:9px;letter-spacing:1px}
+.tutorial-copy>strong{display:block;font-size:13px;font-weight:900}
+.tutorial-copy p{margin:5px 0 0;color:#596a50;font-size:11px;line-height:1.55}
+#tutorial-dismiss{flex:0 0 28px;width:28px;height:28px;padding:0;border:1px solid #e0d2a3;border-radius:8px;background:#fffdf5;color:#755d31;font-size:20px;line-height:1;cursor:pointer}
+#game-canvas canvas{display:block;max-width:100%;border-radius:12px}
+.workshop-unbuilt .dashboard{grid-template-columns:minmax(0,1fr)}
+.workshop-unbuilt .stats-panel,.workshop-unbuilt .building-panel{display:none}
+.workshop-unbuilt .nav-block{display:none}
+.workshop-unbuilt .map-panel{grid-column:1 / -1}
+.workshop-unbuilt .panel-heading .live-dot{display:none}
+.workshop-unbuilt .game-canvas{min-height:360px}
+.theme-dark{color-scheme:dark}
+.theme-dark body{color:#e1e9e3;background:radial-gradient(ellipse at 10% 0%,rgba(52,93,76,.3),transparent 36%),linear-gradient(160deg,#101914 0%,#17231d 54%,#0e1814 100%)}
+.theme-dark .topbar{background:linear-gradient(110deg,#172d22,#102019);border-color:#496454}
+.theme-dark .panel,.theme-dark .save-toolbar,.theme-dark .utility-drawer summary{background:#1a2922;color:#e1e9e3;border-color:#405b48}
+.theme-dark .panel h2,.theme-dark .panel h3,.theme-dark .shop-section-title,.theme-dark .shop-header h2{color:#e7eee7}
+.theme-dark .panel-intro,.theme-dark .movement-copy small,.theme-dark .nav-heading .muted,.theme-dark .map-toolbar small,.theme-dark .save-toolbar-note,.theme-dark footer{color:#a9bdb0}
+.theme-dark .owner-card,.theme-dark .upgrade-card,.theme-dark .machine-card,.theme-dark .mission-card,.theme-dark .factory-tip{background:#22362a;border-color:#405d47;color:#e4eee5}
+.theme-dark .manual-production{background:#21382a;border-color:#45674f}
+.theme-dark .manual-label,.theme-dark .manual-production small{color:#c3d7c5}
+.theme-dark .map-toolbar{background:#17281e;border-color:#405b48;color:#e2ece3}
+.theme-dark .nav-button{background:#21352a;border-color:#405b48;color:#c5d7c8}
+.theme-dark .nav-button.is-active{background:#365943;color:#fff5d7}
+.theme-dark .world-button{background:#21352a;border-color:#405b48;color:#dbe8dc}
+.theme-dark .save-action{background:#263b2e;border-color:#4b6752;color:#dceade}
+.theme-dark textarea{background:#101d16!important;color:#e3eee5!important;border-color:#4a6752!important}
+.theme-dark .prestige-card{background:linear-gradient(145deg,#25382d,#19281f);border-color:#4a674f}
+.theme-dark .prestige-desc,.theme-dark .objective{color:#b4c8b8}
+.theme-dark .customer-order-card{background:linear-gradient(140deg,#443b22,#332a22 75%,#38272a);border-color:#806b37;box-shadow:0 4px 0 #574a2b,inset 0 3px 0 rgba(255,255,255,.04)}
+.theme-dark .customer-order-card h2{color:#f4e9c8}
+.theme-dark .customer-order-card>p,.theme-dark .customer-order-card>small{color:#c5b58b}
+.theme-dark .order-numbers>span{background:#2b3327;border-color:#665936;color:#bca66d}
+.theme-dark .order-numbers strong{color:#f1e9d2}
+.theme-dark .tutorial-banner{background:linear-gradient(110deg,#2a3021,#222c23);border-color:#70613b;color:#e5ecdf}
+.theme-dark .tutorial-copy p{color:#bdcbbd}
+.theme-dark #tutorial-dismiss{background:#263225;border-color:#605537;color:#e4d19d}
+@media(max-width:720px){
+  .main-menu{padding:12px}.menu-card{padding:25px 20px;border-radius:19px}
+  .menu-card h1{letter-spacing:-.8px}.menu-subtitle{font-size:12px}
+  .tutorial-banner{padding:11px 12px}.tutorial-copy>strong{font-size:12px}
+}
+@media(prefers-reduced-motion:reduce){
+  .main-menu,.menu-primary,.menu-secondary,.menu-tertiary,.theme-switch,.theme-switch:after{transition:none!important}
+}
+
+.pause-menu-button{flex:0 0 auto;align-self:center;padding:10px 12px;border:1px solid rgba(235,240,215,.25);border-radius:9px;background:rgba(255,255,255,.08);color:#f4f0d9;font-size:9px;font-weight:1000;letter-spacing:1px;cursor:pointer}
+.pause-menu-button:hover{background:rgba(255,255,255,.15)}
+.theme-dark .pause-menu-button{background:#263c2e;border-color:#57735c}
+@media(max-width:840px){.pause-menu-button{order:3}.topbar{flex-wrap:wrap}}

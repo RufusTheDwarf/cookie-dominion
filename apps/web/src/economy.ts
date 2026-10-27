@@ -61,43 +61,46 @@ export interface GameState {
   ordersCompleted: number;
   totalRebirths: number;
   essences: number;
+  rampBuilt: boolean;
+  wallsBuilt: boolean;
+  outsideExpansions: number;
   lastSavedAt: number;
 }
 
 export const MAX_OFFLINE_SECONDS = 8 * 60 * 60;
-export const COOKIE_CLICK_VALUE = 10;
+export const COOKIE_CLICK_VALUE = 5;
 export const TOTAL_REBIRTH_BASE_LEVEL = 10;
 export const TOTAL_REBIRTH_LEVEL_STEP = 5;
 export const ESSENCE_PRODUCTION_BONUS = 0.75;
 export const ESSENCE_PRESTIGE_VALUE = 1_000_000;
-export const CUSTOMER_ORDER_BASE_COST = 50;
+export const CUSTOMER_ORDER_BASE_COST = 120;
 export const CUSTOMER_ORDER_COST_GROWTH = 1.65;
-export const CUSTOMER_ORDER_REWARD_MULTIPLIER = 2.5;
-export const REBIRTH_BASE_COST = 1500;
-export const REBIRTH_COST_GROWTH = 1.55;
-export const REBIRTH_MULTIPLIER = 1.75;
-export const MACHINE_COST_GROWTH = 1.22;
+export const CUSTOMER_ORDER_REWARD_MULTIPLIER = 1.8;
+export const REBIRTH_BASE_COST = 10000;
+export const REBIRTH_COST_GROWTH = 1.65;
+export const REBIRTH_MULTIPLIER = 1.6;
+export const MACHINE_COST_GROWTH = 1.35;
 export const MAX_UPGRADE_LEVEL = 10;
 
 export const UPGRADES: Record<UpgradeId, { name: string; description: string; baseCost: number; growth: number; effect: string }> = {
   production: {
     name: 'Concentré Absolu',
     description: 'Toutes tes machines produisent 20 % de parfums en plus par niveau.',
-    baseCost: 120,
+    baseCost: 300,
     growth: 1.85,
     effect: '+20 % parfums / niveau',
   },
   clickPower: {
     name: 'Gestuelle du maître',
     description: 'Chaque création manuelle rapporte 10 parfums supplémentaires par niveau.',
-    baseCost: 60,
+    baseCost: 120,
     growth: 1.8,
     effect: '+10 parfums / création',
   },
   discount: {
     name: 'Contrats verriers',
     description: 'Réduit le prix des équipements de 5 % par niveau.',
-    baseCost: 180,
+    baseCost: 500,
     growth: 2,
     effect: '−5 % prix des machines / niveau',
   },
@@ -161,9 +164,9 @@ export const MACHINES: MachineDefinition[] = [
     description: 'Mélange les premières notes parfumées',
     floor: 0,
     x: 260,
-    cost: 15,
-    payout: 6,
-    cycleSeconds: 2,
+    cost: 35,
+    payout: 3,
+    cycleSeconds: 3.5,
   },
   {
     id: 'brick-oven',
@@ -172,9 +175,9 @@ export const MACHINES: MachineDefinition[] = [
     description: 'Distille des extraits de caractère',
     floor: 0,
     x: 450,
-    cost: 110,
-    payout: 36,
-    cycleSeconds: 3,
+    cost: 220,
+    payout: 14,
+    cycleSeconds: 4,
   },
   {
     id: 'conveyor-oven',
@@ -183,9 +186,9 @@ export const MACHINES: MachineDefinition[] = [
     description: 'Remplit et ferme les flacons à la chaîne',
     floor: 1,
     x: 320,
-    cost: 650,
-    payout: 300,
-    cycleSeconds: 4,
+    cost: 1600,
+    payout: 70,
+    cycleSeconds: 5,
   },
   {
     id: 'frosting-lab',
@@ -194,9 +197,9 @@ export const MACHINES: MachineDefinition[] = [
     description: 'Crée des compositions premium',
     floor: 1,
     x: 560,
-    cost: 3200,
-    payout: 1800,
-    cycleSeconds: 5,
+    cost: 8800,
+    payout: 360,
+    cycleSeconds: 6,
   },
   {
     id: 'quantum-bakery',
@@ -205,9 +208,9 @@ export const MACHINES: MachineDefinition[] = [
     description: 'Synthétise des essences interdimensionnelles',
     floor: 2,
     x: 440,
-    cost: 18000,
-    payout: 12500,
-    cycleSeconds: 5,
+    cost: 52000,
+    payout: 2200,
+    cycleSeconds: 7,
   },
 ];
 
@@ -248,6 +251,9 @@ export function createInitialState(now = Date.now()): GameState {
     ordersCompleted: 0,
     totalRebirths: 0,
     essences: 0,
+    rampBuilt: false,
+    wallsBuilt: false,
+    outsideExpansions: 0,
     lastSavedAt: now,
   };
 }
@@ -437,6 +443,9 @@ export function performRebirth(state: GameState): GameState {
     runCrumbsEarned: 0,
     machines: createEmptyMachineSave(),
     rebirths: nextRebirths,
+    rampBuilt: true,
+    wallsBuilt: false,
+    outsideExpansions: 0,
     currentWorld: 'cookie-valley',
     currentFloor: 0,
     unlockedWorlds,
@@ -493,6 +502,7 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       migrated.lifetimeCrumbs = value.lifetimeCrumbs;
       migrated.runCrumbsEarned = value.lifetimeCrumbs;
       migrated.machines['cookie-valley']['brick-oven'] = value.ovens as number;
+      migrated.rampBuilt = true;
       migrated.lastSavedAt = value.lastSavedAt;
       return applyOfflineProgress(migrated, now);
     }
@@ -556,6 +566,11 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
         : 0,
       essences: Number.isSafeInteger(value.essences) && (value.essences as number) >= 0
         ? value.essences as number
+        : 0,
+      rampBuilt: value.rampBuilt === undefined ? true : value.rampBuilt === true,
+      wallsBuilt: value.wallsBuilt === true,
+      outsideExpansions: Number.isSafeInteger(value.outsideExpansions) && (value.outsideExpansions as number) >= 0
+        ? Math.min(3, value.outsideExpansions as number)
         : 0,
       lastSavedAt: value.lastSavedAt,
     };

@@ -34,6 +34,21 @@ import {
 } from '../apps/web/src/economy';
 
 describe('tycoon economy', () => {
+  it('starts with an empty workshop and defaults legacy saves to the built state', () => {
+    const initial = createInitialState(100);
+    expect(initial.rampBuilt).toBe(false);
+    expect(initial.wallsBuilt).toBe(false);
+    expect(initial.outsideExpansions).toBe(0);
+    const older = parseSavedState(JSON.stringify({
+      ...initial,
+      rampBuilt: undefined,
+      wallsBuilt: undefined,
+      outsideExpansions: undefined,
+    }), 100);
+    expect(older.rampBuilt).toBe(true);
+    expect(older.wallsBuilt).toBe(false);
+  });
+
   it('gives cookies for manual baking and tracks this run separately', () => {
     const state = addCrumbs(createInitialState(100), 10);
     expect(state.crumbs).toBe(10);
@@ -50,36 +65,36 @@ describe('tycoon economy', () => {
   it('lets the player buy a machine and raises passive output', () => {
     const state = { ...createInitialState(100), crumbs: 100 };
     const next = buyMachine(state, 'hand-mixer');
-    expect(next.crumbs).toBe(85);
+    expect(next.crumbs).toBe(65);
     expect(next.machines['cookie-valley']['hand-mixer']).toBe(1);
-    expect(productionPerSecond(next)).toBe(3);
-    expect(machineCost(next, 'hand-mixer')).toBe(19);
+    expect(productionPerSecond(next)).toBeCloseTo(3 / 3.5);
+    expect(machineCost(next, 'hand-mixer')).toBe(48);
   });
 
   it('buys permanent research upgrades and applies their effects', () => {
     const initial = createInitialState(100);
     const withMixer = {
       ...initial,
-      crumbs: 120,
+      crumbs: 800,
       machines: {
         ...initial.machines,
         'cookie-valley': { ...initial.machines['cookie-valley'], 'hand-mixer': 1 },
       },
     };
-    expect(manualCookieValue(withMixer)).toBe(10);
-    expect(productionPerSecond(withMixer)).toBe(3);
+    expect(manualCookieValue(withMixer)).toBe(5);
+    expect(productionPerSecond(withMixer)).toBeCloseTo(3 / 3.5);
 
     const researched = buyUpgrade(withMixer, 'production');
-    expect(researched.crumbs).toBe(0);
+    expect(researched.crumbs).toBe(500);
     expect(researched.upgrades.production).toBe(1);
-    expect(productionPerSecond(researched)).toBeCloseTo(3.6);
-    expect(upgradeCost(researched, 'production')).toBe(222);
+    expect(productionPerSecond(researched)).toBeCloseTo((3 / 3.5) * 1.2);
+    expect(upgradeCost(researched, 'production')).toBe(555);
 
-    const clickResearch = buyUpgrade({ ...withMixer, crumbs: 60 }, 'clickPower');
-    expect(manualCookieValue(clickResearch)).toBe(20);
+    const clickResearch = buyUpgrade({ ...withMixer, crumbs: 200 }, 'clickPower');
+    expect(manualCookieValue(clickResearch)).toBe(10);
 
-    const discounted = buyUpgrade({ ...withMixer, crumbs: 180 }, 'discount');
-    expect(machineCost(discounted, 'brick-oven')).toBe(105);
+    const discounted = buyUpgrade({ ...withMixer, crumbs: 600 }, 'discount');
+    expect(machineCost(discounted, 'brick-oven')).toBe(209);
     expect(buyUpgrade({ ...researched, upgrades: { ...researched.upgrades, production: 10 } }, 'production').upgrades.production).toBe(10);
   });
 
@@ -106,32 +121,32 @@ describe('tycoon economy', () => {
   it('delivers scalable VIP perfume orders and pays the player', () => {
     const initial = createInitialState(100);
     expect(initial.ordersCompleted).toBe(0);
-    expect(customerOrderCost(initial)).toBe(50);
-    expect(customerOrderReward(initial)).toBe(125);
+    expect(customerOrderCost(initial)).toBe(120);
+    expect(customerOrderReward(initial)).toBe(216);
     expect(canCompleteCustomerOrder(initial)).toBe(false);
     expect(completeCustomerOrder(initial)).toBe(initial);
 
-    const underfunded = { ...initial, crumbs: 49 };
+    const underfunded = { ...initial, crumbs: 119 };
     expect(completeCustomerOrder(underfunded)).toBe(underfunded);
 
-    const funded = { ...initial, crumbs: 50 };
+    const funded = { ...initial, crumbs: 120 };
     const delivered = completeCustomerOrder(funded);
-    expect(delivered.crumbs).toBe(125);
+    expect(delivered.crumbs).toBe(216);
     expect(delivered.ordersCompleted).toBe(1);
-    expect(delivered.lifetimeCrumbs).toBe(125);
-    expect(delivered.runCrumbsEarned).toBe(125);
-    expect(customerOrderCost(delivered)).toBe(83);
-    expect(customerOrderReward(delivered)).toBe(208);
+    expect(delivered.lifetimeCrumbs).toBe(216);
+    expect(delivered.runCrumbsEarned).toBe(216);
+    expect(customerOrderCost(delivered)).toBe(198);
+    expect(customerOrderReward(delivered)).toBe(357);
     const secondDelivery = completeCustomerOrder(delivered);
     expect(secondDelivery.ordersCompleted).toBe(2);
-    expect(secondDelivery.crumbs).toBe(250);
-    expect(customerOrderCost(secondDelivery)).toBe(137);
-    expect(customerOrderReward(secondDelivery)).toBe(343);
+    expect(secondDelivery.crumbs).toBe(375);
+    expect(customerOrderCost(secondDelivery)).toBe(327);
+    expect(customerOrderReward(secondDelivery)).toBe(589);
     expect(canClaimMission(delivered, 'first-order')).toBe(true);
 
     const claimed = claimMission(delivered, 'first-order');
     expect(claimed.claimedMissions).toContain('first-order');
-    expect(claimed.crumbs).toBe(375);
+    expect(claimed.crumbs).toBe(466);
     expect(claimMission(claimed, 'first-order')).toBe(claimed);
   });
 
@@ -154,9 +169,9 @@ describe('tycoon economy', () => {
       },
       unlockedWorlds: ['cookie-valley', 'choco-moon'] as WorldId[],
     };
-    expect(productionPerSecond(base)).toBe(3);
-    expect(productionPerSecond(base, 'choco-moon')).toBe(24);
-    expect(productionPerSecond({ ...base, rebirths: 2 })).toBeCloseTo(3 * 1.75 ** 2);
+    expect(productionPerSecond(base)).toBeCloseTo(3 / 3.5);
+    expect(productionPerSecond(base, 'choco-moon')).toBeCloseTo((3 / 3.5) * 8);
+    expect(productionPerSecond({ ...base, rebirths: 2 })).toBeCloseTo((3 / 3.5) * 1.6 ** 2);
   });
 
   it('does not enter locked worlds and allows unlocked portals', () => {
@@ -176,7 +191,7 @@ describe('tycoon economy', () => {
     const state = { ...createInitialState(100), crumbs: 500, runCrumbsEarned: 500 };
     expect(canRebirth(state)).toBe(false);
     expect(performRebirth(state)).toBe(state);
-    expect(rebirthCost(0)).toBe(1500);
+    expect(rebirthCost(0)).toBe(10000);
   });
 
   it('resets the factory, keeps lifetime earnings and unlocks Choco Moon on rebirth', () => {
@@ -198,7 +213,7 @@ describe('tycoon economy', () => {
     expect(next.lifetimeCrumbs).toBe(3200);
     expect(next.machines['cookie-valley']['hand-mixer']).toBe(0);
     expect(next.unlockedWorlds).toContain('choco-moon');
-    expect(rebirthMultiplier(next)).toBe(1.75);
+    expect(rebirthMultiplier(next)).toBe(1.6);
   });
 
   it('unlocks Galaxy Oven after the third rebirth', () => {
@@ -279,8 +294,8 @@ describe('tycoon economy', () => {
       lastSavedAt: 0,
     };
     const next = applyOfflineProgress(state, (MAX_OFFLINE_SECONDS + 100) * 1000);
-    expect(next.crumbs).toBe(6 * MAX_OFFLINE_SECONDS);
-    expect(next.runCrumbsEarned).toBe(6 * MAX_OFFLINE_SECONDS);
+    expect(next.crumbs).toBeCloseTo((6 / 3.5) * MAX_OFFLINE_SECONDS);
+    expect(next.runCrumbsEarned).toBeCloseTo((6 / 3.5) * MAX_OFFLINE_SECONDS);
   });
 
   it('migrates the older oven-only save', () => {
