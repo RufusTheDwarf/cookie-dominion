@@ -6,7 +6,6 @@ import {
   canClaimMission,
   canRebirth,
   claimMission,
-  COOKIE_CLICK_VALUE,
   createInitialState,
   enterFloor,
   exportSaveFile,
