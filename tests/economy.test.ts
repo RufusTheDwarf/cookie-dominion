@@ -122,7 +122,11 @@ describe('tycoon economy', () => {
     expect(delivered.runCrumbsEarned).toBe(125);
     expect(customerOrderCost(delivered)).toBe(83);
     expect(customerOrderReward(delivered)).toBe(208);
-    expect(completeCustomerOrder(delivered)).toBe(delivered);
+    const secondDelivery = completeCustomerOrder(delivered);
+    expect(secondDelivery.ordersCompleted).toBe(2);
+    expect(secondDelivery.crumbs).toBe(250);
+    expect(customerOrderCost(secondDelivery)).toBe(137);
+    expect(customerOrderReward(secondDelivery)).toBe(343);
     expect(canClaimMission(delivered, 'first-order')).toBe(true);
 
     const claimed = claimMission(delivered, 'first-order');
