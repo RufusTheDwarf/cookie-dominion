@@ -5,6 +5,7 @@ import {
   buyMachine,
   buyUpgrade,
   canClaimMission,
+  canUnlockFloor,
   canCompleteCustomerOrder,
   canRebirth,
   canTotalRebirth,
@@ -14,6 +15,7 @@ import {
   customerOrderCost,
   customerOrderReward,
   enterFloor,
+  floorUnlockCost,
   enterWorld,
   exportSaveFile,
   machineCost,
@@ -30,6 +32,7 @@ import {
   totalRebirthRequiredLevel,
   essenceMultiplier,
   upgradeCost,
+  unlockFloor,
   type WorldId,
 } from '../apps/web/src/economy';
 
@@ -150,6 +153,28 @@ describe('tycoon economy', () => {
     expect(claimMission(claimed, 'first-order')).toBe(claimed);
   });
 
+  it('locks floors until the player builds enough machines and pays for stairs', () => {
+    const initial = { ...createInitialState(100), crumbs: 260 };
+    expect(initial.unlockedFloors).toEqual([0]);
+    expect(enterFloor(initial, 1)).toBe(initial);
+    expect(floorUnlockCost(1)).toBe(260);
+    expect(canUnlockFloor(initial, 1)).toBe(false);
+
+    const withTwoMachines = {
+      ...initial,
+      machines: {
+        ...initial.machines,
+        'cookie-valley': { ...initial.machines['cookie-valley'], 'hand-mixer': 1, 'brick-oven': 1 },
+      },
+    };
+    expect(canUnlockFloor(withTwoMachines, 1)).toBe(true);
+    const opened = unlockFloor(withTwoMachines, 1);
+    expect(opened.crumbs).toBe(0);
+    expect(opened.unlockedFloors).toEqual([0, 1]);
+    expect(enterFloor(opened, 1).currentFloor).toBe(1);
+    expect(enterFloor(opened, 2)).toBe(opened);
+  });
+
   it('requires the matching floor to build a machine', () => {
     const state = { ...createInitialState(100), crumbs: 5000 };
     expect(buyMachine(state, 'conveyor-oven')).toBe(state);
@@ -181,9 +206,13 @@ describe('tycoon economy', () => {
     expect(enterWorld(unlocked, 'choco-moon').currentWorld).toBe('choco-moon');
   });
 
-  it('changes floors only to supported levels', () => {
+  it('changes only to unlocked floors', () => {
     const state = createInitialState(100);
-    expect(enterFloor(state, 2).currentFloor).toBe(2);
+    expect(state.unlockedFloors).toEqual([0]);
+    expect(enterFloor(state, 2)).toBe(state);
+    const firstFloor = { ...state, unlockedFloors: [0, 1], currentFloor: 1 };
+    expect(enterFloor(firstFloor, 1).currentFloor).toBe(1);
+    expect(enterFloor(firstFloor, 2)).toBe(firstFloor);
     expect(enterFloor(state, 4)).toBe(state);
   });
 
@@ -213,6 +242,7 @@ describe('tycoon economy', () => {
     expect(next.lifetimeCrumbs).toBe(3200);
     expect(next.machines['cookie-valley']['hand-mixer']).toBe(0);
     expect(next.unlockedWorlds).toContain('choco-moon');
+    expect(next.unlockedFloors).toEqual([0]);
     expect(rebirthMultiplier(next)).toBe(1.6);
   });
 
@@ -338,6 +368,7 @@ describe('tycoon economy', () => {
     expect(loaded?.ordersCompleted).toBe(4);
     expect(loaded?.totalRebirths).toBe(0);
     expect(loaded?.essences).toBe(0);
+    expect(loaded?.unlockedFloors).toEqual([0, 1]);
   });
 
   it('refuses malformed import text instead of replacing progress with a new game', () => {
