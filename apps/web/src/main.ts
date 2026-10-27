@@ -148,7 +148,6 @@ let previousFrame = performance.now();
 let goldenReadyAt = performance.now() + 25_000;
 let goldenDeadline = 0;
 let goldenBoostUntil = 0;
-let goldenCookiesClaimed = 0;
 let goldenUiSecond = -1;
 type MoveDirection = 'up' | 'down' | 'left' | 'right';
 const activeMoveControls = new Set<MoveDirection>();
@@ -331,7 +330,7 @@ function renderGoldenCookie(now: number): void {
 
   button.disabled = true;
   button.classList.remove('is-ready');
-  status.textContent = 'Prochain bonus dans ' + Math.max(0, Math.ceil((goldenReadyAt - now) / 1000)) + ' s · récupérés : ' + goldenCookiesClaimed;
+  status.textContent = 'Prochain bonus dans ' + Math.max(0, Math.ceil((goldenReadyAt - now) / 1000)) + ' s · récupérés : ' + state.goldenCookiesClaimed;
 }
 
 function claimGoldenCookie(): void {
@@ -339,6 +338,7 @@ function claimGoldenCookie(): void {
   if (goldenDeadline <= now) return;
   const reward = Math.max(50, productionPerSecond(state) * 10 + manualCookieValue(state) * 10);
   state = addCrumbs(state, reward);
+  state = { ...state, goldenCookiesClaimed: state.goldenCookiesClaimed + 1 };
   goldenDeadline = 0;
   goldenBoostUntil = now + 20_000;
   goldenReadyAt = goldenBoostUntil + 45_000 + Math.random() * 25_000;
