@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import {
   addCrumbs,
   buyMachine,
+  buyStartingLand,
   buyUpgrade,
   canClaimMission,
   canRebirth,
@@ -33,6 +34,7 @@ import {
   productionPerSecond,
   rebirthCost,
   rebirthMultiplier,
+  STARTING_LAND_COST,
   totalRebirthRequiredLevel,
   unlockFloor,
   upgradeCost,
@@ -47,9 +49,11 @@ import {
 import './style.css';
 
 const SAVE_KEY = 'cookie-dominion-save-v1';
-const MAP_WIDTH = 1200;
-const MAP_HEIGHT = 760;
+const MAP_WIDTH = 1800;
+const MAP_HEIGHT = 1200;
 const DARK_MODE_KEY = 'parfum-empire-dark-mode-v1';
+const INTRO_TUTORIAL_KEY = 'parfum-empire-intro-tutorial-v1';
+const COACHMARKS_KEY = 'parfum-empire-ui-coachmarks-v1';
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('Missing app root');
 
@@ -92,7 +96,7 @@ app.innerHTML = `
           <div class="owner-avatar"><span class="avatar-hair"></span><span class="avatar-face">• •</span><span class="avatar-scarf"></span></div>
           <div><div class="eyebrow">TON ATELIER</div><h2>JEUNE PARFUMEUR</h2><small id="owner-rank">Maison indépendante · Rang 1</small></div>
         </div>
-        <div class="manual-production">
+        <div id="manual-production" class="manual-production">
           <div class="manual-label"><span>CRÉATION MANUELLE</span><strong>+<b id="manual-value">10</b> parfums</strong></div>
           <button class="primary" id="bake-button"><span class="spray-icon">✦</span><span>CRÉER UN PARFUM</span><span class="button-value">+10</span></button>
           <small>Chaque flacon vendu finance la prochaine machine.</small>
@@ -191,16 +195,28 @@ app.innerHTML = `
         <div class="eyebrow">CARNET DU PARFUMEUR · 01</div>
         <div class="tutorial-illustration" aria-hidden="true"><span></span><i></i><b></b></div>
         <h2 id="tutorial-intro-title">Un atelier à construire</h2>
-        <p>Tu commences avec une pièce vide. Les machines, les étages et les murs ne sont pas encore là : c'est à toi de les construire.</p>
+        <p>Tu arrives dans un jardin encore sauvage. Tu as 1 000 parfums pour acheter ton premier terrain : ensuite, tu pourras créer des parfums et bâtir ta manufacture.</p>
         <div class="tutorial-instructions">
-          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>ou les flèches pour marcher</span></div>
-          <div><kbd>E</kbd><span>pour construire ou interagir près d'un objet</span></div>
-          <div><span class="tutorial-step-number">1</span><span>Rejoins le panneau de chantier et construis la rampe.</span></div>
-          <div><span class="tutorial-step-number">2</span><span>Crée des parfums pour acheter ta première table de formulation.</span></div>
-          <div><span class="tutorial-step-number">3</span><span>Les nouveaux espaces et les options se débloqueront au fur et à mesure.</span></div>
+          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>ou les flèches pour te déplacer dehors</span></div>
+          <div><kbd>E</kbd><span>près d'un panneau pour construire ou interagir</span></div>
+          <div><span class="tutorial-step-number">1</span><span>Rejoins le panneau « TERRAIN · 1 000 » et appuie sur E.</span></div>
+          <div><span class="tutorial-step-number">2</span><span>Crée des parfums puis achète ta première table dans le catalogue.</span></div>
+          <div><span class="tutorial-step-number">3</span><span>Les personnages, les contrats et les autres systèmes arriveront avec ta progression.</span></div>
         </div>
-        <button id="tutorial-start-button" class="menu-primary" type="button">ENTRER DANS L'ATELIER</button>
+        <button id="tutorial-start-button" class="menu-primary" type="button">ENTRER DANS LE JARDIN</button>
       </section>
+    </div>
+    <div id="coachmark-layer" class="coachmark-layer" hidden aria-live="polite">
+      <div id="coachmark-spotlight" class="coachmark-spotlight" aria-hidden="true"></div>
+      <article id="coachmark-card" class="coachmark-card" role="dialog" aria-labelledby="coachmark-title">
+        <div id="coachmark-label" class="eyebrow">GUIDE DE L’ATELIER</div>
+        <h2 id="coachmark-title"></h2>
+        <p id="coachmark-copy"></p>
+        <div class="coachmark-actions">
+          <button id="coachmark-next" class="menu-primary" type="button">SUIVANT</button>
+          <button id="coachmark-skip" class="menu-tertiary" type="button">PASSER LE TUTORIEL</button>
+        </div>
+      </article>
     </div>
     <div id="main-menu" class="main-menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
       <div class="menu-card">
@@ -234,16 +250,18 @@ app.innerHTML = `
 
 let state: GameState;
 try {
-  state = parseSavedState(localStorage.getItem(SAVE_KEY));
+  state = prepareEmptySaveForStart(parseSavedState(localStorage.getItem(SAVE_KEY)));
 } catch {
-  state = parseSavedState(null);
+  state = prepareEmptySaveForStart(parseSavedState(null));
 }
 let saveTimer = 0;
 let statusTimer = 0;
 let renderTimer = 0;
 let gameIsPaused = true;
 let tutorialDismissed = false;
-let introTutorialSeen = false;
+let introTutorialSeen = (() => {
+  try { return localStorage.getItem(INTRO_TUTORIAL_KEY) === 'true'; } catch { return false; }
+})();
 let previousFrame = performance.now();
 let goldenReadyAt = performance.now() + 25_000;
 let goldenDeadline = 0;
@@ -264,6 +282,176 @@ const $ = <T extends HTMLElement>(id: string): T => {
 };
 const format = (value: number) =>
   new Intl.NumberFormat('fr-CH', { maximumFractionDigits: value >= 100 ? 0 : 1 }).format(value);
+
+function prepareEmptySaveForStart(saved: GameState): GameState {
+  const owned = Object.values(saved.machines)
+    .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
+  const unused = !saved.rampBuilt && saved.lifetimeCrumbs === 0 && saved.runCrumbsEarned === 0 &&
+    saved.rebirths === 0 && saved.totalRebirths === 0 && saved.essences === 0 &&
+    saved.ordersCompleted === 0 && owned === 0 && !saved.wallsBuilt && saved.outsideExpansions === 0;
+  return unused ? { ...saved, crumbs: Math.max(saved.crumbs, STARTING_LAND_COST) } : saved;
+}
+
+type UiCoachmark = {
+  id: string;
+  target: string;
+  title: string;
+  copy: string;
+  available: () => boolean;
+};
+
+function currentWorldMachineCount(): number {
+  return Object.values(state.machines[state.currentWorld]).reduce((sum, count) => sum + count, 0);
+}
+
+function readCompletedCoachmarks(): Set<string> {
+  try {
+    const raw: unknown = JSON.parse(localStorage.getItem(COACHMARKS_KEY) ?? '[]');
+    return new Set(Array.isArray(raw) ? raw.filter((item): item is string => typeof item === 'string') : []);
+  } catch {
+    return new Set();
+  }
+}
+
+let completedCoachmarks = readCompletedCoachmarks();
+let activeCoachmarkId: string | null = null;
+
+const UI_COACHMARKS: UiCoachmark[] = [
+  {
+    id: 'manual-production',
+    target: '#manual-production',
+    title: 'Créer tes premiers parfums',
+    copy: 'Ce panneau te permet de produire des parfums à la main. Clique sur « CRÉER UN PARFUM » pour gagner de la monnaie et financer tes équipements.',
+    available: () => state.rampBuilt,
+  },
+  {
+    id: 'machine-catalogue',
+    target: '#machine-shop-section',
+    title: 'Le catalogue des équipements',
+    copy: 'Chaque carte indique le prix et le rôle d’une machine. Achète-la ici : son modèle apparaîtra ensuite sur le terrain et commencera à produire automatiquement.',
+    available: () => state.rampBuilt,
+  },
+  {
+    id: 'missions',
+    target: '#missions-panel',
+    title: 'Les contrats',
+    copy: 'Les contrats te donnent des objectifs et des récompenses. Consulte leur progression et réclame les gains disponibles pour accélérer ton développement.',
+    available: () => currentWorldMachineCount() >= 1,
+  },
+  {
+    id: 'upgrades',
+    target: '#upgrade-section',
+    title: 'Améliorations permanentes',
+    copy: 'Ces recherches augmentent le rendement, renforcent la création manuelle ou réduisent le prix des équipements. Vérifie le coût avant chaque achat.',
+    available: () => currentWorldMachineCount() >= 2 || (currentWorldMachineCount() >= 1 && state.lifetimeCrumbs >= 250),
+  },
+  {
+    id: 'save-tools',
+    target: '#utility-drawer',
+    title: 'Sauvegarder et transporter ta partie',
+    copy: 'Les données sont enregistrées dans ce navigateur. Utilise « Exporter data » pour garder une copie, ou importe un JSON pour reprendre une autre sauvegarde.',
+    available: () => state.rampBuilt && (currentWorldMachineCount() >= 2 || state.lifetimeCrumbs >= 250),
+  },
+  {
+    id: 'floor-navigation',
+    target: '#floor-navigation',
+    title: 'Changer d’étage',
+    copy: 'Les étages restent verrouillés jusqu’à ce que les conditions de construction soient réunies. Une fois débloqués, tu peux utiliser les escaliers ou ces boutons.',
+    available: () => state.unlockedFloors.length > 1,
+  },
+  {
+    id: 'world-navigation',
+    target: '#world-navigation',
+    title: 'Explorer les autres mondes',
+    copy: 'Les portails ouvrent des mondes avec des coûts et des rendements différents. Le rebirth est nécessaire pour accéder aux mondes suivants.',
+    available: () => state.unlockedWorlds.length > 1,
+  },
+  {
+    id: 'rebirth',
+    target: '#rebirth-panel',
+    title: 'Le rebirth',
+    copy: 'Le rebirth réinitialise une partie de ta production en échange d’un multiplicateur durable. Lis les conditions et le coût avant de le déclencher.',
+    available: () => state.rebirths > 0 || state.lifetimeCrumbs >= 1_000,
+  },
+];
+
+function persistCompletedCoachmarks(): void {
+  try { localStorage.setItem(COACHMARKS_KEY, JSON.stringify([...completedCoachmarks])); } catch { /* Optional tutorial preference. */ }
+}
+
+function renderCoachmark(): void {
+  const layer = $('coachmark-layer');
+  const hide = () => { layer.hidden = true; };
+  if (!$('main-menu').classList.contains('is-hidden') || !$('tutorial-intro').hidden || gameIsPaused) {
+    hide();
+    return;
+  }
+
+  const next = UI_COACHMARKS.find((step) => {
+    if (completedCoachmarks.has(step.id) || !step.available()) return false;
+    const target = document.querySelector<HTMLElement>(step.target);
+    return !!target && !target.hidden && target.getClientRects().length > 0;
+  });
+  if (!next) {
+    activeCoachmarkId = null;
+    hide();
+    return;
+  }
+
+  const target = document.querySelector<HTMLElement>(next.target);
+  if (!target) { hide(); return; }
+  if (activeCoachmarkId !== next.id) {
+    activeCoachmarkId = next.id;
+    const initialRect = target.getBoundingClientRect();
+    if (initialRect.top < 10 || initialRect.bottom > window.innerHeight - 10) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+    }
+  }
+
+  layer.hidden = false;
+  const spotlight = $('coachmark-spotlight');
+  const card = $('coachmark-card');
+  const rect = target.getBoundingClientRect();
+  spotlight.style.left = Math.max(4, rect.left - 5) + 'px';
+  spotlight.style.top = Math.max(4, rect.top - 5) + 'px';
+  spotlight.style.width = Math.min(window.innerWidth - 8, rect.width + 10) + 'px';
+  spotlight.style.height = Math.min(window.innerHeight - 8, rect.height + 10) + 'px';
+
+  $('coachmark-label').textContent = 'GUIDE DE L’ATELIER · ' +
+    (UI_COACHMARKS.findIndex((item) => item.id === next.id) + 1) + '/' + UI_COACHMARKS.length;
+  $('coachmark-title').textContent = next.title;
+  $('coachmark-copy').textContent = next.copy;
+
+  card.style.width = Math.min(350, window.innerWidth - 24) + 'px';
+  card.classList.remove('is-above');
+  const targetCenter = rect.left + rect.width / 2;
+  const left = Math.max(12, Math.min(window.innerWidth - card.offsetWidth - 12, targetCenter - card.offsetWidth / 2));
+  const belowSpace = window.innerHeight - rect.bottom;
+  const aboveSpace = rect.top;
+  const placeAbove = belowSpace < card.offsetHeight + 28 && aboveSpace > belowSpace;
+  card.classList.toggle('is-above', placeAbove);
+  card.style.left = left + 'px';
+  const top = placeAbove
+    ? Math.max(12, rect.top - card.offsetHeight - 18)
+    : Math.min(window.innerHeight - card.offsetHeight - 12, rect.bottom + 18);
+  card.style.top = top + 'px';
+  card.style.setProperty('--arrow-x', Math.max(18, Math.min(card.offsetWidth - 18, targetCenter - left)) + 'px');
+}
+
+$('coachmark-next').addEventListener('click', () => {
+  if (activeCoachmarkId) completedCoachmarks.add(activeCoachmarkId);
+  activeCoachmarkId = null;
+  persistCompletedCoachmarks();
+  renderCoachmark();
+});
+$('coachmark-skip').addEventListener('click', () => {
+  UI_COACHMARKS.forEach((step) => completedCoachmarks.add(step.id));
+  activeCoachmarkId = null;
+  persistCompletedCoachmarks();
+  $('coachmark-layer').hidden = true;
+});
+window.addEventListener('resize', () => renderCoachmark());
+window.addEventListener('scroll', () => renderCoachmark(), true);
 
 function setStatus(message: string): void {
   $('map-hint').textContent = message;
@@ -290,16 +478,21 @@ function startGame(newGame = false): void {
   if (newGame) {
     const ownedCount = Object.values(state.machines)
       .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
-    const hasProgress = state.lifetimeCrumbs > 0 || state.crumbs > 0 || state.rebirths > 0 ||
-      state.totalRebirths > 0 || ownedCount > 0 || state.ordersCompleted > 0;
+    const hasProgress = state.lifetimeCrumbs > 0 || state.rebirths > 0 ||
+      state.totalRebirths > 0 || state.essences > 0 || ownedCount > 0 ||
+      state.ordersCompleted > 0 || state.wallsBuilt || state.outsideExpansions > 0;
     if (hasProgress && !window.confirm('Créer une nouvelle partie ? La progression actuelle sera remplacée. Exporte d’abord ta sauvegarde si tu souhaites la conserver.')) return;
-    state = createInitialState();
+    state = prepareEmptySaveForStart(createInitialState());
     machineUiKey = '';
     worldUiKey = '';
     upgradeUiKey = '';
     missionUiKey = '';
     tutorialDismissed = false;
     introTutorialSeen = false;
+    completedCoachmarks.clear();
+    activeCoachmarkId = null;
+    persistCompletedCoachmarks();
+    try { localStorage.removeItem(INTRO_TUTORIAL_KEY); } catch { /* Optional tutorial preference. */ }
     render();
     bakeryScene?.loadWorld();
     save();
@@ -307,7 +500,7 @@ function startGame(newGame = false): void {
 
   $('main-menu').classList.add('is-hidden');
   const showIntro = !introTutorialSeen && !state.rampBuilt &&
-    state.lifetimeCrumbs === 0 && state.crumbs === 0 && state.rebirths === 0;
+    state.lifetimeCrumbs === 0 && state.rebirths === 0;
   $('tutorial-intro').hidden = !showIntro;
   gameIsPaused = showIntro;
   render();
@@ -330,13 +523,27 @@ function showMenuPanel(panel: 'settings' | 'import' | null): void {
 function hasSavedProgress(): boolean {
   const owned = Object.values(state.machines)
     .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
-  return state.rampBuilt || state.lifetimeCrumbs > 0 || state.crumbs > 0 || state.rebirths > 0 || owned > 0;
+  return state.rampBuilt || state.lifetimeCrumbs > 0 || state.rebirths > 0 ||
+    state.totalRebirths > 0 || state.essences > 0 || owned > 0 ||
+    state.ordersCompleted > 0 || state.wallsBuilt || state.outsideExpansions > 0;
 }
-$('menu-play').textContent = hasSavedProgress() ? 'CONTINUER LA PARTIE' : 'COMMENCER';
-$('menu-play').addEventListener('click', () => startGame(false));
+
+function updateMainMenuActions(isPauseMenu = false): void {
+  const savedProgress = hasSavedProgress();
+  $('menu-play').textContent = isPauseMenu
+    ? 'REPRENDRE LA PARTIE'
+    : savedProgress ? 'CONTINUER LA PARTIE' : 'NOUVELLE PARTIE';
+  $('menu-play').dataset.action = isPauseMenu ? 'resume' : savedProgress ? 'continue' : 'new';
+  $('menu-new-game').hidden = !savedProgress && !isPauseMenu;
+}
+
+updateMainMenuActions();
+$('menu-play').addEventListener('click', () => {
+  startGame($('menu-play').dataset.action === 'new');
+});
 $('open-menu-button').addEventListener('click', () => {
   gameIsPaused = true;
-  $('menu-play').textContent = 'REPRENDRE LA PARTIE';
+  updateMainMenuActions(true);
   showMenuPanel(null);
   $('main-menu').classList.remove('is-hidden');
 });
@@ -364,10 +571,12 @@ $('dark-mode-toggle').addEventListener('change', (event) => {
 });
 $('tutorial-start-button').addEventListener('click', () => {
   introTutorialSeen = true;
+  try { localStorage.setItem(INTRO_TUTORIAL_KEY, 'true'); } catch { /* Optional tutorial preference. */ }
   $('tutorial-intro').hidden = true;
   gameIsPaused = false;
-  setStatus('Objectif : rejoins le panneau de chantier au sud-est, puis appuie sur E.');
+  setStatus('Objectif : rejoins le panneau TERRAIN · ' + format(STARTING_LAND_COST) + ' et appuie sur E.');
   renderTutorial();
+  renderCoachmark();
 });
 
 function save(): void {
@@ -411,7 +620,7 @@ function loadSaveText(raw: string): boolean {
     setStatus('Import refusé : ce texte ne contient pas une sauvegarde Parfum Empire valide.');
     return false;
   }
-  state = imported;
+  state = prepareEmptySaveForStart(imported);
   machineUiKey = '';
   worldUiKey = '';
   upgradeUiKey = '';
@@ -429,7 +638,12 @@ function eraseSave(): void {
     'Effacer la partie de Parfum Empire sur cet appareil ? Toutes les machines, parfums, essences, rebirths et sauvegardes locales seront réinitialisés.',
   );
   if (!accepted) return;
-  state = createInitialState();
+  state = prepareEmptySaveForStart(createInitialState());
+  completedCoachmarks.clear();
+  activeCoachmarkId = null;
+  persistCompletedCoachmarks();
+  try { localStorage.removeItem(INTRO_TUTORIAL_KEY); } catch { /* Optional tutorial preference. */ }
+  introTutorialSeen = false;
   machineUiKey = '';
   worldUiKey = '';
   activeMoveControls.clear();
@@ -773,7 +987,9 @@ function render(): void {
   renderMissionCards();
   renderMachineCards();
   renderWorldButtons();
-  renderTutorial();}
+  renderTutorial();
+  renderCoachmark();
+}
 
 function bake(): void {
   if (gameIsPaused || !state.rampBuilt) return;
@@ -915,7 +1131,9 @@ class TycoonScene extends Phaser.Scene {
   private constructionButtonObjects: Phaser.GameObjects.GameObject[] = [];
   private isBuildingRamp = false;
   private productionLayoutDrawn = false;
+  private mentorAreaDrawn = false;
   private vipCustomerVisible = false;
+  private spawnOnRestart?: { x: number; y: number };
   private exteriorButtonObjects: Phaser.GameObjects.GameObject[] = [];
   private extensionObjects: Phaser.GameObjects.GameObject[] = [];
   private playerFaceParts?: { leftEye: Phaser.GameObjects.Ellipse; rightEye: Phaser.GameObjects.Ellipse; nose: Phaser.GameObjects.Ellipse; hairLock: Phaser.GameObjects.Ellipse; hair: Phaser.GameObjects.Ellipse; hairCurl: Phaser.GameObjects.Ellipse; browLeft: Phaser.GameObjects.Ellipse; browRight: Phaser.GameObjects.Ellipse; cheekLeft: Phaser.GameObjects.Ellipse; cheekRight: Phaser.GameObjects.Ellipse; bottle: Phaser.GameObjects.Ellipse; bottleLabel: Phaser.GameObjects.Rectangle; bottleNeck: Phaser.GameObjects.Rectangle; bottleCap: Phaser.GameObjects.Rectangle };
@@ -934,6 +1152,7 @@ class TycoonScene extends Phaser.Scene {
     bakeryScene = this;
     this.isBuildingRamp = false;
     this.productionLayoutDrawn = false;
+    this.mentorAreaDrawn = false;
     this.vipCustomerVisible = false;
     this.machineObjects = [];
     this.constructionButtonObjects = [];
@@ -943,32 +1162,14 @@ class TycoonScene extends Phaser.Scene {
     this.collectorLabel = undefined;
     const world = getWorld(state.currentWorld);
     this.cameras.main.setBounds(0, 0, MAP_WIDTH, MAP_HEIGHT);
-    this.add.rectangle(MAP_WIDTH / 2, MAP_HEIGHT / 2, MAP_WIDTH, MAP_HEIGHT, world.background);
-    const floor = this.add.graphics();
-    floor.fillStyle(world.floorColor, 1);
-    floor.fillRect(70, 70, 1060, 620);
-    floor.lineStyle(2, 0x625842, 0.28);
-    floor.strokeRect(70, 70, 1060, 620);
-    // Quiet plank seams instead of a uniform tile grid; slight alternation keeps the room handmade.
-    floor.lineStyle(1, 0x6a5b44, 0.16);
-    for (let y = 116; y < 685; y += 48) {
-      floor.lineBetween(72, y, 1128, y);
-      const offset = (Math.floor(y / 48) % 2) * 45;
-      for (let x = 115 + offset; x < 1120; x += 135) {
-        floor.lineBetween(x, y - 48, x, y);
-      }
-    }
-    floor.fillStyle(0x77674e, 0.05);
-    for (let index = 0; index < 74; index += 1) {
-      const x = 88 + ((index * 137) % 1010);
-      const y = 88 + ((index * 79) % 580);
-      floor.fillCircle(x, y, index % 3 === 0 ? 2 : 1);
-    }
+    this.drawOutdoorGround(world);
     this.exteriorWalls = this.add.graphics().setDepth(8);
 
-    this.add.text(110, 105, world.name.toUpperCase() + ' / FLOOR 0' + (state.currentFloor + 1), {
-      fontFamily: 'monospace', fontSize: '15px', color: '#' + world.accent.toString(16).padStart(6, '0'),
-      letterSpacing: 2, fontStyle: 'bold',
+    this.add.text(110, 160, state.rampBuilt
+      ? world.name.toUpperCase() + ' / ESPACE ' + String(state.currentFloor + 1).padStart(2, '0')
+      : 'JARDIN EXTÉRIEUR / TERRAIN À BÂTIR', {
+      fontFamily: 'Georgia, serif', fontSize: '14px', color: '#' + world.accent.toString(16).padStart(6, '0'),
+      letterSpacing: 1, fontStyle: 'bold', backgroundColor: '#e8dec5', padding: { x: 8, y: 5 },
     }).setDepth(3);
 
     if (state.rampBuilt) {
@@ -978,17 +1179,19 @@ class TycoonScene extends Phaser.Scene {
       if (state.unlockedWorlds.length > 1) this.drawPortal(world.accent);
       if (state.currentFloor < 2 && state.unlockedFloors.includes(state.currentFloor + 1)) this.drawStairs(world.accent);
     } else {
-      this.drawRampBuildButton();
+      this.drawLandPurchaseButton();
     }
 
-    this.player = this.createPlayer(260, 390, world.accent);
+    const spawn = this.spawnOnRestart ?? (state.rampBuilt ? { x: 420, y: 470 } : { x: 210, y: 380 });
+    this.spawnOnRestart = undefined;
+    this.player = this.createPlayer(spawn.x, spawn.y, world.accent);
     this.updateExteriorWalls();
     this.cameras.main.startFollow(this.player, true, 0.09, 0.09);
     this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
       const point = pointer.positionToCamera(this.cameras.main) as Phaser.Math.Vector2;
       this.moveTarget = {
-        x: Phaser.Math.Clamp(point.x, 110, 1090),
-        y: Phaser.Math.Clamp(point.y, 115, 655),
+        x: Phaser.Math.Clamp(point.x, 24, MAP_WIDTH - 24),
+        y: Phaser.Math.Clamp(point.y, 24, MAP_HEIGHT - 24),
       };
     });
     const keyboard = this.input.keyboard;
@@ -1052,8 +1255,8 @@ class TycoonScene extends Phaser.Scene {
       this.playerLimbs.leftArm.rotation = 0;
       this.playerLimbs.rightArm.rotation = 0;
     }
-    this.player.x = Phaser.Math.Clamp(this.player.x + vx * speed * delta / 1000, 110, 1090);
-    this.player.y = Phaser.Math.Clamp(this.player.y + vy * speed * delta / 1000, 115, 655);
+    this.player.x = Phaser.Math.Clamp(this.player.x + vx * speed * delta / 1000, 24, MAP_WIDTH - 24);
+    this.player.y = Phaser.Math.Clamp(this.player.y + vy * speed * delta / 1000, 24, MAP_HEIGHT - 24);
     if (this.moveTarget && Phaser.Math.Distance.Between(this.player.x, this.player.y, this.moveTarget.x, this.moveTarget.y) < 8) {
       this.moveTarget = null;
     }
@@ -1079,6 +1282,11 @@ class TycoonScene extends Phaser.Scene {
     const apron = this.add.ellipse(0, 10, 25, 29, accent).setStrokeStyle(2, ink);
     const apronBib = this.add.rectangle(0, -2, 16, 15, accent).setStrokeStyle(1, ink);
     const apronPocket = this.add.rectangle(0, 15, 11, 8, 0xd8b875).setStrokeStyle(1, ink);
+    const apronStitch = this.add.line(0, 9, -8, 0, -8, 19, 0xf1e2c1).setOrigin(0, 0).setLineWidth(1);
+    const apronButtonLeft = this.add.ellipse(-4, 1, 3, 3, 0x5d4935).setStrokeStyle(0.5, ink);
+    const apronButtonRight = this.add.ellipse(4, 1, 3, 3, 0x5d4935).setStrokeStyle(0.5, ink);
+    const scarf = this.add.triangle(0, -11, -9, -5, 9, -5, 0, 7, 0xb96e55).setStrokeStyle(1.5, ink);
+    const hairPin = this.add.ellipse(-11, -38, 8, 5, 0x8da27a).setStrokeStyle(1, ink).setRotation(-0.5);
     const strapLeft = this.add.line(-9, -7, 0, 0, 1, 13, 0x65523e).setLineWidth(3);
     const strapRight = this.add.line(9, -7, 0, 0, -1, 13, 0x65523e).setLineWidth(3);
     const armLeft = this.add.ellipse(-20, 5, 11, 23, skin).setStrokeStyle(2, ink);
@@ -1106,8 +1314,9 @@ class TycoonScene extends Phaser.Scene {
     this.playerLimbs = { leftLeg: legLeft, rightLeg: legRight, leftArm: armLeft, rightArm: armRight };
     const player = this.add.container(x, y, [
       shadow, legLeft, legRight, shoeLeft, shoeRight, body, apron, apronBib, apronPocket,
-      strapLeft, strapRight, armLeft, armRight, cuffLeft, cuffRight, neck, head, hair, hairLock,
-      hairCurl, browLeft, browRight, eyeLeft, eyeRight, cheekLeft, cheekRight, nose, collar,
+      apronStitch, apronButtonLeft, apronButtonRight, scarf, strapLeft, strapRight,
+      armLeft, armRight, cuffLeft, cuffRight, neck, head, hair, hairLock, hairCurl, hairPin,
+      browLeft, browRight, eyeLeft, eyeRight, cheekLeft, cheekRight, nose, collar,
       bottle, bottleLabel, bottleNeck, bottleCap,
     ]);
     player.setDepth(y);
@@ -1133,10 +1342,20 @@ class TycoonScene extends Phaser.Scene {
     const eyeLeft = this.add.ellipse(-5, -26, 2.5, 3.5, ink);
     const eyeRight = this.add.ellipse(5, -26, 2.5, 3.5, ink);
     const cheek = this.add.ellipse(isClient ? 8 : -8, -22, 4, 2, 0xc27f69, 0.7);
-    const mouth = this.add.ellipse(0, -19, 4, 1.5, 0x8c5947);
+    const mouth = this.add.ellipse(0, -19, 5, 2, 0x8c5947);
+    const isMila = !isClient && role.includes('MILA');
+    const apron = isMila ? this.add.ellipse(0, 13, 22, 22, 0xd4c29a).setStrokeStyle(1.5, ink) : undefined;
+    const apronPocket = isMila ? this.add.rectangle(0, 18, 10, 7, 0x9a7652).setStrokeStyle(1, ink) : undefined;
+    const scarf = isMila ? this.add.triangle(0, -11, -9, -5, 9, -5, 0, 7, 0xb97658).setStrokeStyle(1.5, ink) : undefined;
+    const bun = isMila ? this.add.ellipse(13, -40, 15, 15, hairColor).setStrokeStyle(1.5, ink) : undefined;
+    const hairpin = isMila ? this.add.ellipse(-11, -39, 8, 5, 0xd7bc7e).setStrokeStyle(1, ink).setRotation(-0.5) : undefined;
     const parts: Phaser.GameObjects.GameObject[] = [
-      shadow, legLeft, legRight, shoeLeft, shoeRight, torso, shirt, armLeft, armRight,
-      neck, head, hair, sideHair, fringe, eyeLeft, eyeRight, cheek, mouth,
+      shadow, legLeft, legRight, shoeLeft, shoeRight, torso, shirt,
+      ...(apron ? [apron, apronPocket!] : []),
+      armLeft, armRight,
+      ...(scarf ? [scarf] : []),
+      neck, head, hair, ...(bun ? [bun] : []), sideHair, fringe, ...(hairpin ? [hairpin] : []),
+      eyeLeft, eyeRight, cheek, mouth,
     ];
     if (isClient) {
       const parcel = this.add.rectangle(22, 9, 17, 20, 0xb99a68).setStrokeStyle(2, ink);
@@ -1150,8 +1369,9 @@ class TycoonScene extends Phaser.Scene {
     }
     const nameTag = this.add.text(0, -55, role, {
       fontFamily: 'Georgia, serif', fontSize: '10px', fontStyle: 'bold',
-      color: '#36352a', backgroundColor: '#e8dec5',
-      padding: { x: 5, y: 3 }, stroke: '#e8dec5', strokeThickness: 1,
+      color: isMila ? '#30402d' : '#36352a',
+      backgroundColor: isMila ? '#d9e0c4' : '#e8dec5',
+      padding: { x: 5, y: 3 }, stroke: isMila ? '#d9e0c4' : '#e8dec5', strokeThickness: 1,
     }).setOrigin(0.5);
     parts.push(nameTag);
     const npc = this.add.container(x, y, parts);
@@ -1412,13 +1632,16 @@ class TycoonScene extends Phaser.Scene {
       machine.floor === state.currentFloor && worldMachines[machine.id] > 0,
     ).length;
     if (activeOnFloor > 0 && !this.productionLayoutDrawn) {
-      this.drawFloorDecoration();
       this.drawConveyor(world.belt);
       this.drawCollector(world.accent);
-      this.drawCharacters();
       this.productionLayoutDrawn = true;
     }
     const ownedInWorld = this.totalMachinesInCurrentWorld();
+    if (state.currentFloor === 0 && ownedInWorld >= 2 && !this.mentorAreaDrawn) {
+      this.drawFloorDecoration();
+      this.drawCharacters();
+      this.mentorAreaDrawn = true;
+    }
     if ((ownedInWorld >= 2 || (ownedInWorld >= 1 && state.lifetimeCrumbs >= 250)) && !this.vipCustomerVisible) {
       this.drawVipCustomer();
     }
@@ -1505,12 +1728,16 @@ class TycoonScene extends Phaser.Scene {
         setStatus('La rampe est en cours de construction…');
         return;
       }
-      if (Phaser.Math.Distance.Between(playerX, playerY, 382, 566) < 92) {
+      if (Phaser.Math.Distance.Between(playerX, playerY, 620, 425) < 100) {
+        if (state.crumbs < STARTING_LAND_COST) {
+          setStatus('Le terrain coûte ' + format(STARTING_LAND_COST) + ' parfums. Ton solde doit atteindre ce montant.');
+          return;
+        }
         this.isBuildingRamp = true;
-        setStatus('Les planches sont posées une par une…');
-        this.animateRampConstruction();
+        setStatus('Le terrain est nivelé et les premières dalles sont posées…');
+        this.animateLandPurchase();
       } else {
-        setStatus('Approche-toi du bouton jaune près du bas de l’atelier, puis appuie sur E.');
+        setStatus('Approche-toi du panneau TERRAIN · ' + format(STARTING_LAND_COST) + ', puis appuie sur E.');
       }
       return;
     }
@@ -1635,6 +1862,94 @@ class TycoonScene extends Phaser.Scene {
     }
   }
 
+  private drawOutdoorGround(world: ReturnType<typeof getWorld>): void {
+    const ground = this.add.graphics().setDepth(0);
+    ground.fillStyle(world.background, 1);
+    ground.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
+
+    // Soft grass patches and hand-placed tufts avoid the feeling of an enclosed tiled room.
+    for (let index = 0; index < 260; index += 1) {
+      const x = 18 + ((index * 173) % (MAP_WIDTH - 36));
+      const y = 18 + ((index * 97) % (MAP_HEIGHT - 36));
+      ground.fillStyle(index % 3 === 0 ? 0xb7bd8e : index % 3 === 1 ? 0x748968 : 0x96a67e, 0.17);
+      ground.fillEllipse(x, y, 18 + (index % 5) * 7, 7 + (index % 3) * 3);
+      if (index % 2 === 0) {
+        ground.lineStyle(1, 0x52694b, 0.28);
+        ground.lineBetween(x, y + 5, x + (index % 2 ? 5 : -5), y - 4);
+      }
+    }
+
+    if (state.rampBuilt) {
+      const plot = this.add.graphics().setDepth(1);
+      plot.fillStyle(world.floorColor, 0.82);
+      plot.fillRoundedRect(135, 180, 900, 420, 22);
+      plot.lineStyle(4, 0x62533d, 0.8);
+      plot.strokeRoundedRect(135, 180, 900, 420, 22);
+      plot.lineStyle(1, 0x7b6a4e, 0.3);
+      for (let y = 214; y < 590; y += 34) plot.lineBetween(151, y, 1019, y);
+      for (let x = 171; x < 1017; x += 78) plot.lineBetween(x, 195, x, 585);
+      plot.fillStyle(0x637b58, 1);
+      plot.fillRoundedRect(147, 205, 24, 66, 5);
+      plot.fillRoundedRect(999, 500, 24, 66, 5);
+      plot.fillStyle(0x91a57b, 1);
+      for (const y of [217, 239, 261, 512, 534, 556]) {
+        plot.fillEllipse(159, y, 13, 8);
+        plot.fillEllipse(1011, y, 13, 8);
+      }
+    }
+
+    // A continuous dirt path leads from the edge of the garden past the build site.
+    const path = this.add.graphics().setDepth(1.5);
+    const pathPoints = [
+      [0, 650, 240, 600], [240, 600, 430, 510], [430, 510, 620, 425],
+      [620, 425, 900, 435], [900, 435, 1130, 525], [1130, 525, 1390, 600],
+      [1390, 600, 1790, 610],
+    ];
+    path.lineStyle(88, 0x796c51, 0.32);
+    for (const [x1, y1, x2, y2] of pathPoints) path.lineBetween(x1!, y1!, x2!, y2!);
+    path.lineStyle(72, 0xc3b48b, 0.95);
+    for (const [x1, y1, x2, y2] of pathPoints) path.lineBetween(x1!, y1!, x2!, y2!);
+    path.lineStyle(48, 0xa8946d, 0.95);
+    for (const [x1, y1, x2, y2] of pathPoints) path.lineBetween(x1!, y1!, x2!, y2!);
+
+    // Trees are scenery only; the whole meadow remains walkable.
+    const trees = [
+      [70, 170], [115, 285], [90, 800], [180, 1010], [350, 90],
+      [655, 76], [1135, 95], [1340, 150], [1580, 120], [1710, 285],
+      [1610, 470], [1715, 790], [1590, 1000], [1370, 1080],
+      [1060, 1050], [850, 1110], [560, 1090], [320, 1100],
+      [1200, 760], [1440, 900],
+    ];
+    for (let index = 0; index < trees.length; index += 1) {
+      const [x, y] = trees[index]!;
+      const tree = this.add.graphics().setDepth(y! + 24);
+      tree.fillStyle(0x3a4b34, 0.18);
+      tree.fillEllipse(x!, y! + 24, 78, 20);
+      tree.fillStyle(0x77543a, 1);
+      tree.fillRect(x! - 6, y! - 4, 12, 43);
+      tree.fillStyle(index % 2 === 0 ? 0x536e49 : 0x647d53, 1);
+      tree.fillEllipse(x!, y! - 19, 61, 47);
+      tree.fillEllipse(x! - 17, y! - 7, 36, 32);
+      tree.fillEllipse(x! + 18, y! - 9, 36, 32);
+      tree.fillStyle(0x9eae7d, 0.72);
+      tree.fillEllipse(x! - 14, y! - 29, 23, 17);
+      tree.lineStyle(2, 0x3e5237, 0.8);
+      tree.strokeEllipse(x!, y! - 19, 61, 47);
+    }
+
+    const flowers = this.add.graphics().setDepth(2);
+    const flowerPatches = [[290, 210], [505, 680], [775, 130], [1110, 690], [1460, 375], [1650, 930]];
+    for (let index = 0; index < flowerPatches.length; index += 1) {
+      const [x, y] = flowerPatches[index]!;
+      for (let petal = 0; petal < 5; petal += 1) {
+        flowers.fillStyle([0xd6bd86, 0xc88d79, 0xded8b5][(index + petal) % 3]!, 0.9);
+        flowers.fillCircle(x! + Math.cos(petal * 1.256) * 7, y! + Math.sin(petal * 1.256) * 7, 4);
+      }
+      flowers.fillStyle(0x566b45, 1);
+      flowers.fillCircle(x!, y!, 3);
+    }
+  }
+
   private drawBuiltRamp(): void {
     const ramp = this.add.graphics().setDepth(1);
     ramp.fillStyle(0x51412f, 0.2);
@@ -1684,70 +1999,67 @@ class TycoonScene extends Phaser.Scene {
     this.constructionButtonObjects.push(pad);
   }
 
-  private drawRampBuildButton(): void {
-    const pad = this.add.container(382, 566).setDepth(10);
-    pad.add(this.add.ellipse(0, 19, 105, 19, 0x463a2b, 0.14));
-    const sign = this.add.graphics();
-    sign.fillStyle(0xd9c6a0, 1);
-    sign.fillRect(-55, -20, 110, 40);
-    sign.lineStyle(2, 0x514334, 1);
-    sign.strokeRect(-55, -20, 110, 40);
-    sign.lineStyle(1, 0x9f8258, 0.9);
-    sign.lineBetween(-46, -11, 46, -11);
-    pad.add(sign);
-    pad.add(this.add.text(0, -4, 'CHANTIER 01', {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#45392b'}).setOrigin(0.5));
-    pad.add(this.add.text(0, 9, 'E · MONTER LA RAMPE', {fontFamily:'Georgia, serif',fontSize:'8px',fontStyle:'bold',color:'#754535'}).setOrigin(0.5));
+  private drawLandPurchaseButton(): void {
+    const pad = this.add.container(620, 425).setDepth(10);
+    pad.add(this.add.ellipse(0, 24, 130, 24, 0x3b4c32, 0.18));
+    pad.add(this.add.ellipse(0, 0, 118, 64, 0xffd96a).setStrokeStyle(3, 0x695625));
+    pad.add(this.add.ellipse(0, -1, 99, 46, 0xf1e4b8).setStrokeStyle(1.5, 0x8c7542));
+    pad.add(this.add.text(0, -12, 'TERRAIN', {
+      fontFamily: 'Georgia, serif', fontSize: '13px', fontStyle: 'bold', color: '#45392b',
+    }).setOrigin(0.5));
+    pad.add(this.add.text(0, 7, 'E · ' + format(STARTING_LAND_COST), {
+      fontFamily: 'Georgia, serif', fontSize: '11px', fontStyle: 'bold', color: '#754535',
+    }).setOrigin(0.5));
+    this.tweens.add({ targets: pad, scale: 1.035, duration: 750, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.constructionButtonObjects.push(pad);
-    const instruction = this.add.text(382, 604, 'La première construction est gratuite', {
-      fontFamily: 'Georgia, serif', fontSize: '10px', fontStyle: 'italic',
-      color: '#4f4637', backgroundColor: '#e8dec5', padding: { x: 6, y: 3 },
+    const instruction = this.add.text(620, 473, 'ACHETER TA PREMIÈRE PARCELLE', {
+      fontFamily: 'Georgia, serif', fontSize: '11px', fontStyle: 'bold',
+      color: '#4f4637', backgroundColor: '#e8dec5', padding: { x: 7, y: 4 },
     }).setOrigin(0.5).setDepth(10);
     this.constructionButtonObjects.push(instruction);
   }
 
-  private animateRampConstruction(): void {
+  private animateLandPurchase(): void {
     this.constructionButtonObjects.forEach((item) => item.destroy());
     this.constructionButtonObjects = [];
-    const pieces: Phaser.GameObjects.Rectangle[] = [];
-    for (let index = 0; index < 6; index += 1) {
-      const x = 211 + index * 19;
-      const y = 570 - index * 9;
-      const plank = this.add.rectangle(x - 64, y + 28, 34, 11, 0x8e6749)
-        .setStrokeStyle(2, 0x4e3d2e)
-        .setRotation(0)
-        .setDepth(2)
+    const paving: Phaser.GameObjects.Rectangle[] = [];
+    for (let index = 0; index < 8; index += 1) {
+      const x = 508 + index * 32;
+      const y = 425 + Math.sin(index * 0.45) * 9;
+      const tile = this.add.rectangle(x, y + 24, 28, 18, index % 2 ? 0xb9a780 : 0xcfc09c)
+        .setStrokeStyle(1.5, 0x796545)
+        .setRotation((index % 2 ? -1 : 1) * 0.04)
+        .setDepth(3)
         .setAlpha(0)
-        .setScale(0.96);
-      pieces.push(plank);
+        .setScale(0.85);
+      paving.push(tile);
       this.tweens.add({
-        targets: plank,
-        x,
-        y,
-        rotation: -0.38,
-        alpha: 1,
-        scale: 1,
-        duration: 260,
-        delay: index * 145,
-        ease: 'Sine.easeOut',
+        targets: tile, y, alpha: 1, scale: 1, duration: 260, delay: index * 105, ease: 'Back.easeOut',
       });
     }
-    const progress = this.add.text(382, 515, 'POSE DES PLANCHES…', {
+    const progress = this.add.text(620, 376, 'AMÉNAGEMENT DU TERRAIN…', {
       fontFamily: 'Georgia, serif', fontSize: '12px', fontStyle: 'bold',
       color: '#493b2a', backgroundColor: '#e8dcc1', padding: { x: 8, y: 5 },
     }).setOrigin(0.5).setDepth(20);
     this.constructionButtonObjects.push(progress);
-    this.time.delayedCall(1550, () => {
+    this.time.delayedCall(1350, () => {
       if (!this.scene.isActive()) return;
       this.constructionButtonObjects.forEach((object) => object.destroy());
       this.constructionButtonObjects = [];
-      pieces.forEach((piece) => piece.destroy());
+      paving.forEach((tile) => tile.destroy());
+      const purchased = buyStartingLand(state);
       this.isBuildingRamp = false;
-      state.rampBuilt = true;
+      if (purchased === state) {
+        this.drawLandPurchaseButton();
+        setStatus('Il te faut ' + format(STARTING_LAND_COST) + ' parfums pour acheter le terrain.');
+        return;
+      }
+      state = purchased;
       save();
       render();
-      this.drawBuiltRamp();
-      this.refreshMachines();
-      setStatus('La rampe est prête. La manufacture se développera à chaque nouvel achat.');
+      this.spawnOnRestart = { x: 620, y: 425 };
+      this.scene.restart();
+      setStatus('Terrain acheté. Tu peux maintenant produire des parfums et installer tes premières machines.');
     });
   }
 
@@ -1857,18 +2169,16 @@ class TycoonScene extends Phaser.Scene {
   private updateExteriorWalls(): void {
     if (!this.exteriorWalls || !this.player) return;
     this.exteriorWalls.clear();
-    const outside = this.player.x > 835 || this.player.y < 140 || this.player.y > 625;
-    if (!outside || !state.wallsBuilt) return;
-    this.exteriorWalls.fillStyle(0x9d927b, 1);
-    this.exteriorWalls.fillRect(95, 132, 725, 14);
-    this.exteriorWalls.fillRect(95, 642, 725, 14);
-    this.exteriorWalls.fillRect(95, 132, 14, 524);
-    this.exteriorWalls.fillRect(812, 132, 14, 290);
-    this.exteriorWalls.fillRect(812, 530, 14, 126);
-    this.exteriorWalls.lineStyle(3, 0x4b5146, 0.9);
-    this.exteriorWalls.strokeRect(95, 132, 724, 524);
-    this.exteriorWalls.fillStyle(0x5e7560, 0.18);
-    this.exteriorWalls.fillRect(836, 150, 260, 490);
+    if (!state.wallsBuilt) return;
+    // A garden fence marks the property without enclosing the playable exterior.
+    this.exteriorWalls.fillStyle(0x8f7958, 1);
+    this.exteriorWalls.fillRect(135, 180, 900, 8);
+    this.exteriorWalls.fillRect(135, 592, 900, 8);
+    this.exteriorWalls.fillRect(135, 180, 8, 420);
+    this.exteriorWalls.fillRect(1027, 180, 8, 115);
+    this.exteriorWalls.fillRect(1027, 475, 8, 125);
+    this.exteriorWalls.lineStyle(2, 0x4b5146, 0.72);
+    this.exteriorWalls.strokeRect(135, 180, 900, 420);
   }
 
   pulsePlayer(): void {
@@ -1946,8 +2256,8 @@ function renderTutorial(): void {
 
   if (!state.rampBuilt) {
     step = 1;
-    title = 'La première rampe';
-    copy = 'Rejoins le panneau de chantier au sud-est et appuie sur E. La rampe est la seule construction disponible pour le moment.';
+    title = 'Achète ton terrain';
+    copy = 'Tu commences dehors avec ' + format(STARTING_LAND_COST) + ' parfums. Rejoins le panneau TERRAIN · ' + format(STARTING_LAND_COST) + ' et appuie sur E pour acheter ta parcelle.';
   } else if (ownedCurrentWorld === 0) {
     step = 2;
     title = 'Finance ta première table';
