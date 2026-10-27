@@ -208,6 +208,7 @@ describe('tycoon economy', () => {
       currentWorld: 'choco-moon' as WorldId,
       currentFloor: 1,
       unlockedWorlds: ['cookie-valley', 'choco-moon'] as WorldId[],
+      goldenCookiesClaimed: 3,
     };
     state.machines['choco-moon']['conveyor-oven'] = 2;
     const encoded = exportSaveFile(state, 1000);
@@ -220,6 +221,7 @@ describe('tycoon economy', () => {
     expect(loaded?.machines['choco-moon']['conveyor-oven']).toBe(2);
     expect(loaded?.upgrades).toEqual({ production: 0, clickPower: 0, discount: 0 });
     expect(loaded?.claimedMissions).toEqual([]);
+    expect(loaded?.goldenCookiesClaimed).toBe(3);
   });
 
   it('refuses malformed import text instead of replacing progress with a new game', () => {
