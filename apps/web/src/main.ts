@@ -836,8 +836,8 @@ class TycoonScene extends Phaser.Scene {
   private productionLayoutDrawn = false;
   private exteriorButtonObjects: Phaser.GameObjects.GameObject[] = [];
   private extensionObjects: Phaser.GameObjects.GameObject[] = [];
-  private playerFaceParts?: { leftEye: Phaser.GameObjects.Rectangle; rightEye: Phaser.GameObjects.Rectangle; nose: Phaser.GameObjects.Rectangle; hairLock: Phaser.GameObjects.Rectangle };
-  private playerLimbs?: { leftLeg: Phaser.GameObjects.Rectangle; rightLeg: Phaser.GameObjects.Rectangle; leftArm: Phaser.GameObjects.Rectangle; rightArm: Phaser.GameObjects.Rectangle };
+  private playerFaceParts?: { leftEye: Phaser.GameObjects.Ellipse; rightEye: Phaser.GameObjects.Ellipse; nose: Phaser.GameObjects.Ellipse; hairLock: Phaser.GameObjects.Ellipse };
+  private playerLimbs?: { leftLeg: Phaser.GameObjects.Ellipse; rightLeg: Phaser.GameObjects.Ellipse; leftArm: Phaser.GameObjects.Ellipse; rightArm: Phaser.GameObjects.Ellipse };
   private facing: MoveDirection = 'down';
   private walkPhase = 0;
   private moveTarget: { x: number; y: number } | null = null;
@@ -988,45 +988,49 @@ class TycoonScene extends Phaser.Scene {
   }
 
   private createPlayer(x: number, y: number, accent: number): Phaser.GameObjects.Container {
-    const shadow = this.add.ellipse(0, 33, 49, 15, 0x31523a, 0.25);
-    const glow = this.add.ellipse(0, 1, 45, 62, 0xfff5cb, 0.26).setStrokeStyle(2, 0xffffff, 0.7);
-    const legLeft = this.add.rectangle(-8, 27, 11, 25, 0x34435a).setStrokeStyle(2, 0x223747);
-    const legRight = this.add.rectangle(8, 27, 11, 25, 0x34435a).setStrokeStyle(2, 0x223747);
-    const shoeLeft = this.add.rectangle(-8, 40, 16, 8, 0x27372e).setStrokeStyle(2, 0xf8f4dd);
-    const shoeRight = this.add.rectangle(8, 40, 16, 8, 0x27372e).setStrokeStyle(2, 0xf8f4dd);
-    const body = this.add.rectangle(0, 3, 34, 36, 0xfff6e3).setStrokeStyle(2, 0x324c39);
-    const apron = this.add.rectangle(0, 10, 25, 28, accent).setStrokeStyle(2, 0x31563d);
-    const apronPocket = this.add.rectangle(0, 15, 12, 8, 0xffe99a).setStrokeStyle(1, 0x31563d);
-    const strapLeft = this.add.rectangle(-9, -5, 4, 12, 0x4f6f4d);
-    const strapRight = this.add.rectangle(9, -5, 4, 12, 0x4f6f4d);
-    const armLeft = this.add.rectangle(-22, 5, 9, 23, 0xf4c79f).setStrokeStyle(2, 0x6b5140);
-    const armRight = this.add.rectangle(22, 5, 9, 23, 0xf4c79f).setStrokeStyle(2, 0x6b5140);
-    const neck = this.add.rectangle(0, -17, 12, 9, 0xeab38c);
-    const head = this.add.rectangle(0, -31, 27, 27, 0xf0bd91).setStrokeStyle(2, 0x5d4437);
-    const hair = this.add.rectangle(0, -43, 30, 10, 0x49302a).setStrokeStyle(2, 0x302821);
-    const hairLock = this.add.rectangle(-9, -36, 9, 13, 0x49302a).setStrokeStyle(1, 0x302821);
-    const eyeLeft = this.add.rectangle(-6, -29, 3, 4, 0x243a2a);
-    const eyeRight = this.add.rectangle(6, -29, 3, 4, 0x243a2a);
-    const nose = this.add.rectangle(0, -24, 4, 3, 0xd99c75);
-    const collar = this.add.rectangle(0, -14, 12, 5, 0xfffdf0).setStrokeStyle(1, 0x324c39);
-    const miniBottle = this.add.rectangle(28, 5, 10, 15, 0x81d8c3).setStrokeStyle(2, 0x24543e);
-    const bottleNeck = this.add.rectangle(28, -5, 5, 5, 0xffefb5).setStrokeStyle(1, 0x24543e);
-    const bottleCap = this.add.rectangle(28, -9, 7, 4, 0xb88752).setStrokeStyle(1, 0x553d29);
-    const bottleLabel = this.add.rectangle(28, 6, 6, 5, 0xfff0b8);
-    const tag = this.add.text(0, -64, '▼ TOI · PARFUMEUR', {
-      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#183d29',
-      backgroundColor: '#fff6bf', padding: { x: 7, y: 4 }, stroke: '#ffffff', strokeThickness: 3,
-    }).setOrigin(0.5);
+    const ink = 0x413a30;
+    const skin = 0xd9a77f;
+    const shadow = this.add.ellipse(0, 33, 36, 10, 0x443c2c, 0.22);
+    const legLeft = this.add.ellipse(-7, 24, 12, 26, 0x596454).setStrokeStyle(2, ink);
+    const legRight = this.add.ellipse(7, 24, 12, 26, 0x596454).setStrokeStyle(2, ink);
+    const shoeLeft = this.add.ellipse(-8, 37, 17, 9, 0x4a3a31).setStrokeStyle(2, ink);
+    const shoeRight = this.add.ellipse(8, 37, 17, 9, 0x4a3a31).setStrokeStyle(2, ink);
+    const body = this.add.ellipse(0, 2, 33, 40, 0xe6d5b4).setStrokeStyle(2, ink);
+    const apron = this.add.ellipse(0, 10, 25, 29, accent).setStrokeStyle(2, ink);
+    const apronBib = this.add.rectangle(0, -2, 16, 15, accent).setStrokeStyle(1, ink);
+    const apronPocket = this.add.rectangle(0, 15, 11, 8, 0xd8b875).setStrokeStyle(1, ink);
+    const strapLeft = this.add.line(-9, -7, 0, 0, 1, 13, 0x65523e).setLineWidth(3);
+    const strapRight = this.add.line(9, -7, 0, 0, -1, 13, 0x65523e).setLineWidth(3);
+    const armLeft = this.add.ellipse(-20, 5, 11, 23, skin).setStrokeStyle(2, ink);
+    const armRight = this.add.ellipse(20, 5, 11, 23, skin).setStrokeStyle(2, ink);
+    const cuffLeft = this.add.ellipse(-20, 15, 12, 8, 0xe4d2af).setStrokeStyle(1, ink);
+    const cuffRight = this.add.ellipse(20, 15, 12, 8, 0xe4d2af).setStrokeStyle(1, ink);
+    const neck = this.add.ellipse(0, -17, 11, 9, skin).setStrokeStyle(1, ink);
+    const head = this.add.ellipse(0, -30, 28, 30, skin).setStrokeStyle(2, ink);
+    const hair = this.add.ellipse(0, -42, 31, 14, 0x4c382c).setStrokeStyle(2, ink);
+    const hairLock = this.add.ellipse(-10, -35, 10, 17, 0x4c382c).setStrokeStyle(1, ink);
+    const hairCurl = this.add.ellipse(8, -41, 12, 8, 0x6c4a34).setStrokeStyle(1, ink);
+    const browLeft = this.add.ellipse(-6, -32, 5, 2, 0x5a4232);
+    const browRight = this.add.ellipse(6, -32, 5, 2, 0x5a4232);
+    const eyeLeft = this.add.ellipse(-6, -28, 3, 4, ink);
+    const eyeRight = this.add.ellipse(6, -28, 3, 4, ink);
+    const cheekLeft = this.add.ellipse(-10, -24, 4, 2, 0xc8806b, 0.7);
+    const cheekRight = this.add.ellipse(10, -24, 4, 2, 0xc8806b, 0.7);
+    const nose = this.add.ellipse(0, -23, 3, 4, 0xc48664);
+    const collar = this.add.ellipse(0, -14, 13, 6, 0xf3e7cf).setStrokeStyle(1, ink);
+    const bottle = this.add.ellipse(27, 6, 11, 16, 0x739d8c).setStrokeStyle(2, ink);
+    const bottleLabel = this.add.rectangle(27, 7, 7, 5, 0xe7d6a8).setStrokeStyle(1, ink);
+    const bottleNeck = this.add.rectangle(27, -4, 5, 5, 0xd5bf8d).setStrokeStyle(1, ink);
+    const bottleCap = this.add.rectangle(27, -8, 7, 4, 0x6d503b).setStrokeStyle(1, ink);
     this.playerFaceParts = { leftEye: eyeLeft, rightEye: eyeRight, nose, hairLock };
-    this.playerLimbs = { leftLeg: legLeft, rightLeg: legRight, leftArm: armLeft, rightArm: armRight };
+    this.playerLimbs = { leftLeg, rightLeg, leftArm, rightArm };
     const player = this.add.container(x, y, [
-      shadow, glow, legLeft, legRight, shoeLeft, shoeRight, body, apron, apronPocket,
-      strapLeft, strapRight, armLeft, armRight, neck, head, hair, hairLock, eyeLeft,
-      eyeRight, nose, collar, miniBottle, bottleNeck, bottleCap, bottleLabel, tag,
+      shadow, legLeft, legRight, shoeLeft, shoeRight, body, apron, apronBib, apronPocket,
+      strapLeft, strapRight, armLeft, armRight, cuffLeft, cuffRight, neck, head, hair, hairLock,
+      hairCurl, browLeft, browRight, eyeLeft, eyeRight, cheekLeft, cheekRight, nose, collar,
+      bottle, bottleLabel, bottleNeck, bottleCap,
     ]);
     player.setDepth(y);
-    this.tweens.add({ targets: tag, y: -68, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    this.tweens.add({ targets: glow, alpha: 0.16, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     return player;
   }
 
@@ -1460,7 +1464,6 @@ class TycoonScene extends Phaser.Scene {
     pad.add(this.add.text(0, 0, 'E  CONSTRUIRE', { fontFamily: 'Trebuchet MS, sans-serif', fontSize: '10px', fontStyle: 'bold', color: '#48391b' }).setOrigin(0.5));
     const label = this.add.text(0, -43, 'RAMPE · GRATUIT', { fontFamily: 'Trebuchet MS, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#243f2e', backgroundColor: '#fff9dc', padding: { x: 8, y: 5 }, stroke: '#ffffff', strokeThickness: 3 }).setOrigin(0.5);
     pad.add(label);
-    this.tweens.add({ targets: pad, scale: 1.06, duration: 620, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.constructionButtonObjects.push(pad);
     const instruction = this.add.text(260, 610, 'Approche-toi puis appuie sur E', { fontFamily: 'Trebuchet MS, sans-serif', fontSize: '12px', color: '#2b4733', backgroundColor: '#fff8e7', padding: { x: 8, y: 5 } }).setOrigin(0.5).setDepth(10);
     this.constructionButtonObjects.push(instruction);
@@ -1618,7 +1621,7 @@ class TycoonScene extends Phaser.Scene {
 
   pulsePlayer(): void {
     if (!this.player?.active) return;
-    this.tweens.add({targets:this.player,scale:0.92,duration:60,yoyo:true,ease:'Quad.easeOut'});
+    this.tweens.add({ targets: this.player, y: this.player.y - 2, duration: 75, yoyo: true, ease: 'Sine.easeOut' });
   }
 
   loadWorld(): void {
