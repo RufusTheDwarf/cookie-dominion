@@ -76,22 +76,22 @@ export const MAX_UPGRADE_LEVEL = 10;
 
 export const UPGRADES: Record<UpgradeId, { name: string; description: string; baseCost: number; growth: number; effect: string }> = {
   production: {
-    name: 'Fermentation turbo',
-    description: 'Toutes tes machines produisent 20 % de cookies en plus par niveau.',
+    name: 'Concentré Absolu',
+    description: 'Toutes tes machines produisent 20 % de parfums en plus par niveau.',
     baseCost: 120,
     growth: 1.85,
-    effect: '+20 % production / niveau',
+    effect: '+20 % parfums / niveau',
   },
   clickPower: {
-    name: 'Doigts de pâtissier',
-    description: 'Chaque clic manuel rapporte 10 cookies supplémentaires par niveau.',
+    name: 'Gestuelle du maître',
+    description: 'Chaque création manuelle rapporte 10 parfums supplémentaires par niveau.',
     baseCost: 60,
     growth: 1.8,
-    effect: '+10 cookies / clic / niveau',
+    effect: '+10 parfums / création',
   },
   discount: {
-    name: 'Achats en gros',
-    description: 'Réduit le prix de toutes les nouvelles machines de 5 % par niveau.',
+    name: 'Contrats verriers',
+    description: 'Réduit le prix des équipements de 5 % par niveau.',
     baseCost: 180,
     growth: 2,
     effect: '−5 % prix des machines / niveau',
@@ -99,11 +99,11 @@ export const UPGRADES: Record<UpgradeId, { name: string; description: string; ba
 };
 
 export const MISSION_DEFINITIONS: MissionDefinition[] = [
-  { id: 'first-machine', name: 'Première ligne', description: 'Installe ta première machine, tous mondes confondus.', target: 1, reward: 75, kind: 'machines' },
-  { id: 'industrialist', name: 'Petit industriel', description: 'Possède 5 machines en même temps.', target: 5, reward: 400, kind: 'machines' },
-  { id: 'lifetime-baker', name: 'Le carnet de commandes', description: 'Produis 1 000 cookies au total.', target: 1000, reward: 500, kind: 'lifetime' },
-  { id: 'world-explorer', name: 'Explorateur sucré', description: 'Déverrouille un deuxième monde.', target: 2, reward: 1500, kind: 'worlds' },
-  { id: 'galactic-empire', name: 'Empire galactique', description: 'Déverrouille les trois mondes.', target: 3, reward: 8000, kind: 'worlds' },
+  { id: 'first-machine', name: 'Premier atelier', description: 'Installe ton premier équipement.', target: 1, reward: 75, kind: 'machines' },
+  { id: 'industrialist', name: 'Maison en expansion', description: 'Possède 5 équipements.', target: 5, reward: 400, kind: 'machines' },
+  { id: 'lifetime-baker', name: 'Mille flacons vendus', description: 'Vends 1 000 parfums au total.', target: 1000, reward: 500, kind: 'lifetime' },
+  { id: 'world-explorer', name: 'Nez voyageur', description: 'Déverrouille un deuxième monde.', target: 2, reward: 1500, kind: 'worlds' },
+  { id: 'galactic-empire', name: 'Grand nez de l’Empire', description: 'Déverrouille les trois mondes.', target: 3, reward: 8000, kind: 'worlds' },
 ];
 
 const MISSION_IDS: MissionId[] = MISSION_DEFINITIONS.map((mission) => mission.id);
@@ -342,7 +342,7 @@ export function claimMission(state: GameState, missionId: MissionId): GameState 
 }
 
 export function productionPerSecond(
-  state: Pick<GameState, 'machines' | 'currentWorld' | 'rebirths' | 'upgrades'>,
+  state: Pick<GameState, 'machines' | 'currentWorld' | 'rebirths' | 'upgrades' | 'essences'>,
   worldId: WorldId = state.currentWorld,
 ): number {
   const world = getWorld(worldId);
