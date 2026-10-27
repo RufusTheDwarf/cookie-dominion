@@ -58,11 +58,16 @@ export interface GameState {
   upgrades: UpgradeLevels;
   claimedMissions: MissionId[];
   goldenCookiesClaimed: number;
+  totalRebirths: number;
+  essences: number;
   lastSavedAt: number;
 }
 
 export const MAX_OFFLINE_SECONDS = 8 * 60 * 60;
 export const COOKIE_CLICK_VALUE = 10;
+export const TOTAL_REBIRTH_BASE_LEVEL = 10;
+export const TOTAL_REBIRTH_LEVEL_STEP = 5;
+export const ESSENCE_PRODUCTION_BONUS = 0.75;
 export const REBIRTH_BASE_COST = 1500;
 export const REBIRTH_COST_GROWTH = 1.55;
 export const REBIRTH_MULTIPLIER = 1.75;
@@ -106,48 +111,48 @@ const MISSION_IDS: MissionId[] = MISSION_DEFINITIONS.map((mission) => mission.id
 export const WORLDS: WorldDefinition[] = [
   {
     id: 'cookie-valley',
-    name: 'Cookie Valley',
-    tagline: 'La première fabrique',
+    name: 'Jardin de Verre',
+    tagline: 'Les premières notes fraîches',
     unlockRebirths: 0,
     costMultiplier: 1,
     incomeMultiplier: 1,
-    background: 0x19140f,
-    floorColor: 0x35291f,
-    accent: 0xd69b5b,
-    belt: 0x6c4b30,
+    background: 0xb8e5ad,
+    floorColor: 0xf5e8c9,
+    accent: 0x2d8c68,
+    belt: 0x8bd4ac,
   },
   {
     id: 'choco-moon',
-    name: 'Choco Moon',
-    tagline: 'Le chocolat ne dort jamais',
+    name: 'Maison d’Ambre',
+    tagline: 'Bois précieux et vanille noire',
     unlockRebirths: 1,
     costMultiplier: 5,
     incomeMultiplier: 8,
-    background: 0x171426,
-    floorColor: 0x322646,
-    accent: 0xb68aff,
-    belt: 0x6852a1,
+    background: 0xd9c3f3,
+    floorColor: 0xeee0fb,
+    accent: 0x8754b8,
+    belt: 0xc5a4e6,
   },
   {
     id: 'galaxy-oven',
-    name: 'Galaxy Oven',
-    tagline: 'La chaîne de production cosmique',
+    name: 'Palais Astral',
+    tagline: 'Les essences les plus rares',
     unlockRebirths: 3,
     costMultiplier: 35,
     incomeMultiplier: 65,
-    background: 0x0d1a2a,
-    floorColor: 0x1b3446,
-    accent: 0x65d8e8,
-    belt: 0x326f85,
+    background: 0xa8dcea,
+    floorColor: 0xdceef4,
+    accent: 0x287d9b,
+    belt: 0x78c6dc,
   },
 ];
 
 export const MACHINES: MachineDefinition[] = [
   {
     id: 'hand-mixer',
-    name: 'Mélangeur manuel',
-    short: 'MIX',
-    description: 'Petits cookies rapides',
+    name: 'Table de formulation',
+    short: 'FORM',
+    description: 'Mélange les premières notes parfumées',
     floor: 0,
     x: 260,
     cost: 15,
@@ -156,9 +161,9 @@ export const MACHINES: MachineDefinition[] = [
   },
   {
     id: 'brick-oven',
-    name: 'Four en briques',
-    short: 'OVN',
-    description: 'Une fournée plus rentable',
+    name: 'Alambic de cuivre',
+    short: 'ALAM',
+    description: 'Distille des extraits de caractère',
     floor: 0,
     x: 450,
     cost: 110,
@@ -167,9 +172,9 @@ export const MACHINES: MachineDefinition[] = [
   },
   {
     id: 'conveyor-oven',
-    name: 'Four à convoyeur',
-    short: 'BELT',
-    description: 'Production industrielle',
+    name: 'Ligne d’embouteillage',
+    short: 'FILL',
+    description: 'Remplit et ferme les flacons à la chaîne',
     floor: 1,
     x: 320,
     cost: 650,
@@ -178,9 +183,9 @@ export const MACHINES: MachineDefinition[] = [
   },
   {
     id: 'frosting-lab',
-    name: 'Laboratoire glaçage',
+    name: 'Atelier de parfumeur',
     short: 'LAB',
-    description: 'Cookies premium automatisés',
+    description: 'Crée des compositions premium',
     floor: 1,
     x: 560,
     cost: 3200,
@@ -189,9 +194,9 @@ export const MACHINES: MachineDefinition[] = [
   },
   {
     id: 'quantum-bakery',
-    name: 'Four quantique',
-    short: 'QNT',
-    description: 'Production interdimensionnelle',
+    name: 'Extracteur astral',
+    short: 'ASTR',
+    description: 'Synthétise des essences interdimensionnelles',
     floor: 2,
     x: 440,
     cost: 18000,
@@ -234,6 +239,8 @@ export function createInitialState(now = Date.now()): GameState {
     upgrades: { production: 0, clickPower: 0, discount: 0 },
     claimedMissions: [],
     goldenCookiesClaimed: 0,
+    totalRebirths: 0,
+    essences: 0,
     lastSavedAt: now,
   };
 }
@@ -248,6 +255,31 @@ export function getMachine(machineId: MachineId): MachineDefinition {
 
 export function rebirthMultiplier(state: Pick<GameState, 'rebirths'>): number {
   return REBIRTH_MULTIPLIER ** state.rebirths;
+}
+
+export function totalRebirthRequiredLevel(state: Pick<GameState, 'totalRebirths'>): number {
+  return TOTAL_REBIRTH_BASE_LEVEL + state.totalRebirths * TOTAL_REBIRTH_LEVEL_STEP;
+}
+
+export function essenceMultiplier(state: Pick<GameState, 'essences'>): number {
+  return 1 + state.essences * ESSENCE_PRODUCTION_BONUS;
+}
+
+export function canTotalRebirth(state: GameState): boolean {
+  return state.rebirths >= totalRebirthRequiredLevel(state) &&
+    state.runCrumbsEarned >= rebirthCost(state.rebirths);
+}
+
+export function performTotalRebirth(state: GameState, now = Date.now()): GameState {
+  if (!canTotalRebirth(state)) return state;
+  const nextTotalRebirths = state.totalRebirths + 1;
+  const essenceReward = 1 + state.totalRebirths;
+  return {
+    ...createInitialState(now),
+    totalRebirths: nextTotalRebirths,
+    essences: state.essences + essenceReward,
+    lastSavedAt: now,
+  };
 }
 
 export function machineCost(state: GameState, machineId: MachineId): number {
@@ -319,7 +351,7 @@ export function productionPerSecond(
     return total + worldMachines[machine.id] * (machine.payout / machine.cycleSeconds);
   }, 0);
   const productionUpgrade = 1 + state.upgrades.production * 0.2;
-  return base * world.incomeMultiplier * REBIRTH_MULTIPLIER ** state.rebirths * productionUpgrade;
+  return base * world.incomeMultiplier * REBIRTH_MULTIPLIER ** state.rebirths * productionUpgrade * essenceMultiplier(state);
 }
 
 export function addCrumbs(state: GameState, amount: number): GameState {
@@ -483,6 +515,12 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
         : [],
       goldenCookiesClaimed: Number.isSafeInteger(value.goldenCookiesClaimed) && (value.goldenCookiesClaimed as number) >= 0
         ? value.goldenCookiesClaimed as number
+        : 0,
+      totalRebirths: Number.isSafeInteger(value.totalRebirths) && (value.totalRebirths as number) >= 0
+        ? value.totalRebirths as number
+        : 0,
+      essences: Number.isSafeInteger(value.essences) && (value.essences as number) >= 0
+        ? value.essences as number
         : 0,
       lastSavedAt: value.lastSavedAt,
     };
