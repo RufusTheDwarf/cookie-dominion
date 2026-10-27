@@ -37,19 +37,48 @@ import {
 } from '../apps/web/src/economy';
 
 describe('tycoon economy', () => {
-  it('starts with an empty workshop and defaults legacy saves to the built state', () => {
+  it('starts with an empty workshop and preserves built legacy saves only when they have progress', () => {
     const initial = createInitialState(100);
     expect(initial.rampBuilt).toBe(false);
     expect(initial.wallsBuilt).toBe(false);
     expect(initial.outsideExpansions).toBe(0);
-    const older = parseSavedState(JSON.stringify({
+
+    const olderProgress = parseSavedState(JSON.stringify({
       ...initial,
+      crumbs: 20,
+      lifetimeCrumbs: 20,
+      runCrumbsEarned: 20,
       rampBuilt: undefined,
       wallsBuilt: undefined,
       outsideExpansions: undefined,
     }), 100);
-    expect(older.rampBuilt).toBe(true);
-    expect(older.wallsBuilt).toBe(false);
+    expect(olderProgress.rampBuilt).toBe(true);
+    expect(olderProgress.wallsBuilt).toBe(false);
+
+    const staleEmptySave = parseSavedState(JSON.stringify({
+      ...initial,
+      rampBuilt: undefined,
+      unlockedFloors: [0, 1],
+      currentFloor: 1,
+    }), 100);
+    expect(staleEmptySave.rampBuilt).toBe(false);
+    expect(staleEmptySave.currentFloor).toBe(0);
+    expect(staleEmptySave.unlockedFloors).toEqual([0]);
+
+    const explicitRampSave = parseSavedState(JSON.stringify({ ...initial, rampBuilt: true }), 100);
+    expect(explicitRampSave.rampBuilt).toBe(true);
+  });
+
+  it('migrates an empty first-generation save to the unbuilt starting room', () => {
+    const legacy = parseSavedState(JSON.stringify({
+      crumbs: 0,
+      lifetimeCrumbs: 0,
+      ovens: 0,
+      lastSavedAt: 100,
+    }), 100);
+    expect(legacy.rampBuilt).toBe(false);
+    expect(legacy.machines['cookie-valley']['brick-oven']).toBe(0);
+    expect(legacy.unlockedFloors).toEqual([0]);
   });
 
   it('gives cookies for manual baking and tracks this run separately', () => {

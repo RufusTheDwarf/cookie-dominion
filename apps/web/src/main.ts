@@ -60,16 +60,16 @@ app.innerHTML = `
       <button id="open-menu-button" class="pause-menu-button" type="button" aria-label="Ouvrir le menu">MENU</button>
       <div class="header-stats">
         <div class="currency-display"><span>VENTES</span><strong id="crumb-total">0</strong><small>PARFUMS</small></div>
-        <div class="hud-stat"><span>PRODUCTION</span><strong id="production">0 <small>/ s</small></strong></div>
-        <div class="hud-stat"><span>MULTIPLICATEUR</span><strong id="multiplier">x1</strong></div>
-        <div class="hud-stat"><span>REBIRTHS</span><strong id="rebirth-count">0</strong></div>
-        <div class="hud-stat essence-stat"><span>ESSENCES</span><strong id="essence-total">0</strong></div>
-        <div class="hud-stat empire-value-stat"><span>VALEUR EMPIRE</span><strong id="empire-value">0</strong></div>
-        <div class="hud-stat"><span>ASCENSIONS</span><strong id="total-rebirth-count">0</strong></div>
-        <div class="world-save"><strong id="world-name">Jardin de Verre</strong><small id="save-state">SAUVEGARDE LOCALE</small></div>
+        <div class="hud-stat" id="header-production"><span>PRODUCTION</span><strong id="production">0 <small>/ s</small></strong></div>
+        <div class="hud-stat" id="header-multiplier"><span>MULTIPLICATEUR</span><strong id="multiplier">x1</strong></div>
+        <div class="hud-stat" id="header-rebirths"><span>REBIRTHS</span><strong id="rebirth-count">0</strong></div>
+        <div class="hud-stat essence-stat" id="header-essences"><span>ESSENCES</span><strong id="essence-total">0</strong></div>
+        <div class="hud-stat empire-value-stat" id="header-empire-value"><span>VALEUR EMPIRE</span><strong id="empire-value">0</strong></div>
+        <div class="hud-stat" id="header-ascensions"><span>ASCENSIONS</span><strong id="total-rebirth-count">0</strong></div>
+        <div class="world-save" id="world-save"><strong id="world-name">Jardin de Verre</strong><small id="save-state">SAUVEGARDE LOCALE</small></div>
       </div>
     </header>
-    <details class="utility-drawer">
+    <details class="utility-drawer" id="utility-drawer">
       <summary>⚙ Options et sauvegarde</summary>
       <section class="panel save-toolbar">
       <div class="save-toolbar-heading"><div><div class="eyebrow">DONNÉES DE LA PARTIE</div><strong>SAUVEGARDE / CHARGEMENT</strong><small>Export JSON, import d'une autre sauvegarde ou effacement complet.</small></div></div>
@@ -97,7 +97,7 @@ app.innerHTML = `
           <button class="primary" id="bake-button"><span class="spray-icon">✦</span><span>CRÉER UN PARFUM</span><span class="button-value">+10</span></button>
           <small>Chaque flacon vendu finance la prochaine machine.</small>
         </div>
-        <section class="customer-order-card">
+        <section id="customer-order-panel" class="customer-order-card" hidden>
           <div class="order-heading"><span class="eyebrow">CLIENT VIP</span><span class="order-count">LIVRAISONS <strong id="orders-completed">0</strong></span></div>
           <h2>Commande spéciale</h2>
           <p id="customer-order-status">Approche-toi du client VIP puis appuie sur E pour livrer.</p>
@@ -107,13 +107,13 @@ app.innerHTML = `
           </div>
           <small>Le prix et la récompense augmentent à chaque livraison.</small>
         </section>
-        <button id="golden-cookie" class="golden-cookie-button" type="button" disabled>
+        <button id="golden-cookie" class="golden-cookie-button" type="button" disabled hidden>
           <span class="golden-cookie-icon">✦</span>
           <span class="golden-cookie-copy"><strong>FLACON MYTHIQUE</strong><small id="golden-cookie-status">Premier parfum rare dans 25 s</small></span>
           <span class="golden-cookie-mark">×2</span>
         </button>
-        <div class="rule"></div>
-        <section class="prestige-card basic-prestige">
+        <div id="rebirth-divider" class="rule" hidden></div>
+        <section id="rebirth-panel" class="prestige-card basic-prestige" hidden>
           <div class="prestige-heading"><span class="eyebrow">PRESTIGE I</span><span class="prestige-pill">PERMANENT</span></div>
           <h2>REBIRTH</h2>
           <p class="prestige-desc">Repars de zéro côté machines pour obtenir un multiplicateur de ventes. Tes recherches restent acquises.</p>
@@ -122,22 +122,24 @@ app.innerHTML = `
           <p class="objective" id="rebirth-info">Produis suffisamment de parfums pour recommencer plus fort.</p>
           <button class="rebirth-button" id="rebirth-button" disabled><span>REBIRTH NORMAL</span><strong id="rebirth-cost">1 500</strong></button>
         </section>
-        <section class="prestige-card total-prestige">
+        <section id="total-rebirth-panel" class="prestige-card total-prestige" hidden>
           <div class="prestige-heading"><span class="eyebrow">PRESTIGE II</span><span class="prestige-pill ultimate-pill">ENDGAME</span></div>
           <h2>ASCENSION TOTALE</h2>
           <div class="total-rebirth-level"><strong id="total-rebirth-level">REBIRTHS 0 / 10</strong><span id="essence-multiplier">ESSENCE ×1,00</span></div>
           <p class="prestige-desc" id="total-rebirth-info">Chaque Essence originelle vaut 1 000 000 points de valeur d’empire et apporte +75 % de rendement permanent.</p>
           <button class="total-rebirth-button" id="total-rebirth-button" type="button" disabled><span>TOUT SACRIFIER</span><strong id="total-rebirth-reward">+1 ESSENCE</strong></button>
         </section>
-        <div class="rule"></div>
-        <div class="eyebrow">PETITS OBJECTIFS</div>
-        <h2>CONTRATS</h2>
-        <p class="panel-intro">Chaque contrat finance la prochaine étape.</p>
-        <div id="mission-list" class="mission-list"></div>
+        <section id="missions-panel" hidden>
+          <div class="rule"></div>
+          <div class="eyebrow">PETITS OBJECTIFS</div>
+          <h2>CONTRATS</h2>
+          <p class="panel-intro">Chaque contrat finance la prochaine étape.</p>
+          <div id="mission-list" class="mission-list"></div>
+        </section>
       </aside>
       <section class="panel map-panel">
-        <div class="panel-heading"><div><div class="eyebrow">LA MANUFACTURE · VUE LIBRE</div><h2 id="floor-title">ÉTAGE 1 — ATELIER</h2></div><div class="live-dot">EN DIRECT</div></div>
-        <div class="map-toolbar"><div><strong id="world-tagline">JARDIN DE VERRE</strong><small>Déplace-toi et interagis directement avec les machines.</small></div><span id="player-position">Position : …</span></div>
+        <div class="panel-heading"><div><div id="scene-eyebrow" class="eyebrow">LE CHANTIER · PREMIÈRE CONSTRUCTION</div><h2 id="floor-title">ÉTAGE 1 — ATELIER</h2></div><div class="live-dot">EN DIRECT</div></div>
+        <div class="map-toolbar" id="map-toolbar"><div><strong id="world-tagline">JARDIN DE VERRE</strong><small>Déplace-toi et interagis directement avec les machines.</small></div><span id="player-position">Position : …</span></div>
         <section id="tutorial-banner" class="tutorial-banner">
           <div class="tutorial-copy"><span id="tutorial-step-label" class="eyebrow">GUIDE DE DÉPART</span><strong id="tutorial-title">Construis ton premier accès</strong><p id="tutorial-text">Approche-toi du bouton jaune et appuie sur E.</p></div>
           <button id="tutorial-dismiss" type="button" aria-label="Masquer le tutoriel">×</button>
@@ -154,7 +156,7 @@ app.innerHTML = `
           <button id="interact-button" class="interact-button" type="button"><strong>E</strong><span>INTERAGIR</span></button>
         </div>
         <div class="map-legend"><span><i class="legend-cookie"></i> Flacons en transit</span><span><i class="legend-player"></i> Toi</span><span id="map-hint">WASD / clic · E pour agir</span></div>
-        <div class="nav-block">
+        <div class="nav-block" id="floor-navigation" hidden>
           <div class="nav-heading"><span class="eyebrow">ÉTAGES</span><span class="muted">Escaliers sur la carte ou accès rapide</span></div>
           <div class="nav-buttons">
             <button class="nav-button is-active" data-floor="0">01 · Atelier</button>
@@ -162,24 +164,44 @@ app.innerHTML = `
             <button class="nav-button" data-floor="2" hidden disabled>03 · Laboratoire</button>
           </div>
         </div>
-        <div class="nav-block">
+        <div class="nav-block" id="world-navigation" hidden>
           <div class="nav-heading"><span class="eyebrow">PORTAILS DES MONDES</span><span class="muted">Chaque monde multiplie les gains</span></div>
           <div class="world-buttons" id="world-buttons"></div>
         </div>
       </section>
       <aside class="panel building-panel">
-        <div class="shop-header"><div><div class="eyebrow">BOUTIQUE DE LA MAISON</div><h2>AMÉLIORATIONS</h2></div><span class="shop-level">LABO<br>LV.01</span></div>
-        <p class="panel-intro">Investis dans la formulation, le rendement et les coûts.</p>
-        <div id="upgrade-list" class="upgrade-list"></div>
-        <div class="rule"></div>
-        <div class="shop-section-title"><span class="eyebrow">PRODUCTION</span><h2>ÉQUIPEMENTS</h2></div>
-        <p class="panel-intro">Installe tes machines dans l'atelier. Les flacons vendus génèrent des revenus automatiquement.</p>
-        <div class="machine-list" id="machine-list"></div>
-        <div class="rule"></div>
-        <div class="factory-tip"><span>✦</span><div><strong>NOTE DU MAÎTRE PARFUMEUR</strong><small>Une chaîne complète vaut mieux qu'une seule machine de luxe. Monte étage après étage.</small></div></div>
+        <section id="upgrade-section" hidden>
+          <div class="shop-header"><div><div class="eyebrow">BOUTIQUE DE LA MAISON</div><h2>AMÉLIORATIONS</h2></div><span class="shop-level">LABO<br>LV.01</span></div>
+          <p class="panel-intro">Investis dans la formulation, le rendement et les coûts.</p>
+          <div id="upgrade-list" class="upgrade-list"></div>
+        </section>
+        <div class="rule" id="upgrade-divider" hidden></div>
+        <section id="machine-shop-section">
+          <div class="shop-section-title"><span class="eyebrow">PRODUCTION</span><h2>ÉQUIPEMENTS</h2></div>
+          <p class="panel-intro">Choisis un équipement dans le catalogue. Son emplacement physique apparaîtra uniquement après l'achat.</p>
+          <div class="machine-list" id="machine-list"></div>
+        </section>
+        <div class="rule" id="factory-tip-divider" hidden></div>
+        <div class="factory-tip" id="factory-tip" hidden><span>✦</span><div><strong>NOTE DU MAÎTRE PARFUMEUR</strong><small>Développe chaque ligne avant d'ouvrir un nouvel espace.</small></div></div>
       </aside>
     </section>
     <footer><span>PARFUM EMPIRE · MAISON DES ESSENCES</span><span>PROGRESSION LOCALE · SAUVEGARDE AUTOMATIQUE</span></footer>
+    <div id="tutorial-intro" class="tutorial-intro" role="dialog" aria-modal="true" aria-labelledby="tutorial-intro-title" hidden>
+      <section class="tutorial-intro-card">
+        <div class="eyebrow">CARNET DU PARFUMEUR · 01</div>
+        <div class="tutorial-illustration" aria-hidden="true"><span></span><i></i><b></b></div>
+        <h2 id="tutorial-intro-title">Un atelier à construire</h2>
+        <p>Tu commences avec une pièce vide. Les machines, les étages et les murs ne sont pas encore là : c'est à toi de les construire.</p>
+        <div class="tutorial-instructions">
+          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>ou les flèches pour marcher</span></div>
+          <div><kbd>E</kbd><span>pour construire ou interagir près d'un objet</span></div>
+          <div><span class="tutorial-step-number">1</span><span>Rejoins le panneau de chantier et construis la rampe.</span></div>
+          <div><span class="tutorial-step-number">2</span><span>Crée des parfums pour acheter ta première table de formulation.</span></div>
+          <div><span class="tutorial-step-number">3</span><span>Les nouveaux espaces et les options se débloqueront au fur et à mesure.</span></div>
+        </div>
+        <button id="tutorial-start-button" class="menu-primary" type="button">ENTRER DANS L'ATELIER</button>
+      </section>
+    </div>
     <div id="main-menu" class="main-menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
       <div class="menu-card">
         <div class="menu-emblem" aria-hidden="true"><span>PE</span><i></i><b></b></div>
@@ -204,7 +226,7 @@ app.innerHTML = `
           <textarea id="menu-import-text" rows="4" spellcheck="false" placeholder="Colle les données de sauvegarde ici…"></textarea>
           <div class="menu-import-actions"><button id="menu-import-confirm" class="menu-primary">IMPORTER</button><button id="menu-import-back" class="menu-tertiary">RETOUR</button></div>
         </section>
-        <small class="menu-footer">WASD / flèches pour bouger · E pour interagir · Sauvegarde locale</small>
+        <small class="menu-footer" id="menu-save-note">Continuer reprend la sauvegarde locale. « Nouvelle partie » recrée l’atelier vide.</small>
       </div>
     </div>
   </main>
@@ -221,6 +243,7 @@ let statusTimer = 0;
 let renderTimer = 0;
 let gameIsPaused = true;
 let tutorialDismissed = false;
+let introTutorialSeen = false;
 let previousFrame = performance.now();
 let goldenReadyAt = performance.now() + 25_000;
 let goldenDeadline = 0;
@@ -265,26 +288,37 @@ try {
 
 function startGame(newGame = false): void {
   if (newGame) {
-    const hasProgress = state.lifetimeCrumbs > 0 || state.rebirths > 0 || state.rampBuilt ||
-      Object.values(state.machines).some((worldMachines) => Object.values(worldMachines).some((count) => count > 0));
-    if (hasProgress && !window.confirm('Créer une nouvelle partie ? La progression actuelle sera remplacée. Pense à exporter ta sauvegarde avant de continuer.')) return;
+    const ownedCount = Object.values(state.machines)
+      .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
+    const hasProgress = state.lifetimeCrumbs > 0 || state.crumbs > 0 || state.rebirths > 0 ||
+      state.totalRebirths > 0 || ownedCount > 0 || state.ordersCompleted > 0;
+    if (hasProgress && !window.confirm('Créer une nouvelle partie ? La progression actuelle sera remplacée. Exporte d’abord ta sauvegarde si tu souhaites la conserver.')) return;
     state = createInitialState();
     machineUiKey = '';
     worldUiKey = '';
     upgradeUiKey = '';
     missionUiKey = '';
     tutorialDismissed = false;
+    introTutorialSeen = false;
     render();
     bakeryScene?.loadWorld();
     save();
   }
-  gameIsPaused = false;
+
   $('main-menu').classList.add('is-hidden');
+  const showIntro = !introTutorialSeen && !state.rampBuilt &&
+    state.lifetimeCrumbs === 0 && state.crumbs === 0 && state.rebirths === 0;
+  $('tutorial-intro').hidden = !showIntro;
+  gameIsPaused = showIntro;
   render();
+  if (showIntro) {
+    $('tutorial-start-button').focus();
+    return;
+  }
   if (!state.rampBuilt) {
-    setStatus('Bienvenue ! Déplace-toi vers le bouton jaune et appuie sur E pour construire la rampe.');
+    setStatus('Objectif : approche-toi du panneau de chantier et appuie sur E pour construire la rampe.');
   } else {
-    setStatus('Partie chargée. Reprends le développement de ta maison de parfum.');
+    setStatus('Partie chargée. « Nouvelle partie » permet de recommencer avec un atelier vide.');
   }
 }
 
@@ -293,11 +327,16 @@ function showMenuPanel(panel: 'settings' | 'import' | null): void {
   $('menu-import-panel').toggleAttribute('hidden', panel !== 'import');
 }
 
-$('menu-play').textContent = state.rampBuilt || state.lifetimeCrumbs > 0 ? 'CONTINUER' : 'JOUER';
+function hasSavedProgress(): boolean {
+  const owned = Object.values(state.machines)
+    .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
+  return state.rampBuilt || state.lifetimeCrumbs > 0 || state.crumbs > 0 || state.rebirths > 0 || owned > 0;
+}
+$('menu-play').textContent = hasSavedProgress() ? 'CONTINUER LA PARTIE' : 'COMMENCER';
 $('menu-play').addEventListener('click', () => startGame(false));
 $('open-menu-button').addEventListener('click', () => {
   gameIsPaused = true;
-  $('menu-play').textContent = 'REPRENDRE';
+  $('menu-play').textContent = 'REPRENDRE LA PARTIE';
   showMenuPanel(null);
   $('main-menu').classList.remove('is-hidden');
 });
@@ -322,6 +361,13 @@ $('menu-import-confirm').addEventListener('click', () => {
 });
 $('dark-mode-toggle').addEventListener('change', (event) => {
   applyDarkMode((event.currentTarget as HTMLInputElement).checked);
+});
+$('tutorial-start-button').addEventListener('click', () => {
+  introTutorialSeen = true;
+  $('tutorial-intro').hidden = true;
+  gameIsPaused = false;
+  setStatus('Objectif : rejoins le panneau de chantier au sud-est, puis appuie sur E.');
+  renderTutorial();
 });
 
 function save(): void {
@@ -640,7 +686,42 @@ function renderWorldButtons(): void {
 
 function render(): void {
   const world = getWorld(state.currentWorld);
+  const machineCount = Object.values(state.machines[state.currentWorld])
+    .reduce((sum, count) => sum + count, 0);
+  const stage = !state.rampBuilt ? 0
+    : state.rebirths > 0 || state.lifetimeCrumbs >= 1000 ? 4
+      : machineCount === 0 ? 1
+        : machineCount < 2 && state.lifetimeCrumbs < 250 ? 2 : 3;
   document.documentElement.classList.toggle('workshop-unbuilt', !state.rampBuilt);
+  document.documentElement.classList.remove('progression-stage-0', 'progression-stage-1', 'progression-stage-2', 'progression-stage-3', 'progression-stage-4');
+  document.documentElement.classList.add('progression-stage-' + stage);
+
+  const header = document.querySelector<HTMLElement>('.header-stats');
+  if (header) header.hidden = stage === 0;
+  $('header-production').hidden = stage < 2;
+  $('header-multiplier').hidden = stage < 3;
+  $('header-rebirths').hidden = stage < 4;
+  $('header-essences').hidden = stage < 4;
+  $('header-empire-value').hidden = stage < 4;
+  $('header-ascensions').hidden = state.totalRebirths === 0;
+  $('world-save').hidden = stage < 3;
+  $('utility-drawer').hidden = stage < 3;
+
+  $('customer-order-panel').hidden = !(machineCount >= 2 || (machineCount >= 1 && state.lifetimeCrumbs >= 250));
+  $('golden-cookie').hidden = stage < 3;
+  $('rebirth-panel').hidden = stage < 4;
+  $('rebirth-divider').hidden = stage < 4;
+  $('total-rebirth-panel').hidden = state.rebirths < 8 && state.totalRebirths === 0;
+  $('missions-panel').hidden = stage < 2;
+  $('upgrade-section').hidden = stage < 3;
+  $('upgrade-divider').hidden = stage < 3;
+  $('factory-tip-divider').hidden = stage < 3;
+  $('factory-tip').hidden = stage < 3;
+  $('floor-navigation').hidden = state.unlockedFloors.length < 2;
+  $('world-navigation').hidden = state.unlockedWorlds.length < 2;
+  $('map-toolbar').hidden = stage === 0;
+  $('bake-button').toggleAttribute('disabled', !state.rampBuilt);
+
   $('crumb-total').textContent = format(state.crumbs);
   $('production').textContent = format(productionPerSecond(state)) + ' / s';
   $('multiplier').textContent = 'x' + format(rebirthMultiplier(state) * world.incomeMultiplier);
@@ -661,7 +742,8 @@ function render(): void {
   $('empire-value').textContent = format(state.lifetimeCrumbs + state.essences * ESSENCE_PRESTIGE_VALUE);
   $('total-rebirth-count').textContent = String(state.totalRebirths);
   $('owner-rank').textContent = 'Maison indépendante · Rang ' + (1 + state.rebirths + state.totalRebirths * 10);
-  $('floor-title').textContent = ['ÉTAGE 1 — FORMULATION', 'ÉTAGE 2 — EMBOUTEILLAGE', 'ÉTAGE 3 — EXTRACTION'][state.currentFloor] ?? 'ATELIER';
+  $('floor-title').textContent = !state.rampBuilt ? 'CHANTIER — PREMIÈRE RAMPE' : ['REZ-DE-CHAUSSÉE — FORMULATION', 'ÉTAGE 2 — EMBOUTEILLAGE', 'ÉTAGE 3 — EXTRACTION'][state.currentFloor] ?? 'ATELIER';
+  $('scene-eyebrow').textContent = state.rampBuilt ? 'LA MANUFACTURE · VUE LIBRE' : 'LE CHANTIER · PREMIÈRE CONSTRUCTION';
   $('rebirth-cost').textContent = format(rebirthCost(state.rebirths));
   $('rebirth-button').toggleAttribute('disabled', !canRebirth(state));
   $('rebirth-progress').style.width = Math.min(100, state.runCrumbsEarned / rebirthCost(state.rebirths) * 100) + '%';
@@ -833,6 +915,7 @@ class TycoonScene extends Phaser.Scene {
   private constructionButtonObjects: Phaser.GameObjects.GameObject[] = [];
   private isBuildingRamp = false;
   private productionLayoutDrawn = false;
+  private vipCustomerVisible = false;
   private exteriorButtonObjects: Phaser.GameObjects.GameObject[] = [];
   private extensionObjects: Phaser.GameObjects.GameObject[] = [];
   private playerFaceParts?: { leftEye: Phaser.GameObjects.Ellipse; rightEye: Phaser.GameObjects.Ellipse; nose: Phaser.GameObjects.Ellipse; hairLock: Phaser.GameObjects.Ellipse; hair: Phaser.GameObjects.Ellipse; hairCurl: Phaser.GameObjects.Ellipse; browLeft: Phaser.GameObjects.Ellipse; browRight: Phaser.GameObjects.Ellipse; cheekLeft: Phaser.GameObjects.Ellipse; cheekRight: Phaser.GameObjects.Ellipse; bottle: Phaser.GameObjects.Ellipse; bottleLabel: Phaser.GameObjects.Rectangle; bottleNeck: Phaser.GameObjects.Rectangle; bottleCap: Phaser.GameObjects.Rectangle };
@@ -851,6 +934,7 @@ class TycoonScene extends Phaser.Scene {
     bakeryScene = this;
     this.isBuildingRamp = false;
     this.productionLayoutDrawn = false;
+    this.vipCustomerVisible = false;
     this.machineObjects = [];
     this.constructionButtonObjects = [];
     this.exteriorButtonObjects = [];
@@ -889,7 +973,6 @@ class TycoonScene extends Phaser.Scene {
 
     if (state.rampBuilt) {
       this.drawBuiltRamp();
-      this.drawFloorDecoration();
       this.drawExteriorExtensions(world.accent);
       this.refreshMachines();
       if (state.unlockedWorlds.length > 1) this.drawPortal(world.accent);
@@ -1078,17 +1161,6 @@ class TycoonScene extends Phaser.Scene {
 
   private drawCharacters(): void {
     this.createNpc(760, 360, 0x6c7960, 0x45362c, 'MILA · PARFUMEUSE', false);
-    this.createNpc(680, 565, 0xa85e49, 0x644430, 'CLIENT VIP', true);
-
-    const deliveryMat = this.add.graphics().setDepth(560);
-    deliveryMat.fillStyle(0x6c765b, 0.22);
-    deliveryMat.fillEllipse(680, 601, 67, 22);
-    deliveryMat.lineStyle(1, 0x575e43, 0.65);
-    deliveryMat.strokeEllipse(680, 601, 67, 22);
-    this.add.text(680, 493, 'COMMANDE À LIVRER', {
-      fontFamily: 'Georgia, serif', fontSize: '10px', fontStyle: 'bold',
-      color: '#40392d', backgroundColor: '#e8dec5', padding: { x: 6, y: 4 },
-    }).setOrigin(0.5).setDepth(590);
 
     const display = this.add.container(330, 165).setDepth(2);
     display.add(this.add.rectangle(0, 13, 137, 15, 0x7d6246).setStrokeStyle(2, 0x433b30));
@@ -1103,6 +1175,21 @@ class TycoonScene extends Phaser.Scene {
       display.add(this.add.rectangle(x, -3, 8, 5, 0xe2d4b5).setStrokeStyle(1, 0x453e32));
     }
     display.add(this.add.text(0, 29, 'ÉCHANTILLONS', {fontFamily:'Georgia, serif',fontSize:'9px',fontStyle:'bold',color:'#3f3b30'}).setOrigin(0.5));
+  }
+
+  private drawVipCustomer(): void {
+    if (this.vipCustomerVisible) return;
+    this.vipCustomerVisible = true;
+    this.createNpc(680, 565, 0xa85e49, 0x644430, 'CLIENT VIP', true);
+    const deliveryMat = this.add.graphics().setDepth(560);
+    deliveryMat.fillStyle(0x6c765b, 0.22);
+    deliveryMat.fillEllipse(680, 601, 67, 22);
+    deliveryMat.lineStyle(1, 0x575e43, 0.65);
+    deliveryMat.strokeEllipse(680, 601, 67, 22);
+    this.add.text(680, 493, 'COMMANDE À LIVRER', {
+      fontFamily: 'Georgia, serif', fontSize: '10px', fontStyle: 'bold',
+      color: '#40392d', backgroundColor: '#e8dec5', padding: { x: 6, y: 4 },
+    }).setOrigin(0.5).setDepth(590);
   }
 
   private drawConveyor(belt: number): void {
@@ -1224,6 +1311,7 @@ class TycoonScene extends Phaser.Scene {
 
     for (const machine of MACHINES.filter((item) => item.floor === state.currentFloor)) {
       const owned = worldMachines[machine.id];
+      if (owned === 0) continue;
       const x = machine.x;
       const y = 292;
       const wood = this.add.graphics();
@@ -1324,10 +1412,15 @@ class TycoonScene extends Phaser.Scene {
       machine.floor === state.currentFloor && worldMachines[machine.id] > 0,
     ).length;
     if (activeOnFloor > 0 && !this.productionLayoutDrawn) {
+      this.drawFloorDecoration();
       this.drawConveyor(world.belt);
       this.drawCollector(world.accent);
       this.drawCharacters();
       this.productionLayoutDrawn = true;
+    }
+    const ownedInWorld = this.totalMachinesInCurrentWorld();
+    if ((ownedInWorld >= 2 || (ownedInWorld >= 1 && state.lifetimeCrumbs >= 250)) && !this.vipCustomerVisible) {
+      this.drawVipCustomer();
     }
     if (this.collectorLabel) {
       this.collectorLabel.setText(format(productionPerSecond(state)) + ' / s');
@@ -1426,7 +1519,7 @@ class TycoonScene extends Phaser.Scene {
       this.buyExteriorBuild(buildPad.cost);
       return;
     }
-    if (Phaser.Math.Distance.Between(playerX, playerY, 680, 565) < 92) {
+    if (this.vipCustomerVisible && Phaser.Math.Distance.Between(playerX, playerY, 680, 565) < 92) {
       completeVipOrder();
       return;
     }
@@ -1653,7 +1746,6 @@ class TycoonScene extends Phaser.Scene {
       save();
       render();
       this.drawBuiltRamp();
-      this.drawFloorDecoration();
       this.refreshMachines();
       setStatus('La rampe est prête. La manufacture se développera à chaque nouvel achat.');
     });
@@ -1665,7 +1757,7 @@ class TycoonScene extends Phaser.Scene {
 
   private exteriorBuildPad(): { x: number; y: number; cost: number; kind: 'walls' | 'extension' } | null {
     const owned = this.totalMachinesInCurrentWorld();
-    if (!state.wallsBuilt) return state.rampBuilt && owned >= 1 ? { x: 925, y: 330, cost: 250, kind: 'walls' } : null;
+    if (!state.wallsBuilt) return state.rampBuilt && owned >= 2 ? { x: 925, y: 330, cost: 250, kind: 'walls' } : null;
     if (state.outsideExpansions < 3 && owned >= state.outsideExpansions + 2) {
       return { x: 925 + (state.outsideExpansions % 2) * 70, y: 330 + Math.floor(state.outsideExpansions / 2) * 84, cost: [750, 1800, 4200][state.outsideExpansions]!, kind: 'extension' };
     }
@@ -1844,7 +1936,7 @@ function renderTutorial(): void {
   banner.hidden = tutorialDismissed;
   if (tutorialDismissed) return;
 
-  const owned = Object.values(state.machines[state.currentWorld])
+  const ownedCurrentWorld = Object.values(state.machines[state.currentWorld])
     .reduce((sum, count) => sum + count, 0);
   const currentFloorMachines = MACHINES.filter((machine) => machine.floor === state.currentFloor)
     .reduce((sum, machine) => sum + state.machines[state.currentWorld][machine.id], 0);
@@ -1855,31 +1947,35 @@ function renderTutorial(): void {
   if (!state.rampBuilt) {
     step = 1;
     title = 'La première rampe';
-    copy = 'Rejoins le panneau de chantier au sud-est et appuie sur E. Les planches vont être posées une à une. Les équipements et les autres espaces viendront ensuite.';
+    copy = 'Rejoins le panneau de chantier au sud-est et appuie sur E. La rampe est la seule construction disponible pour le moment.';
+  } else if (ownedCurrentWorld === 0) {
+    step = 2;
+    title = 'Finance ta première table';
+    copy = 'Clique sur CRÉER UN PARFUM pour gagner tes premiers revenus. Puis achète la Table de formulation dans le catalogue à droite : aucune table n’existe sur la carte avant cet achat.';
   } else if (state.currentFloor === 0 && !state.unlockedFloors.includes(1) && currentFloorMachines < 2) {
     step = 2;
-    title = 'Monte ton premier atelier';
-    copy = 'Achète deux équipements au rez-de-chaussée. Les escaliers n’apparaîtront qu’après cet investissement : le deuxième étage n’est pas gratuit.';
+    title = 'Développe le rez-de-chaussée';
+    copy = 'Achète un deuxième équipement. Les escaliers n’apparaîtront pas avant que tu aies installé deux machines et assez de parfums pour les construire.';
   } else if (state.currentFloor === 0 && !state.unlockedFloors.includes(1)) {
     step = 2;
     title = 'Construis les escaliers';
-    copy = 'Le chantier des escaliers se trouve en bas à droite. Approche-toi et appuie sur E pour payer la construction et ouvrir l’étage 2.';
+    copy = 'Le chantier en bas à droite est maintenant disponible. Approche-toi et appuie sur E pour payer les escaliers qui ouvriront l’étage 2.';
+  } else if (state.currentFloor === 1 && !state.unlockedFloors.includes(2) && currentFloorMachines === 0) {
+    step = 3;
+    title = 'Équipe le nouvel espace';
+    copy = 'Ce nouvel étage est vide. Achète d’abord un équipement depuis le catalogue; le chantier des escaliers suivants apparaîtra après cet achat.';
   } else if (state.currentFloor === 1 && !state.unlockedFloors.includes(2)) {
     step = 3;
-    title = 'Développe le deuxième atelier';
-    copy = 'Installe au moins un équipement à cet étage, puis construis les escaliers suivants. Chaque nouvel espace demande un investissement réel.';
-  } else if (owned === 0) {
-    step = 2;
-    title = 'Lance la production';
-    copy = 'Achète ton premier équipement depuis la boutique ou en approchant du plan de machine. Les flacons rejoindront le convoyeur quand une vraie ligne sera en place.';
+    title = 'Agrandis la manufacture';
+    copy = 'Approche-toi du chantier des escaliers et appuie sur E. Il faut payer pour ouvrir le laboratoire supérieur.';
   } else if (!state.claimedMissions.includes('first-machine')) {
     step = 3;
-    title = 'Réclame les contrats';
-    copy = 'Consulte Contrats dans le panneau de gauche. Quand une mission est terminée, réclame sa récompense : elle finance les prochaines constructions.';
+    title = 'Réclame tes contrats';
+    copy = 'Les contrats suivent tes premières actions. Récupère une récompense quand un objectif est terminé, puis réinvestis-la dans une machine ou une amélioration.';
   } else {
     step = 4;
-    title = 'Développe ta maison';
-    copy = 'Améliore les machines, livre les commandes VIP avec E, ouvre les nouveaux étages puis utilise le rebirth pour renforcer les runs suivants. La sauvegarde est automatique.';
+    title = 'Ton empire prend forme';
+    copy = 'Les commandes VIP, les améliorations et le rebirth apparaissent à mesure que tu développes ta maison. Les étages et les murs ne se débloquent qu’après les investissements nécessaires.';
   }
   $('tutorial-step-label').textContent = 'CARNET DU PARFUMEUR · ' + step + '/4';
   $('tutorial-title').textContent = title;
