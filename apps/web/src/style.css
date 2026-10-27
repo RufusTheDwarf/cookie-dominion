@@ -50,3 +50,38 @@
   #player-position{text-align:left}
   .dpad{grid-template-columns:repeat(3,38px);grid-template-rows:repeat(3,34px)}
 }
+
+
+/* Progression systems: compact quest cards and upgrade shop. */
+.upgrade-list,.mission-list{display:grid;gap:8px}
+.upgrade-card{display:flex;align-items:center;gap:9px;width:100%;min-width:0;padding:10px 9px;text-align:left;border:1px solid #66503b;background:linear-gradient(110deg,#302319,#211912);cursor:pointer;transition:border-color .15s,transform .15s,background .15s}
+.upgrade-card:hover:not(:disabled){border-color:#ffce8a;background:linear-gradient(110deg,#49301e,#2e2118);transform:translateY(-1px)}
+.upgrade-card:disabled{opacity:.58;cursor:not-allowed}
+.upgrade-card.is-maxed{border-color:#71996b;background:#1d3023}
+.upgrade-level{display:flex;align-items:baseline;justify-content:center;flex-direction:column;flex:0 0 43px;min-height:43px;padding:4px;border:1px solid #886342;background:#17110c;color:#ffcf8a;font:800 17px ui-monospace,monospace;text-align:center}
+.upgrade-level small{font-size:8px;color:#ad9274;font-weight:500}
+.upgrade-copy{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1}
+.upgrade-copy strong{font-size:10px;color:#ffe4c3}
+.upgrade-copy small{font-size:9px;line-height:1.35;color:#bda58a}
+.upgrade-copy small:last-child{color:#8f7962}
+.upgrade-cost{white-space:nowrap;color:#ffd39a;font:700 10px ui-monospace,monospace}
+.upgrade-card.is-maxed .upgrade-cost{color:#b6e1a7}
+.mission-list{margin-top:10px}
+.mission-card{padding:10px;border:1px solid #55402e;background:#241b15;min-width:0}
+.mission-card.is-ready{border-color:#b98c4d;background:linear-gradient(120deg,#392919,#241b15)}
+.mission-card.is-claimed{border-color:#456847;opacity:.76}
+.mission-topline,.mission-bottomline{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mission-topline strong{font-size:10px;color:#ffe2bd}
+.mission-topline span{white-space:nowrap;color:#ffce8a;font:700 9px ui-monospace,monospace}
+.mission-card p{margin:6px 0 9px;color:#b69c80;font-size:9px;line-height:1.45}
+.mission-progress{height:5px;overflow:hidden;background:#4a3625}
+.mission-progress i{display:block;height:100%;background:linear-gradient(90deg,#bd793e,#ffd28b);transition:width .25s}
+.mission-card.is-claimed .mission-progress i{background:#79b87d}
+.mission-bottomline{margin-top:7px}
+.mission-bottomline small{font:9px ui-monospace,monospace;color:#a99175}
+.mission-bottomline button{border:1px solid #8c6845;background:#3c2a1c;color:#f5d9b2;padding:6px 7px;font-size:8px;font-weight:850;letter-spacing:.3px;cursor:pointer}
+.mission-card.is-ready .mission-bottomline button{border-color:#e4b270;background:#dca060;color:#25170d}
+.mission-bottomline button:disabled{opacity:.55;cursor:not-allowed}
+.mission-card.is-claimed .mission-bottomline button{border-color:#426343;background:#203223;color:#b8e4b9}
+@media(max-width:1120px){.mission-list{grid-template-columns:repeat(2,minmax(0,1fr))}.upgrade-list{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:780px){.mission-list,.upgrade-list{grid-template-columns:1fr}}
