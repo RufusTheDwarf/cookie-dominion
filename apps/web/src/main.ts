@@ -890,7 +890,7 @@ class TycoonScene extends Phaser.Scene {
 
     if (state.rampBuilt) {
       this.drawBuiltRamp();
-      this.drawFloorDecoration(world.accent);
+      this.drawFloorDecoration();
       this.drawExteriorExtensions(world.accent);
       this.refreshMachines();
       if (state.unlockedWorlds.length > 1) this.drawPortal(world.accent);
