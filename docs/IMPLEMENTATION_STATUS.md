@@ -1,33 +1,39 @@
-# État d’implémentation — 2026-10-27
+# État d’implémentation — Parfum Empire
 
-## Boucle de jeu actuelle
+## Gameplay et contenu
 
 | Système | État | Détails |
 |---|---|---|
-| Déplacement 2D | Implémenté | WASD, flèches, D-pad tactile et clic sur la carte |
-| Usine et machines | Implémenté | Trois étages, cinq types de machines, convoyeur animé et collecteur |
-| Mondes | Implémenté | Cookie Valley, Choco Moon et Galaxy Oven, déverrouillés par rebirth |
-| Production passive | Implémenté | Production calculée par l’économie, indépendante des effets visuels |
-| Rebirth | Implémenté | Réinitialise le parc de machines, augmente le multiplicateur et débloque des mondes |
-| Recherche | Implémenté | Production +20 % par niveau, clic +10 cookies par niveau, machines jusqu’à 50 % moins chères ; dix niveaux chacun |
-| Contrats | Implémenté | Cinq objectifs à progression suivie avec récompenses réclamables une seule fois |
-| Cookie doré | Implémenté | Apparition périodique, fenêtre de 12 secondes, récompense immédiate et production ×2 pendant 20 secondes |
-| Sauvegardes | Implémenté | LocalStorage, export/import JSON, validation, migration et effacement confirmé |
-| Progression hors ligne | Implémenté | Production hors ligne plafonnée à huit heures |
-| Multijoueur / cloud | Non implémenté | Aucun compte, backend autoritaire ou synchronisation cloud |
+| Déplacement | Implémenté | WASD, flèches, D-pad tactile et clic sur la carte |
+| Personnages | Implémenté | Joueur parfumeur, Mila la parfumeuse et client VIP en formes Phaser |
+| Manufacture | Implémenté | Trois étages et cinq équipements de parfumerie |
+| Flacons animés | Implémenté | Flacons colorés sur la ligne d’embouteillage ; l’animation ne double pas les revenus |
+| Mondes | Implémenté | Jardin de Verre, Maison d’Ambre et Palais Astral |
+| Améliorations | Implémenté | Rendement, puissance de création et réduction des coûts, dix niveaux chacun |
+| Contrats | Implémenté | Cinq objectifs avec progression et récompenses réclamables |
+| Flacon mythique | Implémenté | Fenêtre de récupération, récompense instantanée et production ×2 pendant 20 secondes |
+| Rebirth normal | Implémenté | Réinitialise les machines et le solde du run, conserve les recherches et augmente le multiplicateur |
+| Ascension totale | Implémenté | Après 10 rebirths normaux ; réinitialise la progression normale et récompense des Essences originelles |
+| Valeur des essences | Implémenté | 1 000 000 points de valeur d’empire par essence et +75 % de rendement par unité |
+| Sauvegarde | Implémenté | LocalStorage, export/import JSON, validation, migration et effacement confirmé |
+| Progression hors ligne | Implémenté | Production plafonnée à huit heures |
+| Comptes / cloud / multijoueur | Non implémenté | Aucun compte ni backend distant |
 
 ## Persistance
 
-Les améliorations achetées, les contrats réclamés et le nombre de cookies dorés récupérés sont intégrés à l’état sauvegardé. Les anciennes sauvegardes sans ces nouveaux champs sont chargées avec des valeurs par défaut, sans demander au joueur de recommencer.
+Les anciens champs de sauvegarde restent lus pour ne pas perdre la progression déjà enregistrée. Les champs ajoutés pour les Essences originelles et l’ascension totale reçoivent des valeurs par défaut lors du chargement d’une ancienne partie.
+
+Les sauvegardes restent locales au navigateur. L’import/export JSON sert de transfert manuel entre appareils.
 
 ## Vérifications
 
-- Les tests Vitest couvrent les coûts de machines, la production, les upgrades, les missions, le rebirth, les mondes, la migration et l’import/export.
-- GitHub Actions exécute l’installation, le typecheck TypeScript, les tests et le build Vite à chaque push sur `main`.
-- Le test visuel manuel dans un vrai navigateur et les vérifications sur plusieurs tailles d’écran restent à effectuer.
+- Tests Vitest : économie, machines, recherches, contrats, rebirth normal, ascension totale, essences, migration et import/export.
+- GitHub Actions : installation npm, typecheck TypeScript, tests et build Vite.
+- Test visuel manuel dans un vrai navigateur : à effectuer.
+- Vérifications finales de l’interface sur ordinateur, tablette et petit écran : à effectuer.
 
-## Prochaines étapes prioritaires
+## Prochaines étapes
 
-1. Tester les contrôles, la caméra et le HUD sur ordinateur et mobile.
-2. Ajouter les commandes de clients, une chaîne production → vente plus interactive et des objectifs propres à chaque monde.
-3. Préparer une version hébergée et organiser des tests de joueurs.
+1. Tests visuels en navigateur et corrections de caméra / interaction.
+2. Commandes clients, vente interactive et objectifs contextuels des mondes.
+3. Version publique hébergée et tests joueurs.
