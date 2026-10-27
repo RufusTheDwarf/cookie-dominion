@@ -686,8 +686,8 @@ function renderWorldButtons(): void {
 
 function render(): void {
   const world = getWorld(state.currentWorld);
-  const machineCount = Object.values(state.machines)
-    .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
+  const machineCount = Object.values(state.machines[state.currentWorld])
+    .reduce((sum, count) => sum + count, 0);
   const stage = !state.rampBuilt ? 0
     : state.rebirths > 0 || state.lifetimeCrumbs >= 1000 ? 4
       : machineCount === 0 ? 1
@@ -707,7 +707,7 @@ function render(): void {
   $('world-save').hidden = stage < 3;
   $('utility-drawer').hidden = stage < 3;
 
-  $('customer-order-panel').hidden = stage < 3;
+  $('customer-order-panel').hidden = !(machineCount >= 2 || (machineCount >= 1 && state.lifetimeCrumbs >= 250));
   $('golden-cookie').hidden = stage < 3;
   $('rebirth-panel').hidden = stage < 4;
   $('rebirth-divider').hidden = stage < 4;
