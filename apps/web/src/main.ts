@@ -846,7 +846,7 @@ class TycoonScene extends Phaser.Scene {
       this.refreshMachines();
       this.drawExteriorBuildButtons();
     } else {
-      this.drawRampBuildButton(world.accent);
+      this.drawRampBuildButton();
     }
 
     this.player = this.createPlayer(260, 390, world.accent);
@@ -1319,7 +1319,7 @@ class TycoonScene extends Phaser.Scene {
     }
   }
 
-  private drawRampBuildButton(accent: number): void {
+  private drawRampBuildButton(): void {
     const pad = this.add.container(260, 555).setDepth(10);
     pad.add(this.add.ellipse(0, 15, 122, 40, 0x1c3829, 0.22));
     pad.add(this.add.ellipse(0, 0, 112, 48, 0xffe05a).setStrokeStyle(5, 0x735d20));
