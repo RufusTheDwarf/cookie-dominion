@@ -327,7 +327,7 @@ const UI_COACHMARKS: UiCoachmark[] = [
     id: 'manual-production',
     target: '#manual-production',
     title: 'Créer tes premiers parfums',
-    copy: 'Ce panneau te permet de produire des parfums à la main. Clique sur « CRÉER UN PARFUM » pour gagner de la monnaie et financer tes équipements.',
+    copy: 'Chaque clic récolte une herbe. Au cinquième clic, tu obtiens un parfum ; les améliorations augmentent ensuite le nombre de parfums par recette.',
     available: () => state.rampBuilt,
   },
   {
