@@ -6,8 +6,12 @@ import {
   canClaimMission,
   canRebirth,
   canTotalRebirth,
+  canCompleteCustomerOrder,
   claimMission,
   createInitialState,
+  completeCustomerOrder,
+  customerOrderCost,
+  customerOrderReward,
   enterFloor,
   exportSaveFile,
   enterWorld,
@@ -89,6 +93,16 @@ app.innerHTML = `
           <button class="primary" id="bake-button"><span class="spray-icon">✦</span><span>CRÉER UN PARFUM</span><span class="button-value">+10</span></button>
           <small>Chaque flacon vendu finance la prochaine machine.</small>
         </div>
+        <section class="customer-order-card">
+          <div class="order-heading"><span class="eyebrow">CLIENT VIP</span><span class="order-count">LIVRAISONS <strong id="orders-completed">0</strong></span></div>
+          <h2>Commande spéciale</h2>
+          <p id="customer-order-status">Approche-toi du client VIP puis appuie sur E pour livrer.</p>
+          <div class="order-numbers">
+            <span>COÛT <strong id="customer-order-cost">50 parfums</strong></span>
+            <span>PAIEMENT <strong id="customer-order-reward">+125</strong></span>
+          </div>
+          <small>Le prix et la récompense augmentent à chaque livraison.</small>
+        </section>
         <button id="golden-cookie" class="golden-cookie-button" type="button" disabled>
           <span class="golden-cookie-icon">✦</span>
           <span class="golden-cookie-copy"><strong>FLACON MYTHIQUE</strong><small id="golden-cookie-status">Premier parfum rare dans 25 s</small></span>
@@ -521,6 +535,12 @@ function render(): void {
   $('rebirth-count').textContent = String(state.rebirths);
   $('run-earned').textContent = format(state.runCrumbsEarned);
   $('manual-value').textContent = format(manualCookieValue(state));
+  $('orders-completed').textContent = format(state.ordersCompleted);
+  $('customer-order-cost').textContent = format(customerOrderCost(state)) + ' parfums';
+  $('customer-order-reward').textContent = '+' + format(customerOrderReward(state)) + ' parfums';
+  $('customer-order-status').textContent = canCompleteCustomerOrder(state)
+    ? 'Commande prête : rejoins le client sur la carte et appuie sur E pour livrer.'
+    : 'Il manque ' + format(customerOrderCost(state) - state.crumbs) + ' parfums pour préparer cette commande.';
   const bakeValue = $('bake-button').querySelector('.button-value');
   if (bakeValue) bakeValue.textContent = '+' + format(manualCookieValue(state));
   $('world-name').textContent = world.name;
@@ -561,6 +581,21 @@ function bake(): void {
   render();
   bakeryScene?.pulsePlayer();
   saveSoon();
+}
+
+function completeVipOrder(): void {
+  const previous = state;
+  const materialCost = customerOrderCost(state);
+  const payout = customerOrderReward(state);
+  state = completeCustomerOrder(state);
+  if (state === previous) {
+    setStatus('Le client attend sa commande. Il te manque ' + format(Math.max(0, materialCost - state.crumbs)) + ' parfums pour la préparer.');
+    return;
+  }
+  render();
+  save();
+  bakeryScene?.pulsePlayer();
+  setStatus('Commande VIP livrée ! +' + format(payout) + ' parfums bruts. Le client repasse bientôt.');
 }
 
 function saveSoon(): void {
@@ -852,6 +887,15 @@ class TycoonScene extends Phaser.Scene {
   private drawCharacters(accent: number): void {
     this.createNpc(760, 360, 0x8a6fc1, 0x402c41, 'MILA · PARFUMEUSE', false);
     this.createNpc(680, 565, 0xffc96e, 0x8d4d37, 'CLIENT VIP', true);
+    const orderRing = this.add.ellipse(680, 601, 68, 23, 0xffd84e, 0.18).setStrokeStyle(3, 0xc18a23, 0.82);
+    orderRing.setDepth(564);
+    this.tweens.add({ targets: orderRing, scaleX: 1.18, alpha: 0.45, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    const orderBubble = this.add.text(680, 485, 'E  ·  LIVRER', {
+      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '11px', fontStyle: 'bold',
+      color: '#3d351e', backgroundColor: '#ffe77c', padding: { x: 9, y: 6 },
+      stroke: '#fffdf0', strokeThickness: 3,
+    }).setOrigin(0.5).setDepth(590);
+    this.tweens.add({ targets: orderBubble, y: 480, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     const display = this.add.container(330, 165);
     display.add(this.add.rectangle(0, 5, 135, 58, 0xf7f2d9).setStrokeStyle(2, accent));
     display.add(this.add.rectangle(0, -29, 139, 8, accent).setStrokeStyle(2, 0x31543c));
@@ -1050,6 +1094,10 @@ class TycoonScene extends Phaser.Scene {
     if (!pressed) return;
     const playerX = this.player.x;
     const playerY = this.player.y;
+    if (Phaser.Math.Distance.Between(playerX, playerY, 680, 565) < 92) {
+      completeVipOrder();
+      return;
+    }
     if (Phaser.Math.Distance.Between(playerX, playerY, 1037, 612) < 105) {
       const nextFloor = (state.currentFloor + 1) % 3;
       changeFloor(nextFloor);
