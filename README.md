@@ -27,9 +27,22 @@ Déplace-toi dans ta boulangerie, installe des machines, automatise la productio
 - **Boulangerie à plusieurs étages** — explore trois étages et utilise les escaliers pour circuler.
 - **Production automatisée** — achète des machines et regarde les cookies parcourir les convoyeurs jusqu’au collecteur.
 - **Progression entre les mondes** — découvre trois mondes, avec Choco Moon après le premier rebirth et Galaxy Oven après trois rebirths.
-- **Rebirths** — réinitialise une partie de ta progression pour obtenir un multiplicateur permanent de revenus.
+- **Un vrai loop de tycoon** — produis, investis, automatise, agrandis ta fabrique et recommence avec un meilleur rendement.
+- **Trois améliorations permanentes** — augmente la production automatique, la puissance du clic et réduis le prix des prochaines machines.
+- **Contrats avec récompenses** — termine cinq objectifs de progression et réclame tes cookies pour financer l’expansion.
+- **Rebirths** — réinitialise les machines du run pour gagner un multiplicateur permanent et débloquer de nouveaux mondes.
+- **Trois mondes et trois étages** — change d’environnement, visite chaque étage et construis une usine différente dans chaque monde.
 - **Progression hors ligne** — récupère une production limitée à huit heures d’absence.
-- **Sauvegardes contrôlables** — sauvegarde locale automatique, export JSON, import depuis du texte ou un fichier, et réinitialisation avec confirmation.
+- **Sauvegardes portables** — sauvegarde locale automatique, export/import JSON et effacement avec confirmation. Les améliorations et contrats réclamés sont enregistrés.
+
+## 🔁 Ta boucle de progression
+
+1. **Lance la production** avec le clic manuel et ta première machine.
+2. **Réinvestis** dans des machines, puis dans la recherche pour augmenter les revenus ou réduire les coûts.
+3. **Réclame les contrats** dès qu'ils sont terminés : ils apportent une réserve de cookies pour accélérer le début de partie.
+4. **Explore les étages** pour trouver les machines qui correspondent à chaque zone.
+5. **Débloque les portails** avec les rebirths, puis profite des multiplicateurs de monde.
+6. **Recommence plus fort** grâce au multiplicateur permanent du rebirth et à tes améliorations conservées.
 
 ## 🎮 Commandes
 
@@ -135,7 +148,8 @@ Cookie Dominion est actuellement un **prototype web**. Les fonctionnalités suiv
 
 - Comptes joueurs et sauvegardes cloud
 - Multijoueur
-- Quêtes et système de combat
+- Multijoueur et sauvegardes cloud synchronisées
+- Quêtes répétables, événements temporaires, clients/NPC et système de combat
 - Backend distant avec autorité serveur
 - Installateur Windows
 
