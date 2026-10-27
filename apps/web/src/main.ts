@@ -1418,7 +1418,8 @@ class TycoonScene extends Phaser.Scene {
       this.drawCharacters();
       this.productionLayoutDrawn = true;
     }
-    if (this.totalMachinesInCurrentWorld() >= 2 && !this.vipCustomerVisible) {
+    const ownedInWorld = this.totalMachinesInCurrentWorld();
+    if ((ownedInWorld >= 2 || (ownedInWorld >= 1 && state.lifetimeCrumbs >= 250)) && !this.vipCustomerVisible) {
       this.drawVipCustomer();
     }
     if (this.collectorLabel) {
