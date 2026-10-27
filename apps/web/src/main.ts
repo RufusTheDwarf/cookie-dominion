@@ -1799,29 +1799,45 @@ function renderTutorial(): void {
   const banner = $('tutorial-banner');
   banner.hidden = tutorialDismissed;
   if (tutorialDismissed) return;
-  const owned = Object.values(state.machines).reduce((sum, machines) =>
-    sum + Object.values(machines).reduce((worldSum, count) => worldSum + count, 0), 0);
+
+  const owned = Object.values(state.machines[state.currentWorld])
+    .reduce((sum, count) => sum + count, 0);
+  const currentFloorMachines = MACHINES.filter((machine) => machine.floor === state.currentFloor)
+    .reduce((sum, machine) => sum + state.machines[state.currentWorld][machine.id], 0);
   let step = 1;
   let title = 'Les commandes';
-  let copy = 'Déplace-toi avec WASD ou les flèches. Tu peux aussi cliquer sur un point de la carte. Appuie sur E près d’un objet pour interagir.';
+  let copy = 'WASD ou les flèches pour marcher. Appuie sur E près d’un panneau ou d’un personnage pour interagir.';
+
   if (!state.rampBuilt) {
     step = 1;
-    title = 'Construis ton premier accès';
-    copy = 'Déplace-toi vers le bouton jaune près du bas de l’atelier. Quand tu es proche, appuie sur E : la rampe se construira avec une animation.';
+    title = 'La première rampe';
+    copy = 'Rejoins le panneau de chantier au sud-est et appuie sur E. Les planches vont être posées une à une. Les équipements et les autres espaces viendront ensuite.';
+  } else if (state.currentFloor === 0 && !state.unlockedFloors.includes(1) && currentFloorMachines < 2) {
+    step = 2;
+    title = 'Monte ton premier atelier';
+    copy = 'Achète deux équipements au rez-de-chaussée. Les escaliers n’apparaîtront qu’après cet investissement : le deuxième étage n’est pas gratuit.';
+  } else if (state.currentFloor === 0 && !state.unlockedFloors.includes(1)) {
+    step = 2;
+    title = 'Construis les escaliers';
+    copy = 'Le chantier des escaliers se trouve en bas à droite. Approche-toi et appuie sur E pour payer la construction et ouvrir l’étage 2.';
+  } else if (state.currentFloor === 1 && !state.unlockedFloors.includes(2)) {
+    step = 3;
+    title = 'Développe le deuxième atelier';
+    copy = 'Installe au moins un équipement à cet étage, puis construis les escaliers suivants. Chaque nouvel espace demande un investissement réel.';
   } else if (owned === 0) {
     step = 2;
     title = 'Lance la production';
-    copy = 'Ouvre Équipements, achète ta première machine, puis approche-toi d’un bouton de construction extérieur quand il apparaît. Les gains sont volontairement progressifs.';
+    copy = 'Achète ton premier équipement depuis la boutique ou en approchant du plan de machine. Les flacons rejoindront le convoyeur quand une vraie ligne sera en place.';
   } else if (!state.claimedMissions.includes('first-machine')) {
     step = 3;
     title = 'Réclame les contrats';
-    copy = 'Consulte Contrats dans le panneau de gauche. Quand une mission est terminée, réclame sa récompense : elle finance la suite.';
+    copy = 'Consulte Contrats dans le panneau de gauche. Quand une mission est terminée, réclame sa récompense : elle finance les prochaines constructions.';
   } else {
     step = 4;
     title = 'Développe ta maison';
-    copy = 'Améliore les machines, livre les commandes VIP avec E, débloque les étages, puis utilise le rebirth pour accélérer les prochains runs. La sauvegarde est automatique.';
+    copy = 'Améliore les machines, livre les commandes VIP avec E, ouvre les nouveaux étages puis utilise le rebirth pour renforcer les runs suivants. La sauvegarde est automatique.';
   }
-  $('tutorial-step-label').textContent = 'GUIDE DE DÉPART · ' + step + '/4';
+  $('tutorial-step-label').textContent = 'CARNET DU PARFUMEUR · ' + step + '/4';
   $('tutorial-title').textContent = title;
   $('tutorial-text').textContent = copy;
 }
