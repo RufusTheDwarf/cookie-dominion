@@ -1,7 +1,17 @@
 # Changelog
 
+## 0.2.0 — 2026-10-27
+
+- Replaced the cookie-bakery theme with Parfum Empire, a perfume-manufacturing tycoon.
+- Rebuilt the interface around a colorful, game-first HUD with a central map, compact economy bar, equipment shop and mobile-friendly controls.
+- Redesigned the player avatar and added Mila the perfumer, a VIP customer, perfume display shelves, bottle-shaped production equipment and animated perfume bottles.
+- Added total ascension after 10 normal rebirths. Total ascension resets normal progression and grants persistent Essences originelles.
+- Defined each essence as 1,000,000 empire-value points and a permanent +75% production bonus.
+- Updated README, roadmap, implementation status and platform documentation.
+- Added tests for total ascension, reset behavior and essence bonuses.
+
 ## 0.1.0 — 2026-10-26
 
-- Created initial browser vertical slice with Phaser and TypeScript; UI working title set to Ovenfall after a preliminary name-collision search.
-- Added click-based earning, oven purchase, passive production, local save parsing, and offline cap.
-- Added preliminary platform decision, architecture, research, and roadmap documents.
+- Created the initial browser vertical slice with Phaser and TypeScript.
+- Added manual earning, equipment purchases, passive production, local save parsing and an offline cap.
+- Added the initial platform decision, architecture, research and roadmap documents.
