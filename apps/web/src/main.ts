@@ -894,10 +894,7 @@ class TycoonScene extends Phaser.Scene {
       this.drawExteriorExtensions(world.accent);
       this.refreshMachines();
       if (state.unlockedWorlds.length > 1) this.drawPortal(world.accent);
-      if (state.currentFloor < 2) {
-        if (state.unlockedFloors.includes(state.currentFloor + 1)) this.drawStairs(world.accent);
-        else this.drawFloorBuildPad();
-      }
+      if (state.currentFloor < 2 && state.unlockedFloors.includes(state.currentFloor + 1)) this.drawStairs(world.accent);
     } else {
       this.drawRampBuildButton();
     }
@@ -1336,6 +1333,11 @@ class TycoonScene extends Phaser.Scene {
     if (this.collectorLabel) {
       this.collectorLabel.setText(format(productionPerSecond(state)) + ' / s');
     }
+    this.constructionButtonObjects.forEach((object) => object.destroy());
+    this.constructionButtonObjects = [];
+    if (state.rampBuilt && state.currentFloor < 2 && !state.unlockedFloors.includes(state.currentFloor + 1)) {
+      this.drawFloorBuildPad();
+    }
     this.refreshExteriorBuildButtons();
   }
 
@@ -1683,8 +1685,16 @@ class TycoonScene extends Phaser.Scene {
     }
     const build = this.exteriorBuildPad();
     if (build && Phaser.Math.Distance.Between(this.player.x, this.player.y, build.x, build.y) < 96) {
-      hint.textContent = build.kind === 'walls' ? 'APPUIE SUR E POUR CONSTRUIRE LES MURS' : 'APPUIE SUR E POUR ACHETER L’EXTENSION';
+      hint.textContent = build.kind === 'walls' ? 'E · CONSTRUIRE LES MURS' : 'E · CONSTRUIRE L’EXTENSION';
       if (action) action.textContent = 'ACHETER';
+      return;
+    }
+    if (state.currentFloor < 2 && Phaser.Math.Distance.Between(this.player.x, this.player.y, 1037, 612) < 105) {
+      const nextFloor = state.currentFloor + 1;
+      hint.textContent = state.unlockedFloors.includes(nextFloor)
+        ? 'E · MONTER À L’ÉTAGE SUIVANT'
+        : 'E · CONSTRUIRE LES ESCALIERS · ' + format(floorUnlockCost(nextFloor));
+      if (action) action.textContent = state.unlockedFloors.includes(nextFloor) ? 'MONTER' : 'CONSTRUIRE';
       return;
     }
     if (action) action.textContent = 'INTERAGIR';
