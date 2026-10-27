@@ -138,7 +138,7 @@ app.innerHTML = `
         </section>
       </aside>
       <section class="panel map-panel">
-        <div class="panel-heading"><div><div class="eyebrow">LA MANUFACTURE · VUE LIBRE</div><h2 id="floor-title">ÉTAGE 1 — ATELIER</h2></div><div class="live-dot">EN DIRECT</div></div>
+        <div class="panel-heading"><div><div id="scene-eyebrow" class="eyebrow">LE CHANTIER · PREMIÈRE CONSTRUCTION</div><h2 id="floor-title">ÉTAGE 1 — ATELIER</h2></div><div class="live-dot">EN DIRECT</div></div>
         <div class="map-toolbar" id="map-toolbar"><div><strong id="world-tagline">JARDIN DE VERRE</strong><small>Déplace-toi et interagis directement avec les machines.</small></div><span id="player-position">Position : …</span></div>
         <section id="tutorial-banner" class="tutorial-banner">
           <div class="tutorial-copy"><span id="tutorial-step-label" class="eyebrow">GUIDE DE DÉPART</span><strong id="tutorial-title">Construis ton premier accès</strong><p id="tutorial-text">Approche-toi du bouton jaune et appuie sur E.</p></div>
@@ -743,6 +743,7 @@ function render(): void {
   $('total-rebirth-count').textContent = String(state.totalRebirths);
   $('owner-rank').textContent = 'Maison indépendante · Rang ' + (1 + state.rebirths + state.totalRebirths * 10);
   $('floor-title').textContent = !state.rampBuilt ? 'CHANTIER — PREMIÈRE RAMPE' : ['REZ-DE-CHAUSSÉE — FORMULATION', 'ÉTAGE 2 — EMBOUTEILLAGE', 'ÉTAGE 3 — EXTRACTION'][state.currentFloor] ?? 'ATELIER';
+  $('scene-eyebrow').textContent = state.rampBuilt ? 'LA MANUFACTURE · VUE LIBRE' : 'LE CHANTIER · PREMIÈRE CONSTRUCTION';
   $('rebirth-cost').textContent = format(rebirthCost(state.rebirths));
   $('rebirth-button').toggleAttribute('disabled', !canRebirth(state));
   $('rebirth-progress').style.width = Math.min(100, state.runCrumbsEarned / rebirthCost(state.rebirths) * 100) + '%';
