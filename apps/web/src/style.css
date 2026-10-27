@@ -437,3 +437,8 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:17px;paddi
 @media(prefers-reduced-motion:reduce){
   .main-menu,.menu-primary,.menu-secondary,.menu-tertiary,.theme-switch,.theme-switch:after{transition:none!important}
 }
+
+.pause-menu-button{flex:0 0 auto;align-self:center;padding:10px 12px;border:1px solid rgba(235,240,215,.25);border-radius:9px;background:rgba(255,255,255,.08);color:#f4f0d9;font-size:9px;font-weight:1000;letter-spacing:1px;cursor:pointer}
+.pause-menu-button:hover{background:rgba(255,255,255,.15)}
+.theme-dark .pause-menu-button{background:#263c2e;border-color:#57735c}
+@media(max-width:840px){.pause-menu-button{order:3}.topbar{flex-wrap:wrap}}
