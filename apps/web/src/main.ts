@@ -55,6 +55,7 @@ app.innerHTML = `
   <main class="shell">
     <header class="topbar">
       <div class="brand"><div class="brand-symbol"><span></span><i></i></div><div class="brand-copy"><div class="eyebrow">MAISON DES ESSENCES · TYCOON</div><h1>PARFUM<span> EMPIRE</span></h1><p class="subtitle">Compose. Produis. Deviens une légende du parfum.</p></div></div>
+      <button id="open-menu-button" class="pause-menu-button" type="button" aria-label="Ouvrir le menu">MENU</button>
       <div class="header-stats">
         <div class="currency-display"><span>VENTES</span><strong id="crumb-total">0</strong><small>PARFUMS</small></div>
         <div class="hud-stat"><span>PRODUCTION</span><strong id="production">0 <small>/ s</small></strong></div>
@@ -292,6 +293,12 @@ function showMenuPanel(panel: 'settings' | 'import' | null): void {
 
 $('menu-play').textContent = state.rampBuilt || state.lifetimeCrumbs > 0 ? 'CONTINUER' : 'JOUER';
 $('menu-play').addEventListener('click', () => startGame(false));
+$('open-menu-button').addEventListener('click', () => {
+  gameIsPaused = true;
+  $('menu-play').textContent = 'REPRENDRE';
+  showMenuPanel(null);
+  $('main-menu').classList.remove('is-hidden');
+});
 $('menu-new-game').addEventListener('click', () => startGame(true));
 $('menu-load-save').addEventListener('click', () => showMenuPanel('import'));
 $('menu-settings').addEventListener('click', () => showMenuPanel('settings'));
@@ -786,6 +793,13 @@ document.querySelectorAll<HTMLButtonElement>('[data-floor]').forEach((button) =>
   button.addEventListener('click', () => changeFloor(Number(button.dataset.floor)));
 });
 window.addEventListener('keydown', (event) => {
+  if (event.code === 'Escape' && !gameIsPaused) {
+    gameIsPaused = true;
+    $('menu-play').textContent = 'REPRENDRE';
+    showMenuPanel(null);
+    $('main-menu').classList.remove('is-hidden');
+    return;
+  }
   if (gameIsPaused) return;
   if (event.code === 'Space' && !(event.target instanceof HTMLInputElement) && !(event.target instanceof HTMLButtonElement)) {
     event.preventDefault();
@@ -1329,7 +1343,8 @@ class TycoonScene extends Phaser.Scene {
     pad.add(label);
     this.tweens.add({ targets: pad, scale: 1.06, duration: 620, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     this.constructionButtonObjects.push(pad);
-    this.add.text(260, 610, 'Approche-toi puis appuie sur E', { fontFamily: 'Trebuchet MS, sans-serif', fontSize: '12px', color: '#2b4733', backgroundColor: '#fff8e7', padding: { x: 8, y: 5 } }).setOrigin(0.5).setDepth(10);
+    const instruction = this.add.text(260, 610, 'Approche-toi puis appuie sur E', { fontFamily: 'Trebuchet MS, sans-serif', fontSize: '12px', color: '#2b4733', backgroundColor: '#fff8e7', padding: { x: 8, y: 5 } }).setOrigin(0.5).setDepth(10);
+    this.constructionButtonObjects.push(instruction);
   }
 
   private animateRampConstruction(accent: number): void {
