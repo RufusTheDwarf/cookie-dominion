@@ -621,7 +621,7 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       ownedMachineCount > 0;
     // Old prototype saves sometimes recorded an empty starting room as already built.
     // If nothing was ever earned or bought, migrate that false positive back to the real first-run state.
-    if (!hasMeaningfulProgress) {
+    if (!hasMeaningfulProgress && value.rampBuilt === undefined) {
       state.rampBuilt = false;
       state.wallsBuilt = false;
       state.outsideExpansions = 0;
