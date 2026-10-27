@@ -5,6 +5,7 @@ import {
   buyUpgrade,
   canClaimMission,
   canRebirth,
+  canTotalRebirth,
   claimMission,
   createInitialState,
   enterFloor,
@@ -21,9 +22,11 @@ import {
   parseImportedSave,
   parseSavedState,
   performRebirth,
+  performTotalRebirth,
   productionPerSecond,
   rebirthCost,
   rebirthMultiplier,
+  totalRebirthRequiredLevel,
   upgradeCost,
   UPGRADES,
   WORLDS,
@@ -44,11 +47,21 @@ if (!app) throw new Error('Missing app root');
 app.innerHTML = `
   <main class="shell">
     <header class="topbar">
-      <div class="brand"><div class="eyebrow">COOKIE INDUSTRIES // TYCOON LABS</div><h1>COOKIE<span> DOMINION</span></h1><p class="subtitle">Construis ton empire. Automatise la production. Domine chaque monde.</p></div>
-      <div class="header-stats"><div><span class="eyebrow">MONDE</span><strong id="world-name">Cookie Valley</strong></div><div><span class="eyebrow">SAUVEGARDE</span><strong id="save-state">LOCALE</strong></div></div>
+      <div class="brand"><div class="brand-symbol"><span></span><i></i></div><div class="brand-copy"><div class="eyebrow">MAISON DES ESSENCES · TYCOON</div><h1>PARFUM<span> EMPIRE</span></h1><p class="subtitle">Compose. Produis. Deviens une légende du parfum.</p></div></div>
+      <div class="header-stats">
+        <div class="currency-display"><span>VENTES</span><strong id="crumb-total">0</strong><small>PARFUMS</small></div>
+        <div class="hud-stat"><span>PRODUCTION</span><strong id="production">0 <small>/ s</small></strong></div>
+        <div class="hud-stat"><span>MULTIPLICATEUR</span><strong id="multiplier">x1</strong></div>
+        <div class="hud-stat"><span>REBIRTHS</span><strong id="rebirth-count">0</strong></div>
+        <div class="hud-stat essence-stat"><span>ESSENCES</span><strong id="essence-total">0</strong></div>
+        <div class="hud-stat"><span>ASCENSIONS</span><strong id="total-rebirth-count">0</strong></div>
+        <div class="world-save"><strong id="world-name">Jardin de Verre</strong><small id="save-state">SAUVEGARDE LOCALE</small></div>
+      </div>
     </header>
-    <section class="panel save-toolbar">
-      <div class="save-toolbar-heading"><div><div class="eyebrow">GESTION DE LA PARTIE</div><strong>SAUVEGARDE / CHARGEMENT</strong><small>Export JSON, import d'une autre sauvegarde ou effacement complet.</small></div></div>
+    <details class="utility-drawer">
+      <summary>⚙ Options et sauvegarde</summary>
+      <section class="panel save-toolbar">
+      <div class="save-toolbar-heading"><div><div class="eyebrow">DONNÉES DE LA PARTIE</div><strong>SAUVEGARDE / CHARGEMENT</strong><small>Export JSON, import d'une autre sauvegarde ou effacement complet.</small></div></div>
       <div class="save-actions">
         <button id="save-now" class="save-action">SAUVEGARDER</button>
         <button id="export-save" class="save-action">EXPORTER DATA</button>
@@ -60,37 +73,51 @@ app.innerHTML = `
       </div>
       <textarea id="save-data-text" rows="3" spellcheck="false" aria-label="Données de sauvegarde" placeholder="Clique sur EXPORTER DATA pour générer une sauvegarde à copier ou conserver. Colle ici un export pour le charger."></textarea>
       <div class="save-toolbar-note">Les données restent dans ce navigateur, sauf si tu exportes le fichier. Le chargement remplace la partie actuelle.</div>
-    </section>
+      </section>
+    </details>
     <section class="dashboard">
       <aside class="panel stats-panel">
-        <div class="eyebrow">TRÉSORERIE</div><div class="crumb-total" id="crumb-total">0</div><div class="muted">cookies disponibles</div>
-        <div class="rule"></div>
-        <div class="stat-row"><span>Production</span><strong id="production">0 / s</strong></div>
-        <div class="stat-row"><span>Multiplicateur</span><strong id="multiplier">x1</strong></div>
-        <div class="stat-row"><span>Rebirths</span><strong id="rebirth-count">0</strong></div>
-        <div class="stat-row"><span>Cookies cette vie</span><strong id="run-earned">0</strong></div>
-        <button class="primary" id="bake-button">FAIRE UN COOKIE <span>+10</span></button>
+        <div class="owner-card">
+          <div class="owner-avatar"><span class="avatar-hair"></span><span class="avatar-face">• •</span><span class="avatar-scarf"></span></div>
+          <div><div class="eyebrow">TON ATELIER</div><h2>JEUNE PARFUMEUR</h2><small id="owner-rank">Maison indépendante · Rang 1</small></div>
+        </div>
+        <div class="manual-production">
+          <div class="manual-label"><span>CRÉATION MANUELLE</span><strong>+<b id="manual-value">10</b></strong></div>
+          <button class="primary" id="bake-button"><span class="spray-icon">✦</span><span>CRÉER UN PARFUM</span><span class="button-value">+10</span></button>
+          <small>Chaque flacon vendu finance la prochaine machine.</small>
+        </div>
         <button id="golden-cookie" class="golden-cookie-button" type="button" disabled>
-          <span class="golden-cookie-icon">★</span>
-          <span class="golden-cookie-copy"><strong>COOKIE DORÉ</strong><small id="golden-cookie-status">Premier bonus dans 25 s</small></span>
+          <span class="golden-cookie-icon">✦</span>
+          <span class="golden-cookie-copy"><strong>FLACON MYTHIQUE</strong><small id="golden-cookie-status">Premier parfum rare dans 25 s</small></span>
           <span class="golden-cookie-mark">×2</span>
         </button>
-        <div class="hint">Attrape le cookie doré avant qu'il disparaisse : récompense immédiate et production doublée pendant 20 secondes.</div>
-        <div class="hint">Déplace-toi avec WASD ou les flèches. Approche-toi d'une machine, des escaliers ou du portail et appuie sur E.</div>
         <div class="rule"></div>
-        <div class="eyebrow">REBIRTH</div><div class="rebirth-progress"><div id="rebirth-progress"></div></div>
-        <p class="objective" id="rebirth-info">Gagne des cookies pour débloquer le rebirth.</p>
-        <button class="rebirth-button" id="rebirth-button" disabled>REBIRTH <span id="rebirth-cost">1 500</span></button>
-        <p class="hint">Le rebirth remet tes machines et tes cookies à zéro, mais augmente définitivement tes gains.</p>
+        <section class="prestige-card basic-prestige">
+          <div class="prestige-heading"><span class="eyebrow">PRESTIGE I</span><span class="prestige-pill">PERMANENT</span></div>
+          <h2>REBIRTH</h2>
+          <p class="prestige-desc">Repars de zéro côté machines pour obtenir un multiplicateur de ventes. Tes recherches restent acquises.</p>
+          <div class="prestige-meta"><span>Gagné cette vie</span><strong id="run-earned">0 parfums</strong></div>
+          <div class="rebirth-progress"><div id="rebirth-progress"></div></div>
+          <p class="objective" id="rebirth-info">Produis suffisamment de parfums pour recommencer plus fort.</p>
+          <button class="rebirth-button" id="rebirth-button" disabled><span>REBIRTH NORMAL</span><strong id="rebirth-cost">1 500</strong></button>
+        </section>
+        <section class="prestige-card total-prestige">
+          <div class="prestige-heading"><span class="eyebrow">PRESTIGE II</span><span class="prestige-pill ultimate-pill">ENDGAME</span></div>
+          <h2>ASCENSION TOTALE</h2>
+          <div class="total-rebirth-level"><strong id="total-rebirth-level">REBIRTHS 0 / 10</strong><span id="essence-multiplier">ESSENCE ×1,00</span></div>
+          <p class="prestige-desc">Efface toute la progression normale. En échange, gagne une Essence originelle, une monnaie rare qui augmente durablement tes revenus.</p>
+          <button class="total-rebirth-button" id="total-rebirth-button" type="button" disabled><span>TOUT SACRIFIER</span><strong id="total-rebirth-reward">+1 ESSENCE</strong></button>
+        </section>
         <div class="rule"></div>
-        <div class="eyebrow">QUÊTES & CONTRATS</div>
-        <h2>OBJECTIFS DE L'USINE</h2>
-        <p class="panel-intro">Accomplis des missions, réclame tes récompenses et finance ta prochaine expansion.</p>
+        <div class="rule"></div>
+        <div class="eyebrow">PETITS OBJECTIFS</div>
+        <h2>CONTRATS</h2>
+        <p class="panel-intro">Chaque contrat finance la prochaine étape.</p>
         <div id="mission-list" class="mission-list"></div>
       </aside>
       <section class="panel map-panel">
-        <div class="panel-heading"><div><div class="eyebrow">USINE EN 2D</div><h2 id="floor-title">ÉTAGE 1 — ATELIER</h2></div><div class="live-dot">EN DIRECT</div></div>
-        <div class="map-toolbar"><div><strong>TON PERSONNAGE</strong><small>Clique sur un endroit de la carte pour t'y déplacer.</small></div><span id="player-position">Position : …</span></div>
+        <div class="panel-heading"><div><div class="eyebrow">LA MANUFACTURE · VUE LIBRE</div><h2 id="floor-title">ÉTAGE 1 — ATELIER</h2></div><div class="live-dot">EN DIRECT</div></div>
+        <div class="map-toolbar"><div><strong id="world-tagline">JARDIN DE VERRE</strong><small>Déplace-toi et interagis directement avec les machines.</small></div><span id="player-position">Position : …</span></div>
         <div id="game-canvas" class="game-canvas"></div>
         <div class="movement-toolbar">
           <div class="movement-copy"><strong>SE DÉPLACER</strong><small>WASD / flèches, clic sur la carte ou les boutons.</small><small>Approche-toi d'une machine puis appuie sur E.</small></div>
@@ -102,7 +129,7 @@ app.innerHTML = `
           </div>
           <button id="interact-button" class="interact-button" type="button"><strong>E</strong><span>INTERAGIR</span></button>
         </div>
-        <div class="map-legend"><span><i class="legend-cookie"></i> Cookie en transit</span><span><i class="legend-player"></i> Toi</span><span id="map-hint">Déplacement actif · E pour interagir</span></div>
+        <div class="map-legend"><span><i class="legend-cookie"></i> Flacons en transit</span><span><i class="legend-player"></i> Toi</span><span id="map-hint">WASD / clic · E pour agir</span></div>
         <div class="nav-block">
           <div class="nav-heading"><span class="eyebrow">ÉTAGES</span><span class="muted">Escaliers sur la carte ou accès rapide</span></div>
           <div class="nav-buttons">
@@ -117,21 +144,18 @@ app.innerHTML = `
         </div>
       </section>
       <aside class="panel building-panel">
-        <div class="eyebrow">RECHERCHE & DÉVELOPPEMENT</div><h2>AMÉLIORATIONS</h2>
-        <p class="panel-intro">Investis tes cookies dans des bonus permanents. Les niveaux sont conservés après un rebirth.</p>
+        <div class="shop-header"><div><div class="eyebrow">BOUTIQUE DE LA MAISON</div><h2>AMÉLIORATIONS</h2></div><span class="shop-level">LABO<br>LV.01</span></div>
+        <p class="panel-intro">Investis dans la formulation, le rendement et les coûts.</p>
         <div id="upgrade-list" class="upgrade-list"></div>
         <div class="rule"></div>
-        <div class="eyebrow">CONSTRUCTION</div><h2>MACHINES</h2>
-        <p class="panel-intro">Achète des machines. Elles fabriquent des cookies qui avancent sur le convoyeur jusqu'au collecteur.</p>
+        <div class="shop-section-title"><span class="eyebrow">PRODUCTION</span><h2>ÉQUIPEMENTS</h2></div>
+        <p class="panel-intro">Installe tes machines dans l'atelier. Les flacons vendus génèrent des revenus automatiquement.</p>
         <div class="machine-list" id="machine-list"></div>
         <div class="rule"></div>
-        <div class="eyebrow">BOUCLE DE JEU</div>
-        <div class="loop-step"><span>01</span><div><strong>Produis</strong><small>Manuellement ou avec tes machines.</small></div></div>
-        <div class="loop-step"><span>02</span><div><strong>Automatise</strong><small>Les cookies sont livrés au collecteur.</small></div></div>
-        <div class="loop-step"><span>03</span><div><strong>Rebirth</strong><small>Repars vite avec un bonus permanent.</small></div></div>
+        <div class="factory-tip"><span>✦</span><div><strong>NOTE DU MAÎTRE PARFUMEUR</strong><small>Une chaîne complète vaut mieux qu'une seule machine de luxe. Monte étage après étage.</small></div></div>
       </aside>
     </section>
-    <footer><span>COOKIE DOMINION // TYCOON PROTOTYPE</span><span>SAUVEGARDE LOCALE · UNE PARTIE PAR NAVIGATEUR</span></footer>
+    <footer><span>PARFUM EMPIRE · MAISON DES ESSENCES</span><span>PROGRESSION LOCALE · SAUVEGARDE AUTOMATIQUE</span></footer>
   </main>
 `;
 
