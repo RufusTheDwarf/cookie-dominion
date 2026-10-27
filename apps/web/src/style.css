@@ -351,3 +351,10 @@ footer{display:flex;justify-content:space-between;gap:12px;margin-top:14px;paddi
   *,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}
   .main-menu,.menu-primary,.menu-secondary,.menu-tertiary,.theme-switch,.theme-switch:after{transition:none!important}
 }
+
+/* The opening scene is intentionally quiet: it introduces one construction task. */
+.workshop-unbuilt .header-stats{display:none}
+.workshop-unbuilt .utility-drawer{display:none}
+.workshop-unbuilt .topbar:after{display:none}
+.workshop-unbuilt footer{display:none}
+.workshop-unbuilt .map-panel{box-shadow:4px 4px 0 rgba(48,47,39,.12)}
