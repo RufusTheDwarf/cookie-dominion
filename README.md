@@ -1,67 +1,106 @@
-# Ovenfall
+# 🍪 Cookie Dominion
 
-**Titre de travail — nom et marque non vérifiés.**
+<p align="center">
+  <strong>Construis ton empire de cookies, étage après étage.</strong><br>
+  Un tycoon de boulangerie en 2D, jouable dans le navigateur.
+</p>
 
-Tycoon de boulangerie 2D jouable dans le navigateur, construit avec TypeScript, Phaser 3 et Vite.
+<p align="center">
+  <img alt="TypeScript" src="https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white">
+  <img alt="Phaser 3" src="https://img.shields.io/badge/Phaser_3-8A2BE2">
+  <img alt="Vite" src="https://img.shields.io/badge/Vite-646CFF?logo=vite&logoColor=white">
+  <img alt="Tests" src="https://img.shields.io/badge/tests-Vitest-6E9F18">
+  <img alt="License MIT" src="https://img.shields.io/badge/license-MIT-green">
+</p>
 
-## Boucle de jeu
+---
 
-- Déplacement du personnage avec **WASD**, les **flèches**, les boutons directionnels à l’écran ou un clic sur la carte.
-- Approche-toi d’une machine, du portail ou des escaliers puis appuie sur **E** ou utilise le bouton **INTERAGIR**.
-- Achète des machines sur l’étage correspondant. Les cookies animés apparaissent sur le convoyeur et avancent vers le collecteur.
-- Les machines produisent des cookies automatiquement. Les gains sont calculés par l’économie du jeu et continuent sur les autres étages.
-- Trois étages, trois mondes, cinq types de machines et des rebirths qui multiplient durablement les revenus.
-- Le premier rebirth déverrouille Choco Moon ; trois rebirths déverrouillent Galaxy Oven.
-- Sauvegarde automatique locale, progrès hors ligne limité à huit heures, export de sauvegarde JSON, import depuis texte/fichier et effacement avec confirmation.
+## 🏭 Ton empire commence avec un cookie
 
-## Contrôles
+Déplace-toi dans ta boulangerie, installe des machines, automatise la production et fais grimper tes revenus. Débloque de nouveaux étages et des mondes toujours plus ambitieux, puis effectue un **rebirth** pour repartir plus puissant.
 
-| Action | Contrôle |
+**Cookie Dominion** est un prototype de tycoon 2D développé avec **TypeScript**, **Phaser 3** et **Vite**.
+
+## ✨ Fonctionnalités
+
+- **Déplacement libre en 2D** — clavier, clic sur la carte ou commandes tactiles.
+- **Boulangerie à plusieurs étages** — explore trois étages et utilise les escaliers pour circuler.
+- **Production automatisée** — achète des machines et regarde les cookies parcourir les convoyeurs jusqu’au collecteur.
+- **Progression entre les mondes** — découvre trois mondes, avec Choco Moon après le premier rebirth et Galaxy Oven après trois rebirths.
+- **Rebirths** — réinitialise une partie de ta progression pour obtenir un multiplicateur permanent de revenus.
+- **Progression hors ligne** — récupère une production limitée à huit heures d’absence.
+- **Sauvegardes contrôlables** — sauvegarde locale automatique, export JSON, import depuis du texte ou un fichier, et réinitialisation avec confirmation.
+
+## 🎮 Commandes
+
+| Action | Commande |
 |---|---|
-| Se déplacer | WASD, flèches, D-pad à l’écran ou clic sur l’endroit de la carte |
-| Interagir avec une machine / un portail / les escaliers | E ou bouton INTERAGIR quand tu es proche |
-| Produire des cookies au début | Bouton FAIRE UN COOKIE ou barre d’espace |
-| Changer d’étage | Escaliers + E ou boutons d’étage |
-| Changer de monde | Portail + E ou boutons de monde après déblocage |
+| Se déplacer | `WASD`, flèches directionnelles |
+| Se déplacer sur mobile | D-pad à l’écran |
+| Se déplacer vers un point | Cliquer sur la carte |
+| Produire les premiers cookies | Bouton **FAIRE UN COOKIE** ou barre d’espace |
+| Interagir avec une machine, un portail ou des escaliers | `E` ou bouton **INTERAGIR** à proximité |
+| Changer d’étage | Utiliser les escaliers ou les boutons d’étage |
+| Changer de monde | Utiliser un portail ou les boutons de monde après déblocage |
 
-## Sauvegarde et données
+## 🚀 Démarrer rapidement
 
-Le panneau **Gestion de la partie** permet de :
+### Option 1 — Jouer avec GitHub Codespaces
 
-- **Sauvegarder** immédiatement dans le stockage de ce navigateur.
-- **Exporter data** : produit un bloc JSON que tu peux copier et garder comme sauvegarde.
-- **Copier** : copie le bloc JSON lorsque le navigateur autorise l’accès au presse-papiers.
-- **Charger texte** : importe le bloc JSON collé dans le champ.
-- **Charger fichier** : importe un fichier JSON exporté.
-- **Effacer la partie** : demande confirmation, puis réinitialise cookies, machines, rebirths et mondes débloqués.
+Le dépôt contient une configuration Codespaces.
 
-L’import contrôle le format pour éviter qu’un texte invalide remplace accidentellement la sauvegarde avec une partie vide. Les anciennes sauvegardes du prototype avec seulement le compteur de fours peuvent aussi être migrées. Les sauvegardes restent locales : elles ne sont pas synchronisées entre appareils.
-
-## Lancer dans le navigateur sans installer Node.js localement
-
-Le dépôt privé contient une configuration GitHub Codespaces.
-
-1. Ouvre le dépôt, puis sélectionne **Code → Codespaces → Create codespace on main**.
-2. Dans le terminal intégré, exécute :
+1. Ouvre le menu **Code** du dépôt.
+2. Sélectionne **Codespaces → Create codespace on main**.
+3. Dans le terminal du Codespace, lance :
 
 ```bash
 npm run dev
 ```
 
-3. Ouvre le port **5173** via **Open in Browser**.
+4. Ouvre le port **5173** dans le navigateur depuis Codespaces.
 
-La disponibilité et les quotas de Codespaces dépendent du compte GitHub.
+> La disponibilité de Codespaces et ses quotas dépendent de ton compte GitHub.
 
-## Lancer en local
+### Option 2 — Lancer sur ton ordinateur
 
-Prérequis : Node.js 22+ et npm 10+.
+**Prérequis :** Node.js 22+ et npm 10+.
+
+```bash
+git clone https://github.com/RufusTheDwarf/cookie-dominion.git
+cd cookie-dominion
+npm install
+npm run dev
+```
+
+Vite affichera l’adresse locale à ouvrir dans ton navigateur.
+
+## 💾 Sauvegarde : garde ta progression
+
+Ouvre le panneau **Gestion de la partie** pour gérer tes données.
+
+| Action | Résultat |
+|---|---|
+| **Sauvegarder** | Enregistre immédiatement la partie dans le navigateur actuel |
+| **Exporter data** | Génère une sauvegarde JSON à conserver |
+| **Copier** | Copie les données lorsque le navigateur autorise le presse-papiers |
+| **Charger texte** | Importe des données JSON collées dans le champ |
+| **Charger fichier** | Importe un fichier JSON exporté précédemment |
+| **Effacer la partie** | Réinitialise la progression après confirmation |
+
+L’import vérifie le format des données avant de remplacer la partie. Les anciennes sauvegardes du prototype contenant uniquement le compteur de fours peuvent aussi être migrées.
+
+**À savoir :** les sauvegardes sont stockées localement dans le navigateur. Elles ne sont pas synchronisées entre appareils. Exporte régulièrement tes données si tu veux en garder une copie.
+
+## 🧰 Développement
+
+Installe les dépendances, puis utilise les commandes suivantes :
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Vérifier le projet
+Avant de proposer des changements, lance les vérifications :
 
 ```bash
 npm run typecheck
@@ -69,22 +108,20 @@ npm test
 npm run build
 ```
 
-Les vérifications automatiques de ces commandes sont exécutées par GitHub Actions sur les mises à jour de main.
+Les vérifications correspondantes sont également exécutées par GitHub Actions lors des mises à jour de `main`.
 
-## Stack et limites
+## 🧱 Stack technique
 
-| Couche | Technologie |
+| Élément | Technologie |
 |---|---|
-| Jeu 2D | Phaser 3 |
-| Langage | TypeScript |
-| Dev/build | Vite |
-| Tests | Vitest |
-| Sauvegarde actuelle | LocalStorage et fichier JSON |
-| Hébergement actuel | Prototype web ; aucun backend distant ni compte utilisateur |
+| Moteur 2D | [Phaser 3](https://phaser.io/) |
+| Langage | [TypeScript](https://www.typescriptlang.org/) |
+| Serveur de développement et build | [Vite](https://vite.dev/) |
+| Tests | [Vitest](https://vitest.dev/) |
+| Sauvegarde | LocalStorage + fichiers JSON |
+| Environnement de jeu | Navigateur web |
 
-Multijoueur, sauvegardes cloud, quêtes, combat, serveur autoritaire et installateur Windows ne sont pas encore implémentés.
-
-## Documentation
+## 🗺️ Documentation du projet
 
 - [Décision de plateforme](docs/PLATFORM_DECISION.md)
 - [Architecture](docs/ARCHITECTURE.md)
@@ -92,6 +129,26 @@ Multijoueur, sauvegardes cloud, quêtes, combat, serveur autoritaire et installa
 - [Roadmap](docs/ROADMAP.md)
 - [État d’implémentation](docs/IMPLEMENTATION_STATUS.md)
 
-## Licence
+## 🔭 État du projet
 
-Le dépôt comporte un fichier LICENSE avec la licence MIT. Confirme que c’est bien la licence voulue avant une publication publique.
+Cookie Dominion est actuellement un **prototype web**. Les fonctionnalités suivantes ne sont pas encore implémentées :
+
+- Comptes joueurs et sauvegardes cloud
+- Multijoueur
+- Quêtes et système de combat
+- Backend distant avec autorité serveur
+- Installateur Windows
+
+## 🤝 Contribuer
+
+Les idées, rapports de bugs et propositions d’amélioration sont les bienvenus. Pour signaler un problème, indique les étapes pour le reproduire et le résultat attendu.
+
+## 📄 Licence
+
+Le dépôt contient un fichier [LICENSE](LICENSE) annoncé sous licence MIT. Vérifie le contenu de ce fichier avant toute réutilisation ou redistribution.
+
+---
+
+<p align="center">
+  <strong>Un cookie à la fois. Un empire à la fois.</strong>
+</p>
