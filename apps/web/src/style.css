@@ -428,3 +428,36 @@ footer{display:flex;justify-content:space-between;gap:12px;margin-top:14px;paddi
   .tutorial-intro{padding:12px}
   .tutorial-intro-card{padding:26px 20px}
 }
+
+
+/* Guided onboarding: the spotlight keeps the active panel readable while dimming the rest. */
+.coachmark-layer{position:fixed;inset:0;z-index:1300;pointer-events:none}
+.coachmark-layer[hidden]{display:none!important}
+.coachmark-spotlight{position:fixed;z-index:0;border-radius:4px;outline:3px solid #ffda70;outline-offset:3px;box-shadow:0 0 0 9999px rgba(17,22,16,.78);pointer-events:none;transition:left .16s ease,top .16s ease,width .16s ease,height .16s ease}
+.coachmark-card{position:fixed;z-index:1;width:min(350px,calc(100vw - 24px));max-height:calc(100vh - 24px);overflow:auto;padding:17px 18px;border:2px solid #433b30;background:#eee3c9;color:#302f27;box-shadow:6px 6px 0 rgba(0,0,0,.25);pointer-events:auto;text-align:left}
+.coachmark-card:before{content:"";position:absolute;left:calc(var(--arrow-x,50%) - 8px);top:-8px;width:14px;height:14px;background:#eee3c9;border-left:2px solid #433b30;border-top:2px solid #433b30;transform:rotate(45deg)}
+.coachmark-card.is-above:before{top:auto;bottom:-8px;transform:rotate(225deg)}
+.coachmark-card>.eyebrow{position:relative;color:#854c3d;font-size:9px;letter-spacing:1.3px}
+.coachmark-card h2{position:relative;margin:8px 0 7px;font-family:Georgia,"Times New Roman",serif;font-size:19px;line-height:1.2;color:#302f27}
+.coachmark-card p{position:relative;margin:0 0 14px;font-size:12px;line-height:1.55;color:#625846}
+.coachmark-footnote{position:relative;display:block;margin:-3px 0 13px;padding-left:10px;border-left:2px solid #ae8c52;font-size:10px;line-height:1.45;color:#76684f}
+.theme-dark .coachmark-footnote{color:var(--ink-soft);border-left-color:var(--brass)}
+.coachmark-actions{position:relative;display:grid;gap:7px}
+.coachmark-actions .menu-primary,.coachmark-actions .menu-tertiary{width:100%;min-height:38px}
+.coachmark-actions .menu-tertiary{background:transparent}
+.theme-dark .coachmark-card{background:var(--paper);color:var(--ink);border-color:var(--ink)}
+.theme-dark .coachmark-card:before{background:var(--paper);border-color:var(--ink)}
+.theme-dark .coachmark-card h2{color:var(--ink)}
+.theme-dark .coachmark-card p{color:var(--ink-soft)}
+.theme-dark .coachmark-actions .menu-tertiary{color:var(--ink-soft);border-color:var(--soft-line)}
+.owner-avatar{border-radius:4px;background:linear-gradient(145deg,#e4d9bd,#c2b18b)}
+.owner-avatar .avatar-hair{left:8px;top:7px;width:31px;height:17px;border-radius:12px 12px 5px 5px;background:#493327;transform:rotate(-5deg)}
+.owner-avatar .avatar-face{left:12px;top:13px;width:25px;height:28px;border-radius:45% 45% 43% 43%;background:#dba980;color:transparent;box-shadow:inset 0 -2px 0 rgba(110,65,45,.13)}
+.owner-avatar .avatar-face:before{content:"";position:absolute;left:5px;top:10px;width:3px;height:4px;border-radius:50%;background:#332d25;box-shadow:11px 0 0 #332d25}
+.owner-avatar .avatar-face:after{content:"";position:absolute;left:10px;top:19px;width:5px;height:2px;border-bottom:1.5px solid #8c5947;border-radius:0 0 50% 50%}
+.owner-avatar .avatar-scarf{left:4px;bottom:-8px;width:41px;height:29px;border-radius:11px 11px 0 0;background:linear-gradient(90deg,#536b4c 0 36%,#8fa17a 36% 53%,#536b4c 53%);box-shadow:inset 0 2px 0 rgba(236,224,195,.4)}
+@media(max-width:560px){
+  .coachmark-card{padding:14px 15px;max-height:42vh}
+  .coachmark-card h2{font-size:17px}
+  .coachmark-card p{font-size:11px}
+}

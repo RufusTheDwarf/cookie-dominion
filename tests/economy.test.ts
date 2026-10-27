@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   addCrumbs,
   applyOfflineProgress,
+  buyStartingLand,
   buyMachine,
   buyUpgrade,
   canClaimMission,
@@ -27,6 +28,7 @@ import {
   performRebirth,
   performTotalRebirth,
   productionPerSecond,
+  STARTING_LAND_COST,
   rebirthCost,
   rebirthMultiplier,
   totalRebirthRequiredLevel,
@@ -79,6 +81,17 @@ describe('tycoon economy', () => {
     expect(legacy.rampBuilt).toBe(false);
     expect(legacy.machines['cookie-valley']['brick-oven']).toBe(0);
     expect(legacy.unlockedFloors).toEqual([0]);
+  });
+
+  it('requires 1,000 perfumes to purchase the starting outdoor plot', () => {
+    const broke = createInitialState(100);
+    expect(buyStartingLand(broke)).toBe(broke);
+
+    const funded = { ...broke, crumbs: STARTING_LAND_COST };
+    const purchased = buyStartingLand(funded);
+    expect(purchased.rampBuilt).toBe(true);
+    expect(purchased.crumbs).toBe(0);
+    expect(buyStartingLand(purchased)).toBe(purchased);
   });
 
   it('gives cookies for manual baking and tracks this run separately', () => {
