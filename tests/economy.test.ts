@@ -306,6 +306,7 @@ describe('tycoon economy', () => {
       currentFloor: 1,
       unlockedWorlds: ['cookie-valley', 'choco-moon'] as WorldId[],
       goldenCookiesClaimed: 3,
+      ordersCompleted: 4,
     };
     state.machines['choco-moon']['conveyor-oven'] = 2;
     const encoded = exportSaveFile(state, 1000);
@@ -319,7 +320,7 @@ describe('tycoon economy', () => {
     expect(loaded?.upgrades).toEqual({ production: 0, clickPower: 0, discount: 0 });
     expect(loaded?.claimedMissions).toEqual([]);
     expect(loaded?.goldenCookiesClaimed).toBe(3);
-    expect(loaded?.ordersCompleted).toBe(0);
+    expect(loaded?.ordersCompleted).toBe(4);
     expect(loaded?.totalRebirths).toBe(0);
     expect(loaded?.essences).toBe(0);
   });
