@@ -326,3 +326,21 @@ footer{display:flex;justify-content:space-between;gap:10px;margin-top:17px;paddi
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation:none!important;transition:none!important}
 }
+
+
+/* VIP perfume orders: reward the player for walking over and interacting. */
+.customer-order-card{
+  margin:12px 0 2px;padding:12px;border:2px solid #d3ae45;border-radius:14px;
+  background:linear-gradient(140deg,#fff3bd 0%,#fff9e6 58%,#ffe5d6 100%);
+  box-shadow:0 4px 0 #e2cc8b,inset 0 3px 0 #fffdf2;
+}
+.order-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.order-heading .eyebrow{color:#8d6a24}
+.order-count{padding:4px 6px;border:1px solid #d9c16c;border-radius:6px;background:#fff9dc;color:#80632a;font-size:7px;font-weight:1000;letter-spacing:.4px;white-space:nowrap}
+.order-count strong{font-size:10px;color:#473c25}
+.customer-order-card h2{margin:7px 0;color:#3c482e;font-size:15px}
+.customer-order-card>p{min-height:30px;margin:6px 0 9px;color:#7a6843;font-size:9px;line-height:1.45}
+.order-numbers{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.order-numbers>span{display:flex;flex-direction:column;gap:4px;padding:7px;border:1px solid #e3d29b;border-radius:8px;background:#fffdf3;color:#9a7840;font-size:7px;font-weight:1000;letter-spacing:.7px}
+.order-numbers strong{font-size:10px;line-height:1.2;color:#334a32;letter-spacing:0;overflow-wrap:anywhere}
+.customer-order-card>small{display:block;margin-top:8px;color:#8b7a52;font-size:8px;line-height:1.35}
