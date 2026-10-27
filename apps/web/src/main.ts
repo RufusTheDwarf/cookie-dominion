@@ -60,13 +60,13 @@ app.innerHTML = `
       <button id="open-menu-button" class="pause-menu-button" type="button" aria-label="Ouvrir le menu">MENU</button>
       <div class="header-stats">
         <div class="currency-display"><span>VENTES</span><strong id="crumb-total">0</strong><small>PARFUMS</small></div>
-        <div class="hud-stat"><span>PRODUCTION</span><strong id="production">0 <small>/ s</small></strong></div>
-        <div class="hud-stat"><span>MULTIPLICATEUR</span><strong id="multiplier">x1</strong></div>
-        <div class="hud-stat"><span>REBIRTHS</span><strong id="rebirth-count">0</strong></div>
-        <div class="hud-stat essence-stat"><span>ESSENCES</span><strong id="essence-total">0</strong></div>
-        <div class="hud-stat empire-value-stat"><span>VALEUR EMPIRE</span><strong id="empire-value">0</strong></div>
-        <div class="hud-stat"><span>ASCENSIONS</span><strong id="total-rebirth-count">0</strong></div>
-        <div class="world-save"><strong id="world-name">Jardin de Verre</strong><small id="save-state">SAUVEGARDE LOCALE</small></div>
+        <div class="hud-stat" id="header-production"><span>PRODUCTION</span><strong id="production">0 <small>/ s</small></strong></div>
+        <div class="hud-stat" id="header-multiplier"><span>MULTIPLICATEUR</span><strong id="multiplier">x1</strong></div>
+        <div class="hud-stat" id="header-rebirths"><span>REBIRTHS</span><strong id="rebirth-count">0</strong></div>
+        <div class="hud-stat essence-stat" id="header-essences"><span>ESSENCES</span><strong id="essence-total">0</strong></div>
+        <div class="hud-stat empire-value-stat" id="header-empire-value"><span>VALEUR EMPIRE</span><strong id="empire-value">0</strong></div>
+        <div class="hud-stat" id="header-ascensions"><span>ASCENSIONS</span><strong id="total-rebirth-count">0</strong></div>
+        <div class="world-save" id="world-save"><strong id="world-name">Jardin de Verre</strong><small id="save-state">SAUVEGARDE LOCALE</small></div>
       </div>
     </header>
     <details class="utility-drawer">
@@ -97,7 +97,7 @@ app.innerHTML = `
           <button class="primary" id="bake-button"><span class="spray-icon">✦</span><span>CRÉER UN PARFUM</span><span class="button-value">+10</span></button>
           <small>Chaque flacon vendu finance la prochaine machine.</small>
         </div>
-        <section class="customer-order-card">
+        <section id="customer-order-panel" class="customer-order-card" hidden>
           <div class="order-heading"><span class="eyebrow">CLIENT VIP</span><span class="order-count">LIVRAISONS <strong id="orders-completed">0</strong></span></div>
           <h2>Commande spéciale</h2>
           <p id="customer-order-status">Approche-toi du client VIP puis appuie sur E pour livrer.</p>
@@ -107,13 +107,13 @@ app.innerHTML = `
           </div>
           <small>Le prix et la récompense augmentent à chaque livraison.</small>
         </section>
-        <button id="golden-cookie" class="golden-cookie-button" type="button" disabled>
+        <button id="golden-cookie" class="golden-cookie-button" type="button" disabled hidden>
           <span class="golden-cookie-icon">✦</span>
           <span class="golden-cookie-copy"><strong>FLACON MYTHIQUE</strong><small id="golden-cookie-status">Premier parfum rare dans 25 s</small></span>
           <span class="golden-cookie-mark">×2</span>
         </button>
         <div class="rule"></div>
-        <section class="prestige-card basic-prestige">
+        <section id="rebirth-panel" class="prestige-card basic-prestige" hidden>
           <div class="prestige-heading"><span class="eyebrow">PRESTIGE I</span><span class="prestige-pill">PERMANENT</span></div>
           <h2>REBIRTH</h2>
           <p class="prestige-desc">Repars de zéro côté machines pour obtenir un multiplicateur de ventes. Tes recherches restent acquises.</p>
@@ -122,22 +122,24 @@ app.innerHTML = `
           <p class="objective" id="rebirth-info">Produis suffisamment de parfums pour recommencer plus fort.</p>
           <button class="rebirth-button" id="rebirth-button" disabled><span>REBIRTH NORMAL</span><strong id="rebirth-cost">1 500</strong></button>
         </section>
-        <section class="prestige-card total-prestige">
+        <section id="total-rebirth-panel" class="prestige-card total-prestige" hidden>
           <div class="prestige-heading"><span class="eyebrow">PRESTIGE II</span><span class="prestige-pill ultimate-pill">ENDGAME</span></div>
           <h2>ASCENSION TOTALE</h2>
           <div class="total-rebirth-level"><strong id="total-rebirth-level">REBIRTHS 0 / 10</strong><span id="essence-multiplier">ESSENCE ×1,00</span></div>
           <p class="prestige-desc" id="total-rebirth-info">Chaque Essence originelle vaut 1 000 000 points de valeur d’empire et apporte +75 % de rendement permanent.</p>
           <button class="total-rebirth-button" id="total-rebirth-button" type="button" disabled><span>TOUT SACRIFIER</span><strong id="total-rebirth-reward">+1 ESSENCE</strong></button>
         </section>
-        <div class="rule"></div>
-        <div class="eyebrow">PETITS OBJECTIFS</div>
-        <h2>CONTRATS</h2>
-        <p class="panel-intro">Chaque contrat finance la prochaine étape.</p>
-        <div id="mission-list" class="mission-list"></div>
+        <section id="missions-panel" hidden>
+          <div class="rule"></div>
+          <div class="eyebrow">PETITS OBJECTIFS</div>
+          <h2>CONTRATS</h2>
+          <p class="panel-intro">Chaque contrat finance la prochaine étape.</p>
+          <div id="mission-list" class="mission-list"></div>
+        </section>
       </aside>
       <section class="panel map-panel">
         <div class="panel-heading"><div><div class="eyebrow">LA MANUFACTURE · VUE LIBRE</div><h2 id="floor-title">ÉTAGE 1 — ATELIER</h2></div><div class="live-dot">EN DIRECT</div></div>
-        <div class="map-toolbar"><div><strong id="world-tagline">JARDIN DE VERRE</strong><small>Déplace-toi et interagis directement avec les machines.</small></div><span id="player-position">Position : …</span></div>
+        <div class="map-toolbar" id="map-toolbar"><div><strong id="world-tagline">JARDIN DE VERRE</strong><small>Déplace-toi et interagis directement avec les machines.</small></div><span id="player-position">Position : …</span></div>
         <section id="tutorial-banner" class="tutorial-banner">
           <div class="tutorial-copy"><span id="tutorial-step-label" class="eyebrow">GUIDE DE DÉPART</span><strong id="tutorial-title">Construis ton premier accès</strong><p id="tutorial-text">Approche-toi du bouton jaune et appuie sur E.</p></div>
           <button id="tutorial-dismiss" type="button" aria-label="Masquer le tutoriel">×</button>
@@ -154,7 +156,7 @@ app.innerHTML = `
           <button id="interact-button" class="interact-button" type="button"><strong>E</strong><span>INTERAGIR</span></button>
         </div>
         <div class="map-legend"><span><i class="legend-cookie"></i> Flacons en transit</span><span><i class="legend-player"></i> Toi</span><span id="map-hint">WASD / clic · E pour agir</span></div>
-        <div class="nav-block">
+        <div class="nav-block" id="floor-navigation" hidden>
           <div class="nav-heading"><span class="eyebrow">ÉTAGES</span><span class="muted">Escaliers sur la carte ou accès rapide</span></div>
           <div class="nav-buttons">
             <button class="nav-button is-active" data-floor="0">01 · Atelier</button>
@@ -162,24 +164,44 @@ app.innerHTML = `
             <button class="nav-button" data-floor="2" hidden disabled>03 · Laboratoire</button>
           </div>
         </div>
-        <div class="nav-block">
+        <div class="nav-block" id="world-navigation" hidden>
           <div class="nav-heading"><span class="eyebrow">PORTAILS DES MONDES</span><span class="muted">Chaque monde multiplie les gains</span></div>
           <div class="world-buttons" id="world-buttons"></div>
         </div>
       </section>
       <aside class="panel building-panel">
-        <div class="shop-header"><div><div class="eyebrow">BOUTIQUE DE LA MAISON</div><h2>AMÉLIORATIONS</h2></div><span class="shop-level">LABO<br>LV.01</span></div>
-        <p class="panel-intro">Investis dans la formulation, le rendement et les coûts.</p>
-        <div id="upgrade-list" class="upgrade-list"></div>
-        <div class="rule"></div>
-        <div class="shop-section-title"><span class="eyebrow">PRODUCTION</span><h2>ÉQUIPEMENTS</h2></div>
-        <p class="panel-intro">Installe tes machines dans l'atelier. Les flacons vendus génèrent des revenus automatiquement.</p>
-        <div class="machine-list" id="machine-list"></div>
-        <div class="rule"></div>
-        <div class="factory-tip"><span>✦</span><div><strong>NOTE DU MAÎTRE PARFUMEUR</strong><small>Une chaîne complète vaut mieux qu'une seule machine de luxe. Monte étage après étage.</small></div></div>
+        <section id="upgrade-section" hidden>
+          <div class="shop-header"><div><div class="eyebrow">BOUTIQUE DE LA MAISON</div><h2>AMÉLIORATIONS</h2></div><span class="shop-level">LABO<br>LV.01</span></div>
+          <p class="panel-intro">Investis dans la formulation, le rendement et les coûts.</p>
+          <div id="upgrade-list" class="upgrade-list"></div>
+        </section>
+        <div class="rule" id="upgrade-divider" hidden></div>
+        <section id="machine-shop-section">
+          <div class="shop-section-title"><span class="eyebrow">PRODUCTION</span><h2>ÉQUIPEMENTS</h2></div>
+          <p class="panel-intro">Choisis un équipement dans le catalogue. Son emplacement physique apparaîtra uniquement après l'achat.</p>
+          <div class="machine-list" id="machine-list"></div>
+        </section>
+        <div class="rule" id="factory-tip-divider" hidden></div>
+        <div class="factory-tip" id="factory-tip" hidden><span>✦</span><div><strong>NOTE DU MAÎTRE PARFUMEUR</strong><small>Développe chaque ligne avant d'ouvrir un nouvel espace.</small></div></div>
       </aside>
     </section>
     <footer><span>PARFUM EMPIRE · MAISON DES ESSENCES</span><span>PROGRESSION LOCALE · SAUVEGARDE AUTOMATIQUE</span></footer>
+    <div id="tutorial-intro" class="tutorial-intro" role="dialog" aria-modal="true" aria-labelledby="tutorial-intro-title" hidden>
+      <section class="tutorial-intro-card">
+        <div class="eyebrow">CARNET DU PARFUMEUR · 01</div>
+        <div class="tutorial-illustration" aria-hidden="true"><span></span><i></i><b></b></div>
+        <h2 id="tutorial-intro-title">Un atelier à construire</h2>
+        <p>Tu commences avec une pièce vide. Les machines, les étages et les murs ne sont pas encore là : c'est à toi de les construire.</p>
+        <div class="tutorial-instructions">
+          <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>ou les flèches pour marcher</span></div>
+          <div><kbd>E</kbd><span>pour construire ou interagir près d'un objet</span></div>
+          <div><span class="tutorial-step-number">1</span><span>Rejoins le panneau de chantier et construis la rampe.</span></div>
+          <div><span class="tutorial-step-number">2</span><span>Crée des parfums pour acheter ta première table de formulation.</span></div>
+          <div><span class="tutorial-step-number">3</span><span>Les nouveaux espaces et les options se débloqueront au fur et à mesure.</span></div>
+        </div>
+        <button id="tutorial-start-button" class="menu-primary" type="button">ENTRER DANS L'ATELIER</button>
+      </section>
+    </div>
     <div id="main-menu" class="main-menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
       <div class="menu-card">
         <div class="menu-emblem" aria-hidden="true"><span>PE</span><i></i><b></b></div>
@@ -204,7 +226,7 @@ app.innerHTML = `
           <textarea id="menu-import-text" rows="4" spellcheck="false" placeholder="Colle les données de sauvegarde ici…"></textarea>
           <div class="menu-import-actions"><button id="menu-import-confirm" class="menu-primary">IMPORTER</button><button id="menu-import-back" class="menu-tertiary">RETOUR</button></div>
         </section>
-        <small class="menu-footer">WASD / flèches pour bouger · E pour interagir · Sauvegarde locale</small>
+        <small class="menu-footer" id="menu-save-note">Continuer reprend la sauvegarde locale. « Nouvelle partie » recrée l’atelier vide.</small>
       </div>
     </div>
   </main>
