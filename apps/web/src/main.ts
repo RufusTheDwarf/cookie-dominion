@@ -857,6 +857,7 @@ class TycoonScene extends Phaser.Scene {
     this.exteriorButtonObjects = [];
     this.extensionObjects = [];
     this.packets = new Set<Phaser.GameObjects.Container>();
+    this.collectorLabel = undefined;
     const world = getWorld(state.currentWorld);
     this.cameras.main.setBounds(0, 0, MAP_WIDTH, MAP_HEIGHT);
     this.add.rectangle(MAP_WIDTH / 2, MAP_HEIGHT / 2, MAP_WIDTH, MAP_HEIGHT, world.background);
@@ -1125,13 +1126,12 @@ class TycoonScene extends Phaser.Scene {
     line.lineBetween(250, 500, 950, 500);
     for (let x = 260; x < 945; x += 58) {
       const roller = this.add.ellipse(x, 503, 8, 8, 0x796c54).setStrokeStyle(1, 0x40382e).setDepth(2);
-      this.machineObjects.push(roller);
+
     }
     const label = this.add.text(600, 526, 'LIGNE D’EMBOUTEILLAGE', {
       fontFamily: 'Georgia, serif', fontSize: '10px', color: '#45392e',
       backgroundColor: '#e8dec5', padding: { x: 7, y: 3 }, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(2);
-    this.machineObjects.push(label);
   }
 
   private drawCollector(accent: number): void {
@@ -1205,7 +1205,7 @@ class TycoonScene extends Phaser.Scene {
       const x = 135 + i * 14;
       const bottle = this.add.ellipse(x, 315, 9, 20, [0x7e9180, 0xa96750, 0xc0a269, 0x657881][i]!).setStrokeStyle(1, 0x453b2e).setDepth(3);
       const cap = this.add.rectangle(x, 302, 4, 5, 0xc0a269).setStrokeStyle(1, 0x453b2e).setDepth(3);
-      this.machineObjects.push(bottle, cap);
+      // Decorative shelf items are independent of the machine station lifecycle.
     }
     this.add.text(153, 470, 'NOTES\nNATURELLES', {fontFamily:'Georgia, serif',fontSize:'8px',fontStyle:'bold',color:'#554a38',align:'center'}).setOrigin(0.5).setDepth(3);
   }
@@ -1411,7 +1411,7 @@ class TycoonScene extends Phaser.Scene {
         setStatus('La rampe est en cours de construction…');
         return;
       }
-      if (Phaser.Math.Distance.Between(playerX, playerY, 260, 555) < 92) {
+      if (Phaser.Math.Distance.Between(playerX, playerY, 382, 566) < 92) {
         this.isBuildingRamp = true;
         setStatus('Les planches sont posées une par une…');
         this.animateRampConstruction();
@@ -1507,18 +1507,20 @@ class TycoonScene extends Phaser.Scene {
 
   private drawBuiltRamp(): void {
     const ramp = this.add.graphics().setDepth(1);
-    ramp.fillStyle(0x594834, 0.22);
+    ramp.fillStyle(0x51412f, 0.2);
     ramp.fillPoints([{x:196,y:575},{x:320,y:511},{x:359,y:530},{x:233,y:596}], true);
     ramp.fillStyle(0x8e6749, 1);
     ramp.fillPoints([{x:198,y:568},{x:320,y:507},{x:350,y:523},{x:226,y:585}], true);
-    ramp.lineStyle(2, 0x4e3d2e, 0.9);
+    ramp.lineStyle(2, 0x4e3d2e, 0.95);
     ramp.lineBetween(198, 568, 226, 585);
     ramp.lineBetween(320, 507, 350, 523);
     for (let index = 0; index < 6; index += 1) {
       const x = 211 + index * 19;
       const y = 570 - index * 9;
-      ramp.lineStyle(2, index % 2 ? 0xb08a60 : 0x6f5037, 0.95);
-      ramp.lineBetween(x, y, x + 28, y + 15);
+      this.add.rectangle(x, y, 34, 11, index % 2 ? 0x98714e : 0x8e6749)
+        .setStrokeStyle(2, 0x4e3d2e)
+        .setRotation(-0.38)
+        .setDepth(2);
     }
     ramp.lineStyle(1, 0xd7b58b, 0.55);
     ramp.lineBetween(205, 566, 324, 506);
@@ -1553,15 +1555,23 @@ class TycoonScene extends Phaser.Scene {
   }
 
   private drawRampBuildButton(): void {
-    const pad = this.add.container(260, 555).setDepth(10);
-    pad.add(this.add.ellipse(0, 15, 122, 40, 0x1c3829, 0.22));
-    pad.add(this.add.ellipse(0, 0, 112, 48, 0xffe05a).setStrokeStyle(5, 0x735d20));
-    pad.add(this.add.rectangle(0, 0, 68, 18, 0xfff7bf).setStrokeStyle(2, 0x735d20));
-    pad.add(this.add.text(0, 0, 'E  CONSTRUIRE', { fontFamily: 'Trebuchet MS, sans-serif', fontSize: '10px', fontStyle: 'bold', color: '#48391b' }).setOrigin(0.5));
-    const label = this.add.text(0, -43, 'RAMPE · GRATUIT', { fontFamily: 'Trebuchet MS, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#243f2e', backgroundColor: '#fff9dc', padding: { x: 8, y: 5 }, stroke: '#ffffff', strokeThickness: 3 }).setOrigin(0.5);
-    pad.add(label);
+    const pad = this.add.container(382, 566).setDepth(10);
+    pad.add(this.add.ellipse(0, 19, 105, 19, 0x463a2b, 0.14));
+    const sign = this.add.graphics();
+    sign.fillStyle(0xd9c6a0, 1);
+    sign.fillRect(-55, -20, 110, 40);
+    sign.lineStyle(2, 0x514334, 1);
+    sign.strokeRect(-55, -20, 110, 40);
+    sign.lineStyle(1, 0x9f8258, 0.9);
+    sign.lineBetween(-46, -11, 46, -11);
+    pad.add(sign);
+    pad.add(this.add.text(0, -4, 'CHANTIER 01', {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#45392b'}).setOrigin(0.5));
+    pad.add(this.add.text(0, 9, 'E · MONTER LA RAMPE', {fontFamily:'Georgia, serif',fontSize:'8px',fontStyle:'bold',color:'#754535'}).setOrigin(0.5));
     this.constructionButtonObjects.push(pad);
-    const instruction = this.add.text(260, 610, 'Approche-toi puis appuie sur E', { fontFamily: 'Trebuchet MS, sans-serif', fontSize: '12px', color: '#2b4733', backgroundColor: '#fff8e7', padding: { x: 8, y: 5 } }).setOrigin(0.5).setDepth(10);
+    const instruction = this.add.text(382, 604, 'La première construction est gratuite', {
+      fontFamily: 'Georgia, serif', fontSize: '10px', fontStyle: 'italic',
+      color: '#4f4637', backgroundColor: '#e8dec5', padding: { x: 6, y: 3 },
+    }).setOrigin(0.5).setDepth(10);
     this.constructionButtonObjects.push(instruction);
   }
 
@@ -1574,7 +1584,7 @@ class TycoonScene extends Phaser.Scene {
       const y = 570 - index * 9;
       const plank = this.add.rectangle(x, y, 34, 11, 0x8e6749)
         .setStrokeStyle(2, 0x4e3d2e)
-        .setRotation(-0.22)
+        .setRotation(-0.38)
         .setDepth(2)
         .setAlpha(0)
         .setScale(0.88);
@@ -1666,7 +1676,7 @@ class TycoonScene extends Phaser.Scene {
     const hint = $('map-hint');
     const action = $('interact-button').querySelector('span');
     if (!state.rampBuilt) {
-      const nearRamp = Phaser.Math.Distance.Between(this.player.x, this.player.y, 260, 555) < 92;
+      const nearRamp = Phaser.Math.Distance.Between(this.player.x, this.player.y, 382, 566) < 92;
       hint.textContent = nearRamp ? 'APPUIE SUR E POUR CONSTRUIRE LA RAMPE' : 'APPROCHE LE BOUTON JAUNE · E POUR CONSTRUIRE';
       if (action) action.textContent = nearRamp ? 'CONSTRUIRE' : 'INTERAGIR';
       return;
