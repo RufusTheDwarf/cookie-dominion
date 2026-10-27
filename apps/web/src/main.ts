@@ -126,7 +126,6 @@ app.innerHTML = `
           <button class="total-rebirth-button" id="total-rebirth-button" type="button" disabled><span>TOUT SACRIFIER</span><strong id="total-rebirth-reward">+1 ESSENCE</strong></button>
         </section>
         <div class="rule"></div>
-        <div class="rule"></div>
         <div class="eyebrow">PETITS OBJECTIFS</div>
         <h2>CONTRATS</h2>
         <p class="panel-intro">Chaque contrat finance la prochaine étape.</p>
@@ -595,7 +594,7 @@ function completeVipOrder(): void {
   render();
   save();
   bakeryScene?.pulsePlayer();
-  setStatus('Commande VIP livrée ! +' + format(payout) + ' parfums bruts. Le client repasse bientôt.');
+  setStatus('Commande VIP livrée ! +' + format(payout) + ' parfums. La prochaine commande est disponible quand tu reviens voir le client.');
 }
 
 function saveSoon(): void {
