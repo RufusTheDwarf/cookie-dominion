@@ -11,6 +11,7 @@ import {
   canRebirth,
   canTotalRebirth,
   claimMission,
+  collectHerb,
   completeCustomerOrder,
   createInitialState,
   customerOrderCost,
@@ -28,6 +29,7 @@ import {
   performRebirth,
   performTotalRebirth,
   productionPerSecond,
+  HERB_CLICKS_PER_PERFUME,
   STARTING_LAND_COST,
   rebirthCost,
   rebirthMultiplier,
@@ -107,6 +109,35 @@ describe('tycoon economy', () => {
     expect(addCrumbs(initial, -1)).toBe(initial);
   });
 
+  it('requires five herb clicks to make one perfume and saves partial progress', () => {
+    let state = createInitialState(100);
+    expect(state.herbClicks).toBe(0);
+    for (let click = 1; click < HERB_CLICKS_PER_PERFUME; click += 1) {
+      const result = collectHerb(state);
+      expect(result.perfumeMade).toBe(0);
+      state = result.state;
+      expect(state.herbClicks).toBe(click);
+      expect(state.crumbs).toBe(0);
+    }
+
+    const fifthClick = collectHerb(state);
+    state = fifthClick.state;
+    expect(fifthClick.perfumeMade).toBe(1);
+    expect(state.herbClicks).toBe(0);
+    expect(state.crumbs).toBe(1);
+    expect(state.lifetimeCrumbs).toBe(1);
+    expect(state.runCrumbsEarned).toBe(1);
+
+    const upgraded = { ...createInitialState(100), upgrades: { production: 0, clickPower: 1, discount: 0 } };
+    let upgradedState = upgraded;
+    for (let click = 1; click < HERB_CLICKS_PER_PERFUME; click += 1) {
+      upgradedState = collectHerb(upgradedState).state;
+    }
+    const improvedRecipe = collectHerb(upgradedState);
+    expect(improvedRecipe.perfumeMade).toBe(2);
+    expect(improvedRecipe.state.crumbs).toBe(2);
+  });
+
   it('lets the player buy a machine and raises passive output', () => {
     const state = { ...createInitialState(100), crumbs: 100 };
     const next = buyMachine(state, 'hand-mixer');
@@ -126,7 +157,7 @@ describe('tycoon economy', () => {
         'cookie-valley': { ...initial.machines['cookie-valley'], 'hand-mixer': 1 },
       },
     };
-    expect(manualCookieValue(withMixer)).toBe(5);
+    expect(manualCookieValue(withMixer)).toBe(1);
     expect(productionPerSecond(withMixer)).toBeCloseTo(3 / 3.5);
 
     const researched = buyUpgrade(withMixer, 'production');
@@ -136,7 +167,7 @@ describe('tycoon economy', () => {
     expect(upgradeCost(researched, 'production')).toBe(555);
 
     const clickResearch = buyUpgrade({ ...withMixer, crumbs: 200 }, 'clickPower');
-    expect(manualCookieValue(clickResearch)).toBe(10);
+    expect(manualCookieValue(clickResearch)).toBe(2);
 
     const discounted = buyUpgrade({ ...withMixer, crumbs: 600 }, 'discount');
     expect(machineCost(discounted, 'brick-oven')).toBe(209);
@@ -396,6 +427,7 @@ describe('tycoon economy', () => {
       unlockedWorlds: ['cookie-valley', 'choco-moon'] as WorldId[],
       goldenCookiesClaimed: 3,
       ordersCompleted: 4,
+      herbClicks: 3,
     };
     state.machines['choco-moon']['conveyor-oven'] = 2;
     const encoded = exportSaveFile(state, 1000);
@@ -410,6 +442,7 @@ describe('tycoon economy', () => {
     expect(loaded?.claimedMissions).toEqual([]);
     expect(loaded?.goldenCookiesClaimed).toBe(3);
     expect(loaded?.ordersCompleted).toBe(4);
+    expect(loaded?.herbClicks).toBe(3);
     expect(loaded?.totalRebirths).toBe(0);
     expect(loaded?.essences).toBe(0);
     expect(loaded?.unlockedFloors).toEqual([0, 1]);
