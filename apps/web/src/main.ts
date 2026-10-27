@@ -1863,6 +1863,7 @@ class TycoonScene extends Phaser.Scene {
   }
 
   private drawOutdoorGround(world: ReturnType<typeof getWorld>): void {
+    const groundTextureKey = 'parfum-outdoor-ground-' + world.id;
     const ground = this.add.graphics().setDepth(0);
     ground.fillStyle(world.background, 1);
     ground.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
@@ -1899,7 +1900,7 @@ class TycoonScene extends Phaser.Scene {
     }
 
     // A continuous dirt path leads from the edge of the garden past the build site.
-    const path = this.add.graphics().setDepth(1.5);
+    const path = ground;
     const pathPoints = [
       [0, 650, 240, 600], [240, 600, 430, 510], [430, 510, 620, 425],
       [620, 425, 900, 435], [900, 435, 1130, 525], [1130, 525, 1390, 600],
@@ -1937,7 +1938,7 @@ class TycoonScene extends Phaser.Scene {
       tree.strokeEllipse(x!, y! - 19, 61, 47);
     }
 
-    const flowers = this.add.graphics().setDepth(2);
+    const flowers = ground;
     const flowerPatches = [[290, 210], [505, 680], [775, 130], [1110, 690], [1460, 375], [1650, 930]];
     for (let index = 0; index < flowerPatches.length; index += 1) {
       const [x, y] = flowerPatches[index]!;
@@ -1948,6 +1949,14 @@ class TycoonScene extends Phaser.Scene {
       flowers.fillStyle(0x566b45, 1);
       flowers.fillCircle(x!, y!, 3);
     }
+
+    // Rasterize the hand-drawn outdoor scenery once; Phaser then draws a single image
+    // instead of replaying hundreds of Graphics commands on every frame.
+    if (!this.textures.exists(groundTextureKey)) {
+      ground.generateTexture(groundTextureKey, MAP_WIDTH, MAP_HEIGHT);
+    }
+    ground.destroy();
+    this.add.image(0, 0, groundTextureKey).setOrigin(0, 0).setDepth(0);
   }
 
   private drawBuiltRamp(): void {
@@ -2235,7 +2244,8 @@ function animationTick(now: number): void {
     save();
     saveTimer = 0;
   }
-  if (renderTimer >= 0.12) {
+  // Keep the Phaser simulation smooth while updating text-heavy DOM panels at 4 Hz.
+  if (renderTimer >= 0.25) {
     render();
     renderTimer = 0;
   }
