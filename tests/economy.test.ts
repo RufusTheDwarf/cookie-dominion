@@ -70,7 +70,6 @@ describe('tycoon economy', () => {
   });
 
   it('migrates an empty first-generation save to the unbuilt starting room', () => {
-    const initial = createInitialState(100);
     const legacy = parseSavedState(JSON.stringify({
       crumbs: 0,
       lifetimeCrumbs: 0,
