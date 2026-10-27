@@ -243,6 +243,7 @@ let statusTimer = 0;
 let renderTimer = 0;
 let gameIsPaused = true;
 let tutorialDismissed = false;
+let introTutorialSeen = false;
 let previousFrame = performance.now();
 let goldenReadyAt = performance.now() + 25_000;
 let goldenDeadline = 0;
@@ -287,26 +288,37 @@ try {
 
 function startGame(newGame = false): void {
   if (newGame) {
-    const hasProgress = state.lifetimeCrumbs > 0 || state.rebirths > 0 || state.rampBuilt ||
-      Object.values(state.machines).some((worldMachines) => Object.values(worldMachines).some((count) => count > 0));
-    if (hasProgress && !window.confirm('Créer une nouvelle partie ? La progression actuelle sera remplacée. Pense à exporter ta sauvegarde avant de continuer.')) return;
+    const ownedCount = Object.values(state.machines)
+      .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
+    const hasProgress = state.lifetimeCrumbs > 0 || state.crumbs > 0 || state.rebirths > 0 ||
+      state.totalRebirths > 0 || ownedCount > 0 || state.ordersCompleted > 0;
+    if (hasProgress && !window.confirm('Créer une nouvelle partie ? La progression actuelle sera remplacée. Exporte d’abord ta sauvegarde si tu souhaites la conserver.')) return;
     state = createInitialState();
     machineUiKey = '';
     worldUiKey = '';
     upgradeUiKey = '';
     missionUiKey = '';
     tutorialDismissed = false;
+    introTutorialSeen = false;
     render();
     bakeryScene?.loadWorld();
     save();
   }
-  gameIsPaused = false;
+
   $('main-menu').classList.add('is-hidden');
+  const showIntro = !introTutorialSeen && !state.rampBuilt &&
+    state.lifetimeCrumbs === 0 && state.crumbs === 0 && state.rebirths === 0;
+  $('tutorial-intro').hidden = !showIntro;
+  gameIsPaused = showIntro;
   render();
+  if (showIntro) {
+    $('tutorial-start-button').focus();
+    return;
+  }
   if (!state.rampBuilt) {
-    setStatus('Bienvenue ! Déplace-toi vers le bouton jaune et appuie sur E pour construire la rampe.');
+    setStatus('Objectif : approche-toi du panneau de chantier et appuie sur E pour construire la rampe.');
   } else {
-    setStatus('Partie chargée. Reprends le développement de ta maison de parfum.');
+    setStatus('Partie chargée. « Nouvelle partie » permet de recommencer avec un atelier vide.');
   }
 }
 
@@ -315,11 +327,16 @@ function showMenuPanel(panel: 'settings' | 'import' | null): void {
   $('menu-import-panel').toggleAttribute('hidden', panel !== 'import');
 }
 
-$('menu-play').textContent = state.rampBuilt || state.lifetimeCrumbs > 0 ? 'CONTINUER' : 'JOUER';
+function hasSavedProgress(): boolean {
+  const owned = Object.values(state.machines)
+    .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
+  return state.rampBuilt || state.lifetimeCrumbs > 0 || state.crumbs > 0 || state.rebirths > 0 || owned > 0;
+}
+$('menu-play').textContent = hasSavedProgress() ? 'CONTINUER LA PARTIE' : 'COMMENCER';
 $('menu-play').addEventListener('click', () => startGame(false));
 $('open-menu-button').addEventListener('click', () => {
   gameIsPaused = true;
-  $('menu-play').textContent = 'REPRENDRE';
+  $('menu-play').textContent = 'REPRENDRE LA PARTIE';
   showMenuPanel(null);
   $('main-menu').classList.remove('is-hidden');
 });
@@ -344,6 +361,13 @@ $('menu-import-confirm').addEventListener('click', () => {
 });
 $('dark-mode-toggle').addEventListener('change', (event) => {
   applyDarkMode((event.currentTarget as HTMLInputElement).checked);
+});
+$('tutorial-start-button').addEventListener('click', () => {
+  introTutorialSeen = true;
+  $('tutorial-intro').hidden = true;
+  gameIsPaused = false;
+  setStatus('Objectif : rejoins le panneau de chantier au sud-est, puis appuie sur E.');
+  renderTutorial();
 });
 
 function save(): void {
@@ -662,7 +686,41 @@ function renderWorldButtons(): void {
 
 function render(): void {
   const world = getWorld(state.currentWorld);
+  const machineCount = Object.values(state.machines)
+    .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
+  const stage = !state.rampBuilt ? 0
+    : machineCount === 0 ? 1
+      : machineCount < 2 && state.lifetimeCrumbs < 250 ? 2
+        : state.lifetimeCrumbs < 1000 && state.rebirths === 0 ? 3 : 4;
   document.documentElement.classList.toggle('workshop-unbuilt', !state.rampBuilt);
+  document.documentElement.classList.remove('progression-stage-0', 'progression-stage-1', 'progression-stage-2', 'progression-stage-3', 'progression-stage-4');
+  document.documentElement.classList.add('progression-stage-' + stage);
+
+  const header = document.querySelector<HTMLElement>('.header-stats');
+  if (header) header.hidden = stage === 0;
+  $('header-production').hidden = stage < 2;
+  $('header-multiplier').hidden = stage < 3;
+  $('header-rebirths').hidden = stage < 4;
+  $('header-essences').hidden = stage < 4;
+  $('header-empire-value').hidden = stage < 4;
+  $('header-ascensions').hidden = state.totalRebirths === 0;
+  $('world-save').hidden = stage < 3;
+  $('utility-drawer').hidden = stage < 3;
+
+  $('customer-order-panel').hidden = stage < 3;
+  $('golden-cookie').hidden = stage < 3;
+  $('rebirth-panel').hidden = stage < 4;
+  $('total-rebirth-panel').hidden = state.rebirths < 8 && state.totalRebirths === 0;
+  $('missions-panel').hidden = stage < 2;
+  $('upgrade-section').hidden = stage < 3;
+  $('upgrade-divider').hidden = stage < 3;
+  $('factory-tip-divider').hidden = stage < 3;
+  $('factory-tip').hidden = stage < 3;
+  $('floor-navigation').hidden = state.unlockedFloors.length < 2;
+  $('world-navigation').hidden = state.unlockedWorlds.length < 2;
+  $('map-toolbar').hidden = stage === 0;
+  $('bake-button').toggleAttribute('disabled', !state.rampBuilt);
+
   $('crumb-total').textContent = format(state.crumbs);
   $('production').textContent = format(productionPerSecond(state)) + ' / s';
   $('multiplier').textContent = 'x' + format(rebirthMultiplier(state) * world.incomeMultiplier);
@@ -683,7 +741,7 @@ function render(): void {
   $('empire-value').textContent = format(state.lifetimeCrumbs + state.essences * ESSENCE_PRESTIGE_VALUE);
   $('total-rebirth-count').textContent = String(state.totalRebirths);
   $('owner-rank').textContent = 'Maison indépendante · Rang ' + (1 + state.rebirths + state.totalRebirths * 10);
-  $('floor-title').textContent = ['ÉTAGE 1 — FORMULATION', 'ÉTAGE 2 — EMBOUTEILLAGE', 'ÉTAGE 3 — EXTRACTION'][state.currentFloor] ?? 'ATELIER';
+  $('floor-title').textContent = !state.rampBuilt ? 'CHANTIER — PREMIÈRE RAMPE' : ['REZ-DE-CHAUSSÉE — FORMULATION', 'ÉTAGE 2 — EMBOUTEILLAGE', 'ÉTAGE 3 — EXTRACTION'][state.currentFloor] ?? 'ATELIER';
   $('rebirth-cost').textContent = format(rebirthCost(state.rebirths));
   $('rebirth-button').toggleAttribute('disabled', !canRebirth(state));
   $('rebirth-progress').style.width = Math.min(100, state.runCrumbsEarned / rebirthCost(state.rebirths) * 100) + '%';
