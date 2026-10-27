@@ -440,6 +440,8 @@ footer{display:flex;justify-content:space-between;gap:12px;margin-top:14px;paddi
 .coachmark-card>.eyebrow{position:relative;color:#854c3d;font-size:9px;letter-spacing:1.3px}
 .coachmark-card h2{position:relative;margin:8px 0 7px;font-family:Georgia,"Times New Roman",serif;font-size:19px;line-height:1.2;color:#302f27}
 .coachmark-card p{position:relative;margin:0 0 14px;font-size:12px;line-height:1.55;color:#625846}
+.coachmark-footnote{position:relative;display:block;margin:-3px 0 13px;padding-left:10px;border-left:2px solid #ae8c52;font-size:10px;line-height:1.45;color:#76684f}
+.theme-dark .coachmark-footnote{color:var(--ink-soft);border-left-color:var(--brass)}
 .coachmark-actions{position:relative;display:grid;gap:7px}
 .coachmark-actions .menu-primary,.coachmark-actions .menu-tertiary{width:100%;min-height:38px}
 .coachmark-actions .menu-tertiary{background:transparent}
