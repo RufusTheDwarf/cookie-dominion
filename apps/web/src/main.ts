@@ -241,6 +241,8 @@ function loadSaveText(raw: string): boolean {
   state = imported;
   machineUiKey = '';
   worldUiKey = '';
+  upgradeUiKey = '';
+  missionUiKey = '';
   render();
   bakeryScene?.loadWorld();
   save();
@@ -251,7 +253,7 @@ function loadSaveText(raw: string): boolean {
 
 function eraseSave(): void {
   const accepted = window.confirm(
-    'Effacer définitivement la sauvegarde Ovenfall de ce navigateur ? Cette action réinitialise les cookies, machines, rebirths et mondes débloqués. Exporte une sauvegarde avant de continuer si tu veux la conserver.',
+    'Effacer la partie de Parfum Empire sur cet appareil ? Toutes les machines, parfums, essences, rebirths et sauvegardes locales seront réinitialisés.',
   );
   if (!accepted) return;
   state = createInitialState();
@@ -515,16 +517,31 @@ function render(): void {
   $('multiplier').textContent = 'x' + format(rebirthMultiplier(state) * world.incomeMultiplier);
   $('rebirth-count').textContent = String(state.rebirths);
   $('run-earned').textContent = format(state.runCrumbsEarned);
-  const bakeValue = $('bake-button').querySelector('span');
+  $('manual-value').textContent = format(manualCookieValue(state));
+  const bakeValue = $('bake-button').querySelector('.button-value');
   if (bakeValue) bakeValue.textContent = '+' + format(manualCookieValue(state));
   $('world-name').textContent = world.name;
-  $('floor-title').textContent = ['ÉTAGE 1 — ATELIER', 'ÉTAGE 2 — PRODUCTION', 'ÉTAGE 3 — LABORATOIRE'][state.currentFloor] ?? 'USINE';
+  $('world-tagline').textContent = world.tagline.toUpperCase();
+  $('essence-total').textContent = format(state.essences);
+  $('total-rebirth-count').textContent = String(state.totalRebirths);
+  $('owner-rank').textContent = 'Maison indépendante · Rang ' + (1 + state.rebirths + state.totalRebirths * 10);
+  $('floor-title').textContent = ['ÉTAGE 1 — FORMULATION', 'ÉTAGE 2 — EMBOUTEILLAGE', 'ÉTAGE 3 — EXTRACTION'][state.currentFloor] ?? 'ATELIER';
   $('rebirth-cost').textContent = format(rebirthCost(state.rebirths));
   $('rebirth-button').toggleAttribute('disabled', !canRebirth(state));
   $('rebirth-progress').style.width = Math.min(100, state.runCrumbsEarned / rebirthCost(state.rebirths) * 100) + '%';
   $('rebirth-info').textContent = canRebirth(state)
-    ? 'Ton usine est prête à renaître. Tu gagneras un multiplicateur permanent x' + format(rebirthMultiplier({ rebirths: state.rebirths + 1 }))
-    : 'Encore ' + format(Math.max(0, rebirthCost(state.rebirths) - state.runCrumbsEarned)) + ' cookies gagnés avant le rebirth.';
+    ? 'Prêt à recommencer : tes machines seront réinitialisées, mais tes recherches et ton bonus resteront.'
+    : 'Encore ' + format(Math.max(0, rebirthCost(state.rebirths) - state.runCrumbsEarned)) + ' parfums gagnés avant le rebirth.';
+  const totalRequired = totalRebirthRequiredLevel(state);
+  $('total-rebirth-level').textContent = 'REBIRTHS ' + format(state.rebirths) + ' / ' + format(totalRequired);
+  $('essence-multiplier').textContent = 'RENDEMENT ×' + format(1 + state.essences * 0.75);
+  $('total-rebirth-reward').textContent = '+' + format(1 + state.totalRebirths) + ' ESSENCE' + (1 + state.totalRebirths > 1 ? 'S' : '');
+  $('total-rebirth-button').toggleAttribute('disabled', !canTotalRebirth(state));
+  $('total-rebirth-info').textContent = state.rebirths < totalRequired
+    ? 'Atteins ' + totalRequired + ' rebirths normaux. Progression : ' + state.rebirths + ' / ' + totalRequired + '.'
+    : canTotalRebirth(state)
+      ? 'Ascension prête. Tout sera effacé sauf tes Essences originelles et ton nombre d’ascensions.'
+      : 'Niveau atteint. Gagne encore ' + format(Math.max(0, rebirthCost(state.rebirths) - state.runCrumbsEarned)) + ' parfums avant l’ascension totale.';
   document.querySelectorAll<HTMLButtonElement>('[data-floor]').forEach((button) => {
     const floor = Number(button.dataset.floor);
     button.classList.toggle('is-active', floor === state.currentFloor);
@@ -586,18 +603,42 @@ function changeFloor(floor: number): void {
 function doRebirth(): void {
   const next = performRebirth(state);
   if (next === state) {
-    setStatus('Pas encore prêt pour le rebirth.');
+    setStatus('Pas encore prêt pour le rebirth normal.');
     return;
   }
   state = next;
   render();
   bakeryScene?.loadWorld();
-  setStatus('Rebirth ! Tes gains permanents ont augmenté. Le monde Choco Moon est disponible.');
+  setStatus('Rebirth normal ! Tes recherches restent acquises et tes ventes gagnent en puissance.');
   save();
+}
+
+function doTotalRebirth(): void {
+  if (!canTotalRebirth(state)) {
+    setStatus('Il faut atteindre le niveau requis et terminer le run avant l’ascension.');
+    return;
+  }
+  const reward = 1 + state.totalRebirths;
+  const accepted = window.confirm(
+    'ASCENSION TOTALE\n\nCette action efface les parfums, les machines, les mondes débloqués, les recherches et les contrats. Tu recevras ' +
+    reward + ' Essence(s) originelle(s), conservées après le reset. Chaque essence augmente durablement la production de 75 %.\n\nContinuer ?',
+  );
+  if (!accepted) return;
+  state = performTotalRebirth(state);
+  machineUiKey = '';
+  worldUiKey = '';
+  upgradeUiKey = '';
+  missionUiKey = '';
+  activeMoveControls.clear();
+  render();
+  bakeryScene?.loadWorld();
+  save();
+  setStatus('Ascension totale réussie. Nouvelle maison, nouvelles essences, nouveau départ.');
 }
 
 $('bake-button').addEventListener('click', bake);
 $('rebirth-button').addEventListener('click', doRebirth);
+$('total-rebirth-button').addEventListener('click', doTotalRebirth);
 document.querySelectorAll<HTMLButtonElement>('[data-floor]').forEach((button) => {
   button.addEventListener('click', () => changeFloor(Number(button.dataset.floor)));
 });
