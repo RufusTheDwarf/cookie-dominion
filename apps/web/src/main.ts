@@ -692,6 +692,7 @@ class TycoonScene extends Phaser.Scene {
     this.drawPortal(world.accent);
     this.drawStairs(world.accent);
     this.drawFloorDecoration(world.accent);
+    this.drawCharacters(world.accent);
     this.refreshMachines();
 
     this.player = this.createPlayer(260, 390, world.accent);
@@ -760,73 +761,184 @@ class TycoonScene extends Phaser.Scene {
   }
 
   private createPlayer(x: number, y: number, accent: number): Phaser.GameObjects.Container {
-    const shadow = this.add.ellipse(0, 18, 54, 20, 0x070605, 0.56);
-    const glow = this.add.circle(0, 0, 35, 0xa6e2b1, 0.16).setStrokeStyle(3, 0xffe6b5, 0.95);
-    const body = this.add.rectangle(0, 8, 30, 38, accent).setStrokeStyle(3, 0xf9e5c5);
-    const belt = this.add.rectangle(0, 15, 27, 5, 0x25170f);
-    const head = this.add.circle(0, -18, 15, 0xf1c39b).setStrokeStyle(3, 0x3d291b);
-    const hair = this.add.arc(0, -23, 15, 190, 350, false, 0x38231b).setStrokeStyle(5, 0x38231b);
-    const face = this.add.text(0, -18, '• •', { fontFamily: 'monospace', fontSize: '11px', color: '#2e2118', fontStyle: 'bold' }).setOrigin(0.5);
-    const tag = this.add.text(0, -58, '▼ TOI', {
-      fontFamily: 'monospace', fontSize: '13px', color: '#ffffff',
-      backgroundColor: '#24563e', padding: { x: 8, y: 4 }, stroke: '#102015', strokeThickness: 3,
+    const shadow = this.add.ellipse(0, 33, 49, 15, 0x31523a, 0.25);
+    const glow = this.add.ellipse(0, 1, 45, 62, 0xfff5cb, 0.26).setStrokeStyle(2, 0xffffff, 0.7);
+    const legLeft = this.add.rectangle(-8, 27, 11, 25, 0x34435a).setStrokeStyle(2, 0x223747);
+    const legRight = this.add.rectangle(8, 27, 11, 25, 0x34435a).setStrokeStyle(2, 0x223747);
+    const shoeLeft = this.add.rectangle(-8, 40, 16, 8, 0x27372e).setStrokeStyle(2, 0xf8f4dd);
+    const shoeRight = this.add.rectangle(8, 40, 16, 8, 0x27372e).setStrokeStyle(2, 0xf8f4dd);
+    const body = this.add.rectangle(0, 3, 34, 36, 0xfff6e3).setStrokeStyle(2, 0x324c39);
+    const apron = this.add.rectangle(0, 10, 25, 28, accent).setStrokeStyle(2, 0x31563d);
+    const apronPocket = this.add.rectangle(0, 15, 12, 8, 0xffe99a).setStrokeStyle(1, 0x31563d);
+    const strapLeft = this.add.rectangle(-9, -5, 4, 12, 0x4f6f4d);
+    const strapRight = this.add.rectangle(9, -5, 4, 12, 0x4f6f4d);
+    const armLeft = this.add.rectangle(-22, 5, 9, 23, 0xf4c79f).setStrokeStyle(2, 0x6b5140);
+    const armRight = this.add.rectangle(22, 5, 9, 23, 0xf4c79f).setStrokeStyle(2, 0x6b5140);
+    const neck = this.add.rectangle(0, -17, 12, 9, 0xeab38c);
+    const head = this.add.rectangle(0, -31, 27, 27, 0xf0bd91).setStrokeStyle(2, 0x5d4437);
+    const hair = this.add.rectangle(0, -43, 30, 10, 0x49302a).setStrokeStyle(2, 0x302821);
+    const hairLock = this.add.rectangle(-9, -36, 9, 13, 0x49302a).setStrokeStyle(1, 0x302821);
+    const eyeLeft = this.add.rectangle(-6, -29, 3, 4, 0x243a2a);
+    const eyeRight = this.add.rectangle(6, -29, 3, 4, 0x243a2a);
+    const nose = this.add.rectangle(0, -24, 4, 3, 0xd99c75);
+    const collar = this.add.triangle(0, -15, -7, -5, 7, -5, 0xfffdf0).setStrokeStyle(1, 0x324c39);
+    const miniBottle = this.add.rectangle(28, 5, 10, 15, 0x81d8c3).setStrokeStyle(2, 0x24543e);
+    const bottleNeck = this.add.rectangle(28, -5, 5, 5, 0xffefb5).setStrokeStyle(1, 0x24543e);
+    const bottleCap = this.add.rectangle(28, -9, 7, 4, 0xb88752).setStrokeStyle(1, 0x553d29);
+    const bottleLabel = this.add.rectangle(28, 6, 6, 5, 0xfff0b8);
+    const tag = this.add.text(0, -64, '▼ TOI · PARFUMEUR', {
+      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#183d29',
+      backgroundColor: '#fff6bf', padding: { x: 7, y: 4 }, stroke: '#ffffff', strokeThickness: 3,
     }).setOrigin(0.5);
-    const player = this.add.container(x, y, [shadow, glow, body, belt, head, hair, face, tag]);
+    const player = this.add.container(x, y, [
+      shadow, glow, legLeft, legRight, shoeLeft, shoeRight, body, apron, apronPocket,
+      strapLeft, strapRight, armLeft, armRight, neck, head, hair, hairLock, eyeLeft,
+      eyeRight, nose, collar, miniBottle, bottleNeck, bottleCap, bottleLabel, tag,
+    ]);
     player.setDepth(y);
-    this.tweens.add({ targets: tag, y: -63, duration: 480, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: tag, y: -68, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.tweens.add({ targets: glow, alpha: 0.16, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     return player;
   }
 
+  private createNpc(x: number, y: number, coatColor: number, hairColor: number, role: string, isClient: boolean): Phaser.GameObjects.Container {
+    const shadow = this.add.ellipse(0, 32, 45, 14, 0x31523a, 0.24);
+    const legLeft = this.add.rectangle(-7, 25, 10, 22, 0x465065).setStrokeStyle(2, 0x2c3d43);
+    const legRight = this.add.rectangle(7, 25, 10, 22, 0x465065).setStrokeStyle(2, 0x2c3d43);
+    const shoeLeft = this.add.rectangle(-7, 37, 14, 7, 0xfff4dd).setStrokeStyle(2, 0x384b3a);
+    const shoeRight = this.add.rectangle(7, 37, 14, 7, 0xfff4dd).setStrokeStyle(2, 0x384b3a);
+    const torso = this.add.rectangle(0, 3, 32, 33, coatColor).setStrokeStyle(2, 0x304a36);
+    const shirt = this.add.rectangle(0, 4, 9, 23, isClient ? 0xffe5ab : 0xfff7df);
+    const head = this.add.rectangle(0, -27, 25, 25, isClient ? 0xd99e73 : 0xe9b789).setStrokeStyle(2, 0x5d4437);
+    const hair = this.add.rectangle(0, -39, 28, 9, hairColor).setStrokeStyle(2, 0x41352b);
+    const sideHair = this.add.rectangle(10, -32, 7, 12, hairColor);
+    const eyeLeft = this.add.rectangle(-5, -26, 3, 4, 0x243a2a);
+    const eyeRight = this.add.rectangle(5, -26, 3, 4, 0x243a2a);
+    const mouth = this.add.rectangle(0, -20, 5, 2, 0x995b50);
+    const neck = this.add.rectangle(0, -14, 9, 5, 0xe2aa81);
+    const parts: Phaser.GameObjects.GameObject[] = [
+      shadow, legLeft, legRight, shoeLeft, shoeRight, torso, shirt, neck, head, hair, sideHair, eyeLeft, eyeRight, mouth,
+    ];
+    if (isClient) {
+      parts.push(
+        this.add.rectangle(23, 10, 17, 21, 0xd8b77a).setStrokeStyle(2, 0x654c30),
+        this.add.rectangle(23, 0, 9, 5, 0x8f6e40),
+        this.add.rectangle(23, 10, 11, 10, 0xfff0c1),
+      );
+    } else {
+      parts.push(
+        this.add.rectangle(-16, 3, 7, 22, 0xe8b184).setStrokeStyle(1, 0x684b3c),
+        this.add.rectangle(17, 3, 7, 22, 0xe8b184).setStrokeStyle(1, 0x684b3c),
+        this.add.rectangle(17, 13, 9, 13, 0x7fd4c0).setStrokeStyle(2, 0x285740),
+        this.add.rectangle(17, 4, 5, 4, 0xffe8a2),
+      );
+    }
+    const nameTag = this.add.text(0, -59, role, {
+      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '10px', fontStyle: 'bold',
+      color: '#234632', backgroundColor: isClient ? '#ffe4a0' : '#dcf4dd',
+      padding: { x: 6, y: 3 }, stroke: '#ffffff', strokeThickness: 2,
+    }).setOrigin(0.5);
+    parts.push(nameTag);
+    const npc = this.add.container(x, y, parts);
+    npc.setDepth(y);
+    this.tweens.add({ targets: nameTag, y: -62, duration: 700 + x % 200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    return npc;
+  }
+
+  private drawCharacters(accent: number): void {
+    this.createNpc(760, 360, 0x8a6fc1, 0x402c41, 'MILA · PARFUMEUSE', false);
+    this.createNpc(680, 565, 0xffc96e, 0x8d4d37, 'CLIENT VIP', true);
+    const display = this.add.container(330, 165);
+    display.add(this.add.rectangle(0, 5, 135, 58, 0xf7f2d9).setStrokeStyle(2, accent));
+    display.add(this.add.rectangle(0, -29, 139, 8, accent).setStrokeStyle(2, 0x31543c));
+    for (let i = 0; i < 5; i += 1) {
+      const x = -46 + i * 23;
+      const hue = [0x7ed6c0, 0xdda6df, 0xffce7a, 0x9fc5f1, 0xf29eae][i]!;
+      display.add(this.add.rectangle(x, -1, 12, 22, hue).setStrokeStyle(1, 0x39563f));
+      display.add(this.add.rectangle(x, -16, 5, 5, 0xffefb7).setStrokeStyle(1, 0x39563f));
+      display.add(this.add.rectangle(x, -21, 7, 4, 0x9b7248).setStrokeStyle(1, 0x584129));
+    }
+    display.add(this.add.text(0, 22, 'COLLECTION SIGNATURE', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'9px',fontStyle:'bold',color:'#31543c'}).setOrigin(0.5));
+    display.setDepth(2);
+  }
+
   private drawConveyor(accent: number, belt: number): void {
-    this.add.rectangle(600, 475, 700, 62, 0x100e0c).setStrokeStyle(3, accent, 0.7);
-    this.add.rectangle(600, 475, 684, 48, belt).setStrokeStyle(1, 0xffffff, 0.15);
+    this.add.rectangle(600, 475, 710, 68, 0x3a684b).setStrokeStyle(3, 0x254b34);
+    this.add.rectangle(600, 475, 690, 48, belt).setStrokeStyle(2, accent);
+    const rails = this.add.graphics();
+    rails.lineStyle(3, 0xfbf2d4, 0.8);
+    rails.lineBetween(252, 451, 948, 451);
+    rails.lineBetween(252, 499, 948, 499);
     const stripes = this.add.graphics();
-    stripes.lineStyle(3, 0xe4d1b2, 0.25);
-    for (let x = 260; x < 940; x += 28) stripes.lineBetween(x, 454, x - 7, 496);
-    this.add.text(420, 506, 'CONVOYEUR AUTOMATIQUE', {
-      fontFamily: 'monospace', fontSize: '11px', color: '#e5d1b3', letterSpacing: 2,
+    stripes.lineStyle(5, 0x34694a, 0.7);
+    for (let x = 265; x < 940; x += 32) {
+      stripes.lineBetween(x, 456, x + 12, 494);
+    }
+    this.add.text(600, 520, 'LIGNE D’EMBOUTEILLAGE', {
+      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '11px', color: '#2d5439',
+      backgroundColor: '#f6efda', padding: { x: 8, y: 4 }, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(2);
   }
 
   private drawCollector(accent: number): void {
     const collector = this.add.container(1000, 470);
-    collector.add(this.add.rectangle(0, 8, 112, 105, 0x12100e).setStrokeStyle(3, accent));
-    collector.add(this.add.rectangle(0, -12, 90, 45, accent, 0.9));
-    collector.add(this.add.rectangle(0, -12, 65, 22, 0x211811).setStrokeStyle(2, 0xf7e0b1));
-    collector.add(this.add.text(0, -12, 'PARFUM', {fontFamily:'monospace',fontSize:'10px',fontStyle:'bold',color:'#fff0d9'}).setOrigin(0.5));
-    collector.add(this.add.text(0, 34, 'COLLECTEUR', {fontFamily:'monospace',fontSize:'10px',color:'#f3d7a6'}).setOrigin(0.5));
+    collector.add(this.add.rectangle(0, 7, 116, 104, 0xf8f1da).setStrokeStyle(3, 0x24452f));
+    collector.add(this.add.rectangle(0, -18, 80, 36, accent).setStrokeStyle(3, 0x24452f));
+    collector.add(this.add.rectangle(0, -25, 22, 11, 0xfff4d2).setStrokeStyle(2, 0x24452f));
+    collector.add(this.add.rectangle(0, -38, 13, 7, 0xa9824f).setStrokeStyle(2, 0x24452f));
+    collector.add(this.add.rectangle(0, -18, 53, 18, 0x9ce2cd).setStrokeStyle(2, 0x285540));
+    collector.add(this.add.text(0, -18, 'PE', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'11px',fontStyle:'bold',color:'#254732'}).setOrigin(0.5));
+    collector.add(this.add.text(0, 28, 'VENTES', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'11px',fontStyle:'bold',color:'#355b3b'}).setOrigin(0.5));
     collector.setDepth(5);
-    this.collectorLabel = this.add.text(1000, 410, '0 / s', {
-      fontFamily: 'monospace', fontSize: '12px', color: '#fff0d9', backgroundColor: '#15100c', padding: {x:6,y:4},
+    this.collectorLabel = this.add.text(1000, 403, '0 / s', {
+      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '12px', fontStyle: 'bold',
+      color: '#274831', backgroundColor: '#ffed9a', padding: {x:7,y:4}, stroke:'#ffffff',strokeThickness:2,
     }).setOrigin(0.5).setDepth(6);
   }
 
   private drawPortal(accent: number): void {
     const portal = this.add.container(1000, 190);
-    portal.add(this.add.ellipse(0, 0, 102, 112, 0x08090c, 0.8));
-    portal.add(this.add.ellipse(0, 0, 82, 100, accent, 0.3).setStrokeStyle(6, accent));
-    portal.add(this.add.ellipse(0, 0, 52, 75, 0x11101a, 0.8).setStrokeStyle(2, 0xffffff, 0.55));
-    portal.add(this.add.text(0, 72, 'PORTAIL', {fontFamily:'monospace',fontSize:'12px',color:'#fff0d9',fontStyle:'bold'}).setOrigin(0.5));
+    portal.add(this.add.ellipse(0, 0, 104, 112, 0xfff4d8).setStrokeStyle(4, 0x24452f));
+    portal.add(this.add.ellipse(0, 0, 82, 95, 0xbbead0).setStrokeStyle(7, accent));
+    portal.add(this.add.ellipse(0, 0, 57, 70, 0xffd0e0).setStrokeStyle(3, 0xffffff));
+    portal.add(this.add.rectangle(0, -4, 14, 38, 0xe6fff1).setStrokeStyle(2, accent));
+    portal.add(this.add.rectangle(0, 9, 33, 18, 0x7d59b3).setStrokeStyle(2, 0x49376f));
+    portal.add(this.add.text(0, 72, 'NOUVEAU MONDE', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'10px',fontStyle:'bold',color:'#294a34',backgroundColor:'#fff7d9',padding:{x:5,y:3}}).setOrigin(0.5));
     portal.setDepth(4);
+    this.tweens.add({targets:portal.list.slice(1,3),scaleX:1.08,duration:950,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
   }
 
   private drawStairs(accent: number): void {
     const stairs = this.add.graphics();
-    stairs.fillStyle(0x15110e, 1);
-    stairs.fillRoundedRect(990, 575, 95, 74, 8);
-    stairs.lineStyle(3, accent, 0.85);
+    stairs.fillStyle(0xfff4d8, 1);
+    stairs.fillRoundedRect(990, 575, 95, 74, 9);
+    stairs.lineStyle(3, accent, 0.9);
+    stairs.strokeRoundedRect(990, 575, 95, 74, 9);
+    stairs.lineStyle(3, 0x6e9870, 0.9);
     for (let y = 584; y <= 639; y += 11) stairs.lineBetween(1002, y, 1073, y);
-    this.add.text(1037, 659, 'ESCALIERS · E', {fontFamily:'monospace',fontSize:'10px',color:'#fff0d9'}).setOrigin(0.5).setDepth(4);
+    this.add.text(1037, 660, 'ÉTAGES · E', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'10px',fontStyle:'bold',color:'#2e5438',backgroundColor:'#fff4d8',padding:{x:4,y:2}}).setOrigin(0.5).setDepth(4);
   }
 
   private drawFloorDecoration(accent: number): void {
     const props = this.add.graphics();
-    props.fillStyle(0x100e0c, 0.75);
-    props.fillRoundedRect(115, 190, 75, 310, 8);
-    props.lineStyle(2, accent, 0.65);
-    props.strokeRoundedRect(115, 190, 75, 310, 8);
-    this.add.text(152, 345, 'F\nA\nB', {fontFamily:'monospace',fontSize:'15px',color:'#ffffff',align:'center'}).setOrigin(0.5).setDepth(3);
-    this.add.text(140, 525, 'USINE', {fontFamily:'monospace',fontSize:'10px',color:'#c9b59b'}).setDepth(3);
+    props.fillStyle(0xeff6dd, 1);
+    props.fillRoundedRect(112, 185, 82, 315, 11);
+    props.lineStyle(3, accent, 0.75);
+    props.strokeRoundedRect(112, 185, 82, 315, 11);
+    props.fillStyle(0x658f6b, 1);
+    props.fillRoundedRect(120, 193, 66, 18, 5);
+    this.add.text(153, 204, 'HERBIER', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'8px',fontStyle:'bold',color:'#fff6dc'}).setOrigin(0.5);
+    const leaves = this.add.graphics();
+    const leafColors = [0x6bab78, 0x9bc878, 0x3d8a65];
+    for (let i = 0; i < 8; i += 1) {
+      const y = 234 + i * 27;
+      leaves.fillStyle(leafColors[i % leafColors.length]!, 1);
+      leaves.fillEllipse(142, y, 17, 9);
+      leaves.fillEllipse(163, y + 6, 15, 8);
+      leaves.lineStyle(1, 0x46774a, 0.8);
+      leaves.lineBetween(137, y + 5, 171, y + 6);
+    }
+    this.add.text(153, 478, 'NOTES\nNATURELLES', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'8px',fontStyle:'bold',color:'#466747',align:'center'}).setOrigin(0.5);
   }
 
   refreshMachines(): void {
@@ -839,30 +951,41 @@ class TycoonScene extends Phaser.Scene {
       const x = machine.x;
       const y = 292;
       const g = this.add.graphics();
-      g.fillStyle(0x100e0c, 0.8);
-      g.fillRoundedRect(x - 76, y - 54, 152, 118, 10);
-      g.lineStyle(2, owned > 0 ? world.accent : 0x74634f, owned > 0 ? 0.9 : 0.4);
-      g.strokeRoundedRect(x - 76, y - 54, 152, 118, 10);
+      g.fillStyle(0x668f70, 0.18);
+      g.fillRoundedRect(x - 77, y - 48, 154, 112, 12);
+      g.fillStyle(0xfffae6, 1);
+      g.fillRoundedRect(x - 72, y - 55, 144, 111, 12);
+      g.lineStyle(3, owned > 0 ? world.accent : 0x81967c, owned > 0 ? 1 : 0.75);
+      g.strokeRoundedRect(x - 72, y - 55, 144, 111, 12);
+      g.fillStyle(owned > 0 ? world.belt : 0xe4ebd9, 1);
+      g.fillRoundedRect(x - 65, y - 47, 130, 18, 6);
       this.machineObjects.push(g);
-      const frame = this.add.rectangle(x, y - 12, 88, 55, owned > 0 ? world.belt : 0x40372d)
-        .setStrokeStyle(3, owned > 0 ? world.accent : 0x7a6855, 0.9);
-      const mouth = this.add.rectangle(x, y - 3, 38, 25, 0x1a120d).setStrokeStyle(2, 0xdda666);
-      const heat = this.add.circle(x, y - 5, 7, owned > 0 ? 0xffb03e : 0x5f574b);
-      const title = this.add.text(x, y + 28, machine.name.toUpperCase(), {
-        fontFamily:'monospace',fontSize:'9px',color:'#fff0d9',align:'center',wordWrap:{width:140},
+      const frame = this.add.rectangle(x, y - 8, 78, 48, owned > 0 ? world.belt : 0xd8e2d0)
+        .setStrokeStyle(3, owned > 0 ? world.accent : 0x849780, 0.95);
+      const pipeTop = this.add.rectangle(x, y - 42, 13, 12, 0xd3ad72).setStrokeStyle(2, 0x6c5638);
+      const pipeNeck = this.add.rectangle(x, y - 31, 7, 11, 0x91cfc0).setStrokeStyle(1, 0x315b48);
+      const liquid = this.add.rectangle(x, y - 3, 29, 22, owned > 0 ? 0x79d5be : 0xb8c9bb).setStrokeStyle(2, 0x3e7657);
+      const label = this.add.rectangle(x, y - 3, 22, 10, 0xfff0b7);
+      const sideBottleLeft = this.add.rectangle(x - 28, y - 9, 11, 23, 0xc8a0dd).setStrokeStyle(1, 0x614779);
+      const sideBottleRight = this.add.rectangle(x + 28, y - 9, 11, 23, 0x9ccbf0).setStrokeStyle(1, 0x43617d);
+      const heat = this.add.circle(x, y - 3, 5, owned > 0 ? 0xffd45b : 0x9aa99a);
+      const title = this.add.text(x, y + 29, machine.name.toUpperCase(), {
+        fontFamily:'Trebuchet MS, sans-serif',fontSize:'9px',fontStyle:'bold',color:'#294833',align:'center',wordWrap:{width:138},
       }).setOrigin(0.5);
-      const count = this.add.text(x, y - 65, owned > 0 ? 'x' + owned : 'À CONSTRUIRE', {
-        fontFamily:'monospace',fontSize:'10px',color: owned > 0 ? '#a8e5a4' : '#b7a38d',backgroundColor:'#17110c',padding:{x:5,y:3},
+      const count = this.add.text(x, y - 65, owned > 0 ? '×' + owned + ' ACTIVES' : 'À DÉBLOQUER', {
+        fontFamily:'Trebuchet MS, sans-serif',fontSize:'8px',fontStyle:'bold',color: owned > 0 ? '#fff8d8' : '#5b765b',
+        backgroundColor: owned > 0 ? '#2f7c51' : '#e5edda',padding:{x:6,y:3},stroke:'#fffdf0',strokeThickness:1,
       }).setOrigin(0.5);
-      for (const object of [frame, mouth, heat, title, count]) {
+      for (const object of [frame, pipeTop, pipeNeck, liquid, label, sideBottleLeft, sideBottleRight, heat, title, count]) {
         object.setDepth(6);
         this.machineObjects.push(object);
       }
       if (owned > 0) {
-        const glow = this.add.circle(x, y - 5, 14, world.accent, 0.1);
+        const glow = this.add.circle(x, y - 4, 30, world.accent, 0.12);
         glow.setDepth(5);
         this.machineObjects.push(glow);
-        this.tweens.add({targets:heat,alpha:0.4,scale:0.75,duration:550,yoyo:true,repeat:-1});
+        this.tweens.add({targets:heat,alpha:0.35,scale:1.35,duration:480,yoyo:true,repeat:-1});
+        this.tweens.add({targets:liquid,scaleY:0.78,duration:700,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
       }
     }
     if (this.collectorLabel) {
@@ -871,12 +994,13 @@ class TycoonScene extends Phaser.Scene {
   }
 
   private makePacket(x: number, y: number, accent: number): Phaser.GameObjects.Container {
-    const crumbs = [
-      this.add.circle(0, 0, 10, 0xb96b37).setStrokeStyle(2, accent),
-      this.add.circle(-3, -3, 2, 0x3b2014),
-      this.add.circle(4, 1, 2, 0x3b2014),
-    ];
-    const packet = this.add.container(x, y, crumbs).setDepth(15);
+    const glint = this.add.rectangle(-3, -1, 3, 10, 0xffffff, 0.82);
+    const body = this.add.rectangle(0, 2, 16, 22, accent).setStrokeStyle(2, 0x31543c);
+    const neck = this.add.rectangle(0, -11, 7, 5, 0xfff1b7).setStrokeStyle(1, 0x31543c);
+    const cap = this.add.rectangle(0, -16, 9, 5, 0xb88a50).setStrokeStyle(1, 0x60482f);
+    const label = this.add.rectangle(2, 4, 9, 8, 0xfff2c4).setStrokeStyle(1, 0x31543c);
+    const initials = this.add.text(2, 4, 'P', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'7px',fontStyle:'bold',color:'#31543c'}).setOrigin(0.5);
+    const packet = this.add.container(x, y, [glint, body, neck, cap, label, initials]).setDepth(15);
     this.packets.add(packet);
     return packet;
   }
