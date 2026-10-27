@@ -11,6 +11,8 @@ import {
   enterFloor,
   exportSaveFile,
   enterWorld,
+  ESSENCE_PRESTIGE_VALUE,
+  essenceMultiplier,
   getMachine,
   getWorld,
   MACHINES,
@@ -54,6 +56,7 @@ app.innerHTML = `
         <div class="hud-stat"><span>MULTIPLICATEUR</span><strong id="multiplier">x1</strong></div>
         <div class="hud-stat"><span>REBIRTHS</span><strong id="rebirth-count">0</strong></div>
         <div class="hud-stat essence-stat"><span>ESSENCES</span><strong id="essence-total">0</strong></div>
+        <div class="hud-stat empire-value-stat"><span>VALEUR EMPIRE</span><strong id="empire-value">0</strong></div>
         <div class="hud-stat"><span>ASCENSIONS</span><strong id="total-rebirth-count">0</strong></div>
         <div class="world-save"><strong id="world-name">Jardin de Verre</strong><small id="save-state">SAUVEGARDE LOCALE</small></div>
       </div>
@@ -105,7 +108,7 @@ app.innerHTML = `
           <div class="prestige-heading"><span class="eyebrow">PRESTIGE II</span><span class="prestige-pill ultimate-pill">ENDGAME</span></div>
           <h2>ASCENSION TOTALE</h2>
           <div class="total-rebirth-level"><strong id="total-rebirth-level">REBIRTHS 0 / 10</strong><span id="essence-multiplier">ESSENCE ×1,00</span></div>
-          <p class="prestige-desc" id="total-rebirth-info">Efface la progression normale. L’Essence originelle donne un bonus de rendement permanent.</p>
+          <p class="prestige-desc" id="total-rebirth-info">Chaque Essence originelle vaut 1 000 000 points de valeur d’empire et apporte +75 % de rendement permanent.</p>
           <button class="total-rebirth-button" id="total-rebirth-button" type="button" disabled><span>TOUT SACRIFIER</span><strong id="total-rebirth-reward">+1 ESSENCE</strong></button>
         </section>
         <div class="rule"></div>
@@ -523,6 +526,7 @@ function render(): void {
   $('world-name').textContent = world.name;
   $('world-tagline').textContent = world.tagline.toUpperCase();
   $('essence-total').textContent = format(state.essences);
+  $('empire-value').textContent = format(state.lifetimeCrumbs + state.essences * ESSENCE_PRESTIGE_VALUE);
   $('total-rebirth-count').textContent = String(state.totalRebirths);
   $('owner-rank').textContent = 'Maison indépendante · Rang ' + (1 + state.rebirths + state.totalRebirths * 10);
   $('floor-title').textContent = ['ÉTAGE 1 — FORMULATION', 'ÉTAGE 2 — EMBOUTEILLAGE', 'ÉTAGE 3 — EXTRACTION'][state.currentFloor] ?? 'ATELIER';
@@ -534,7 +538,7 @@ function render(): void {
     : 'Encore ' + format(Math.max(0, rebirthCost(state.rebirths) - state.runCrumbsEarned)) + ' parfums gagnés avant le rebirth.';
   const totalRequired = totalRebirthRequiredLevel(state);
   $('total-rebirth-level').textContent = 'REBIRTHS ' + format(state.rebirths) + ' / ' + format(totalRequired);
-  $('essence-multiplier').textContent = 'RENDEMENT ×' + format(1 + state.essences * 0.75);
+  $('essence-multiplier').textContent = 'RENDEMENT ×' + format(essenceMultiplier(state));
   $('total-rebirth-reward').textContent = '+' + format(1 + state.totalRebirths) + ' ESSENCE' + (1 + state.totalRebirths > 1 ? 'S' : '');
   $('total-rebirth-button').toggleAttribute('disabled', !canTotalRebirth(state));
   $('total-rebirth-info').textContent = state.rebirths < totalRequired
