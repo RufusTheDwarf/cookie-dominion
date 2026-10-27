@@ -5,10 +5,14 @@ import {
   buyMachine,
   buyUpgrade,
   canClaimMission,
+  canCompleteCustomerOrder,
   canRebirth,
   canTotalRebirth,
   claimMission,
+  completeCustomerOrder,
   createInitialState,
+  customerOrderCost,
+  customerOrderReward,
   enterFloor,
   enterWorld,
   exportSaveFile,
@@ -97,6 +101,34 @@ describe('tycoon economy', () => {
     expect(rewarded.crumbs).toBe(75);
     expect(rewarded.claimedMissions).toContain('first-machine');
     expect(claimMission(rewarded, 'first-machine')).toBe(rewarded);
+  });
+
+  it('delivers scalable VIP perfume orders and pays the player', () => {
+    const initial = createInitialState(100);
+    expect(initial.ordersCompleted).toBe(0);
+    expect(customerOrderCost(initial)).toBe(50);
+    expect(customerOrderReward(initial)).toBe(125);
+    expect(canCompleteCustomerOrder(initial)).toBe(false);
+    expect(completeCustomerOrder(initial)).toBe(initial);
+
+    const underfunded = { ...initial, crumbs: 49 };
+    expect(completeCustomerOrder(underfunded)).toBe(underfunded);
+
+    const funded = { ...initial, crumbs: 50 };
+    const delivered = completeCustomerOrder(funded);
+    expect(delivered.crumbs).toBe(75);
+    expect(delivered.ordersCompleted).toBe(1);
+    expect(delivered.lifetimeCrumbs).toBe(125);
+    expect(delivered.runCrumbsEarned).toBe(125);
+    expect(customerOrderCost(delivered)).toBe(83);
+    expect(customerOrderReward(delivered)).toBe(208);
+    expect(completeCustomerOrder(delivered)).toBe(delivered);
+    expect(canClaimMission(delivered, 'first-order')).toBe(true);
+
+    const claimed = claimMission(delivered, 'first-order');
+    expect(claimed.claimedMissions).toContain('first-order');
+    expect(claimed.crumbs).toBe(325);
+    expect(claimMission(claimed, 'first-order')).toBe(claimed);
   });
 
   it('requires the matching floor to build a machine', () => {
@@ -283,6 +315,7 @@ describe('tycoon economy', () => {
     expect(loaded?.upgrades).toEqual({ production: 0, clickPower: 0, discount: 0 });
     expect(loaded?.claimedMissions).toEqual([]);
     expect(loaded?.goldenCookiesClaimed).toBe(3);
+    expect(loaded?.ordersCompleted).toBe(0);
     expect(loaded?.totalRebirths).toBe(0);
     expect(loaded?.essences).toBe(0);
   });
