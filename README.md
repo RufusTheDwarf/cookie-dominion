@@ -28,7 +28,8 @@ Déplace-toi dans ta boulangerie, installe des machines, automatise la productio
 - **Production automatisée** — achète des machines et regarde les cookies parcourir les convoyeurs jusqu’au collecteur.
 - **Progression entre les mondes** — découvre trois mondes, avec Choco Moon après le premier rebirth et Galaxy Oven après trois rebirths.
 - **Un vrai loop de tycoon** — produis, investis, automatise, agrandis ta fabrique et recommence avec un meilleur rendement.
-- **Trois améliorations permanentes** — augmente la production automatique, la puissance du clic et réduis le prix des prochaines machines.
+- **Trois améliorations permanentes** — augmente la production automatique, la puissance du clic et réduis le prix des prochaines machines. Les niveaux restent après un rebirth.
+- **Cookie doré à durée limitée** — attrape-le avant qu’il disparaisse pour recevoir un bonus de cookies et doubler la production pendant 20 secondes. Le compteur est sauvegardé.
 - **Contrats avec récompenses** — termine cinq objectifs de progression et réclame tes cookies pour financer l’expansion.
 - **Rebirths** — réinitialise les machines du run pour gagner un multiplicateur permanent et débloquer de nouveaux mondes.
 - **Trois mondes et trois étages** — change d’environnement, visite chaque étage et construis une usine différente dans chaque monde.
@@ -149,7 +150,7 @@ Cookie Dominion est actuellement un **prototype web**. Les fonctionnalités suiv
 - Comptes joueurs et sauvegardes cloud
 - Multijoueur
 - Multijoueur et sauvegardes cloud synchronisées
-- Quêtes répétables, événements temporaires, clients/NPC et système de combat
+- Contrats répétables, événements saisonniers, clients/NPC et système de combat
 - Backend distant avec autorité serveur
 - Installateur Windows
 
