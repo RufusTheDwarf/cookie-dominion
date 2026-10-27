@@ -254,7 +254,7 @@ export function createInitialState(now = Date.now()): GameState {
     rampBuilt: false,
     wallsBuilt: false,
     outsideExpansions: 0,
-    lastSavedAt: now;
+    lastSavedAt: now,
   };
 }
 
