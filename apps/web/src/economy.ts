@@ -68,6 +68,7 @@ export const COOKIE_CLICK_VALUE = 10;
 export const TOTAL_REBIRTH_BASE_LEVEL = 10;
 export const TOTAL_REBIRTH_LEVEL_STEP = 5;
 export const ESSENCE_PRODUCTION_BONUS = 0.75;
+export const ESSENCE_PRESTIGE_VALUE = 1_000_000;
 export const REBIRTH_BASE_COST = 1500;
 export const REBIRTH_COST_GROWTH = 1.55;
 export const REBIRTH_MULTIPLIER = 1.75;
