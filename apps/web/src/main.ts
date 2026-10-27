@@ -435,6 +435,8 @@ function render(): void {
   $('multiplier').textContent = 'x' + format(rebirthMultiplier(state) * world.incomeMultiplier);
   $('rebirth-count').textContent = String(state.rebirths);
   $('run-earned').textContent = format(state.runCrumbsEarned);
+  const bakeValue = $('bake-button').querySelector('span');
+  if (bakeValue) bakeValue.textContent = '+' + format(manualCookieValue(state));
   $('world-name').textContent = world.name;
   $('floor-title').textContent = ['ÉTAGE 1 — ATELIER', 'ÉTAGE 2 — PRODUCTION', 'ÉTAGE 3 — LABORATOIRE'][state.currentFloor] ?? 'USINE';
   $('rebirth-cost').textContent = format(rebirthCost(state.rebirths));
