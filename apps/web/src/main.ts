@@ -818,6 +818,7 @@ class TycoonScene extends Phaser.Scene {
   private collectorLabel?: Phaser.GameObjects.Text;
   private exteriorWalls?: Phaser.GameObjects.Graphics;
   private constructionButtonObjects: Phaser.GameObjects.GameObject[] = [];
+  private exteriorButtonObjects: Phaser.GameObjects.GameObject[] = [];
   private playerFaceParts?: { leftEye: Phaser.GameObjects.Rectangle; rightEye: Phaser.GameObjects.Rectangle; nose: Phaser.GameObjects.Rectangle; hairLock: Phaser.GameObjects.Rectangle };
   private playerLimbs?: { leftLeg: Phaser.GameObjects.Rectangle; rightLeg: Phaser.GameObjects.Rectangle; leftArm: Phaser.GameObjects.Rectangle; rightArm: Phaser.GameObjects.Rectangle };
   private facing: MoveDirection = 'down';
@@ -857,8 +858,8 @@ class TycoonScene extends Phaser.Scene {
       this.drawStairs(world.accent);
       this.drawFloorDecoration(world.accent);
       this.drawCharacters(world.accent);
+      this.drawExteriorExtensions(world.accent);
       this.refreshMachines();
-      this.drawExteriorBuildButtons();
     } else {
       this.drawRampBuildButton();
     }
@@ -945,6 +946,7 @@ class TycoonScene extends Phaser.Scene {
       $('player-position').textContent = 'Position : ' + Math.round(this.player.x) + ' · ' + Math.round(this.player.y);
       this.lastPositionUpdate = this.time.now;
     }
+    this.updateInteractionPrompt();
     this.checkInteract();
   }
 
@@ -1190,6 +1192,7 @@ class TycoonScene extends Phaser.Scene {
     if (this.collectorLabel) {
       this.collectorLabel.setText(format(productionPerSecond(state)) + ' / s');
     }
+    this.refreshExteriorBuildButtons();
   }
 
   private makePacket(x: number, y: number, accent: number): Phaser.GameObjects.Container {
@@ -1386,7 +1389,9 @@ class TycoonScene extends Phaser.Scene {
     return null;
   }
 
-  private drawExteriorBuildButtons(): void {
+  refreshExteriorBuildButtons(): void {
+    this.exteriorButtonObjects.forEach((item) => item.destroy());
+    this.exteriorButtonObjects = [];
     const build = this.exteriorBuildPad();
     if (!build) return;
     const pad = this.add.container(build.x, build.y).setDepth(8);
@@ -1396,6 +1401,47 @@ class TycoonScene extends Phaser.Scene {
     pad.add(this.add.text(0, 0, 'E · ACHETER', { fontFamily: 'Trebuchet MS, sans-serif', fontSize: '8px', fontStyle: 'bold', color: '#48391b' }).setOrigin(0.5));
     pad.add(this.add.text(0, -35, build.kind === 'walls' ? 'MURS · 250' : 'EXTENSION · ' + format(build.cost), { fontFamily: 'Trebuchet MS, sans-serif', fontSize: '8px', fontStyle: 'bold', color: '#213c2b', backgroundColor: '#fff9dc', padding: { x: 5, y: 3 } }).setOrigin(0.5));
     this.tweens.add({ targets: pad, scale: 1.04, duration: 720, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    this.exteriorButtonObjects.push(pad);
+  }
+
+  private drawExteriorExtensions(accent: number): void {
+    const count = state.outsideExpansions;
+    if (count < 1) return;
+    const graphics = this.add.graphics().setDepth(1);
+    graphics.fillStyle(0xb6a47e, 0.8);
+    graphics.fillRoundedRect(845, 465, 145 + (count > 1 ? 95 : 0), 92, 12);
+    graphics.lineStyle(3, accent, 0.9);
+    graphics.strokeRoundedRect(845, 465, 145 + (count > 1 ? 95 : 0), 92, 12);
+    for (let index = 0; index < count; index += 1) {
+      const x = 880 + index * 62;
+      graphics.fillStyle(0x6b785e, 1);
+      graphics.fillRoundedRect(x - 18, 486, 36, 30, 5);
+      graphics.fillStyle([0x9bd8c2, 0xd8a9e0, 0xffd58b][index % 3]!, 1);
+      graphics.fillRoundedRect(x - 10, 480, 20, 30, 5);
+      graphics.fillStyle(0xffefb8, 1);
+      graphics.fillRect(x - 4, 473, 8, 8);
+      graphics.fillStyle(0x93734a, 1);
+      graphics.fillRect(x - 6, 469, 12, 5);
+    }
+    this.add.text(918, 535, 'EXTENSION ' + count + '/3', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'9px',fontStyle:'bold',color:'#273f2c',backgroundColor:'#f9f0d0',padding:{x:6,y:3}}).setOrigin(0.5).setDepth(2);
+  }
+
+  private updateInteractionPrompt(): void {
+    const hint = $('map-hint');
+    const action = $('interact-button').querySelector('span');
+    if (!state.rampBuilt) {
+      const nearRamp = Phaser.Math.Distance.Between(this.player.x, this.player.y, 260, 555) < 92;
+      hint.textContent = nearRamp ? 'APPUIE SUR E POUR CONSTRUIRE LA RAMPE' : 'APPROCHE LE BOUTON JAUNE · E POUR CONSTRUIRE';
+      if (action) action.textContent = nearRamp ? 'CONSTRUIRE' : 'INTERAGIR';
+      return;
+    }
+    const build = this.exteriorBuildPad();
+    if (build && Phaser.Math.Distance.Between(this.player.x, this.player.y, build.x, build.y) < 96) {
+      hint.textContent = build.kind === 'walls' ? 'APPUIE SUR E POUR CONSTRUIRE LES MURS' : 'APPUIE SUR E POUR ACHETER L’EXTENSION';
+      if (action) action.textContent = 'ACHETER';
+      return;
+    }
+    if (action) action.textContent = 'INTERAGIR';
   }
 
   private buyExteriorBuild(cost: number): void {
