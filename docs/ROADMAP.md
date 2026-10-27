@@ -12,7 +12,8 @@
 - [x] Phase 8b: cinq contrats de progression avec récompenses sauvegardées.
 - [x] Phase 8c: flacon mythique temporaire, récompense immédiate et bonus de production ×2.
 - [ ] Phase 9: test manuel dans un navigateur, ajuster la caméra et valider les tailles d’écran.
-- [ ] Phase 10: commandes clients, chaîne production → vente, et objectifs propres à chaque monde.
+- [x] Phase 10a: commandes VIP livrables en se déplaçant vers le client, paiement progressif et contrat de première livraison.
+- [ ] Phase 10b: chaîne production → vente plus riche et objectifs propres à chaque monde.
 - [ ] Phase 11: multijoueur autoritaire et sauvegardes cloud.
 - [ ] Phase 12: déploiement public et tests avec des joueurs.
 - [ ] Phase 13: décider si un packaging desktop est utile.
