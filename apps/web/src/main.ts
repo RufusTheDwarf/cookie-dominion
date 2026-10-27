@@ -343,7 +343,6 @@ function claimGoldenCookie(): void {
   goldenBoostUntil = now + 20_000;
   goldenReadyAt = goldenBoostUntil + 45_000 + Math.random() * 25_000;
   goldenUiSecond = -1;
-  goldenCookiesClaimed += 1;
   render();
   renderGoldenCookie(now);
   save();
