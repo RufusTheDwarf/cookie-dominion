@@ -1,7 +1,7 @@
 export type WorldId = 'cookie-valley' | 'choco-moon' | 'galaxy-oven';
 export type MachineId = 'hand-mixer' | 'brick-oven' | 'conveyor-oven' | 'frosting-lab' | 'quantum-bakery';
 export type UpgradeId = 'production' | 'clickPower' | 'discount';
-export type MissionId = 'first-machine' | 'industrialist' | 'lifetime-baker' | 'world-explorer' | 'galactic-empire';
+export type MissionId = 'first-machine' | 'industrialist' | 'lifetime-baker' | 'world-explorer' | 'galactic-empire' | 'first-order';
 
 export interface UpgradeLevels {
   production: number;
@@ -15,7 +15,7 @@ export interface MissionDefinition {
   description: string;
   target: number;
   reward: number;
-  kind: 'machines' | 'lifetime' | 'worlds';
+  kind: 'machines' | 'lifetime' | 'worlds' | 'orders';
 }
 
 export interface WorldDefinition {
@@ -58,6 +58,7 @@ export interface GameState {
   upgrades: UpgradeLevels;
   claimedMissions: MissionId[];
   goldenCookiesClaimed: number;
+  ordersCompleted: number;
   totalRebirths: number;
   essences: number;
   lastSavedAt: number;
@@ -69,6 +70,9 @@ export const TOTAL_REBIRTH_BASE_LEVEL = 10;
 export const TOTAL_REBIRTH_LEVEL_STEP = 5;
 export const ESSENCE_PRODUCTION_BONUS = 0.75;
 export const ESSENCE_PRESTIGE_VALUE = 1_000_000;
+export const CUSTOMER_ORDER_BASE_COST = 50;
+export const CUSTOMER_ORDER_COST_GROWTH = 1.65;
+export const CUSTOMER_ORDER_REWARD_MULTIPLIER = 2.5;
 export const REBIRTH_BASE_COST = 1500;
 export const REBIRTH_COST_GROWTH = 1.55;
 export const REBIRTH_MULTIPLIER = 1.75;
@@ -105,6 +109,7 @@ export const MISSION_DEFINITIONS: MissionDefinition[] = [
   { id: 'lifetime-baker', name: 'Mille flacons vendus', description: 'Vends 1 000 parfums au total.', target: 1000, reward: 500, kind: 'lifetime' },
   { id: 'world-explorer', name: 'Nez voyageur', description: 'Déverrouille un deuxième monde.', target: 2, reward: 1500, kind: 'worlds' },
   { id: 'galactic-empire', name: 'Grand nez de l’Empire', description: 'Déverrouille les trois mondes.', target: 3, reward: 8000, kind: 'worlds' },
+  { id: 'first-order', name: 'Premier client VIP', description: 'Livre ta première commande au client VIP.', target: 1, reward: 250, kind: 'orders' },
 ];
 
 const MISSION_IDS: MissionId[] = MISSION_DEFINITIONS.map((mission) => mission.id);
@@ -240,6 +245,7 @@ export function createInitialState(now = Date.now()): GameState {
     upgrades: { production: 0, clickPower: 0, discount: 0 },
     claimedMissions: [],
     goldenCookiesClaimed: 0,
+    ordersCompleted: 0,
     totalRebirths: 0,
     essences: 0,
     lastSavedAt: now,
@@ -325,7 +331,9 @@ export function missionProgress(state: GameState, mission: MissionDefinition): n
     ? totalMachinesOwned(state)
     : mission.kind === 'lifetime'
       ? state.lifetimeCrumbs
-      : state.unlockedWorlds.length;
+      : mission.kind === 'orders'
+        ? state.ordersCompleted
+        : state.unlockedWorlds.length;
   return Math.min(mission.target, progress);
 }
 
@@ -353,6 +361,29 @@ export function productionPerSecond(
   }, 0);
   const productionUpgrade = 1 + state.upgrades.production * 0.2;
   return base * world.incomeMultiplier * REBIRTH_MULTIPLIER ** state.rebirths * productionUpgrade * essenceMultiplier(state);
+}
+
+export function customerOrderCost(state: Pick<GameState, 'ordersCompleted'>): number {
+  return Math.ceil(CUSTOMER_ORDER_BASE_COST * CUSTOMER_ORDER_COST_GROWTH ** state.ordersCompleted);
+}
+
+export function customerOrderReward(state: Pick<GameState, 'ordersCompleted'>): number {
+  return Math.ceil(customerOrderCost(state) * CUSTOMER_ORDER_REWARD_MULTIPLIER);
+}
+
+export function canCompleteCustomerOrder(state: GameState): boolean {
+  return state.crumbs >= customerOrderCost(state);
+}
+
+export function completeCustomerOrder(state: GameState): GameState {
+  if (!canCompleteCustomerOrder(state)) return state;
+  const cost = customerOrderCost(state);
+  const reward = customerOrderReward(state);
+  const withMaterialsPaid = { ...state, crumbs: state.crumbs - cost };
+  return {
+    ...addCrumbs(withMaterialsPaid, reward),
+    ordersCompleted: state.ordersCompleted + 1,
+  };
 }
 
 export function addCrumbs(state: GameState, amount: number): GameState {
@@ -516,6 +547,9 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
         : [],
       goldenCookiesClaimed: Number.isSafeInteger(value.goldenCookiesClaimed) && (value.goldenCookiesClaimed as number) >= 0
         ? value.goldenCookiesClaimed as number
+        : 0,
+      ordersCompleted: Number.isSafeInteger(value.ordersCompleted) && (value.ordersCompleted as number) >= 0
+        ? value.ordersCompleted as number
         : 0,
       totalRebirths: Number.isSafeInteger(value.totalRebirths) && (value.totalRebirths as number) >= 0
         ? value.totalRebirths as number
