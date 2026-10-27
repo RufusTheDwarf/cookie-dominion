@@ -528,7 +528,7 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       migrated.lifetimeCrumbs = value.lifetimeCrumbs;
       migrated.runCrumbsEarned = value.lifetimeCrumbs;
       migrated.machines['cookie-valley']['brick-oven'] = value.ovens as number;
-      migrated.rampBuilt = true;
+      migrated.rampBuilt = (value.ovens as number) > 0 || value.crumbs > 0 || value.lifetimeCrumbs > 0;
       migrated.lastSavedAt = value.lastSavedAt;
       return applyOfflineProgress(migrated, now);
     }
