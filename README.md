@@ -27,9 +27,10 @@ Le jeu reprend les mécaniques de progression rapides des tycoons Roblox, avec u
 1. **Crée tes premiers parfums** manuellement pour lancer la trésorerie.
 2. **Achète des équipements** qui fabriquent et vendent automatiquement des fragrances.
 3. **Améliore ta maison** pour augmenter les revenus, renforcer les créations manuelles et réduire le coût des machines.
-4. **Récupère les contrats** dès qu'ils sont terminés pour obtenir des parfums supplémentaires.
-5. **Explore les étages et les mondes** pour ouvrir des lignes plus puissantes.
-6. **Effectue un rebirth normal**, puis vise l'**ascension totale** pour repartir avec une monnaie de prestige plus précieuse.
+4. **Livre les commandes VIP** : rejoins le client sur la carte, appuie sur `E`, paie les matières premières et empoche un paiement qui augmente à chaque livraison.
+5. **Récupère les contrats** dès qu'ils sont terminés pour obtenir des parfums supplémentaires.
+6. **Explore les étages et les mondes** pour ouvrir des lignes plus puissantes.
+7. **Effectue un rebirth normal**, puis vise l'**ascension totale** pour repartir avec une monnaie de prestige plus précieuse.
 
 ## Ce qui est déjà dans le prototype
 
@@ -40,7 +41,8 @@ Le jeu reprend les mécaniques de progression rapides des tycoons Roblox, avec u
 - **Cinq équipements** : table de formulation, alambic de cuivre, ligne d’embouteillage, atelier de parfumeur et extracteur astral.
 - **Production animée** : flacons visibles sur le convoyeur et équipement qui s’active à l’achat.
 - **Recherche** : rendement des machines, puissance des créations manuelles et réduction des coûts, jusqu’au niveau 10.
-- **Contrats** : cinq objectifs de progression avec barre d’avancement et récompense réclamable.
+- **Commandes VIP** : marche jusqu’au client dans l’atelier et appuie sur `E` pour livrer. Les coûts de préparation et les paiements augmentent à chaque commande, et le compteur est sauvegardé.
+- **Contrats** : six objectifs de progression avec barre d’avancement et récompense réclamable, dont un contrat pour la première livraison VIP.
 - **Flacon mythique** : événement à durée limitée, récompense immédiate et production doublée pendant 20 secondes.
 - **Sauvegarde locale** : sauvegarde automatique, export JSON, import depuis le texte ou un fichier et effacement avec confirmation.
 
@@ -73,6 +75,7 @@ L'ascension est irréversible pour la progression normale. Le jeu demande une co
 | Créer un parfum manuellement | Bouton **CRÉER UN PARFUM** ou barre d’espace |
 | Acheter une machine proche | `E` ou **INTERAGIR** |
 | Utiliser les escaliers | S’approcher puis `E`, ou bouton d’étage |
+| Livrer une commande VIP | Rejoins le client près du bas de la carte, puis appuie sur `E` |
 | Entrer dans un monde débloqué | Portail ou bouton du monde |
 
 ## Lancer le jeu
