@@ -100,7 +100,6 @@ export const MISSION_DEFINITIONS: MissionDefinition[] = [
   { id: 'galactic-empire', name: 'Empire galactique', description: 'Déverrouille les trois mondes.', target: 3, reward: 8000, kind: 'worlds' },
 ];
 
-const UPGRADE_IDS: UpgradeId[] = ['production', 'clickPower', 'discount'];
 const MISSION_IDS: MissionId[] = MISSION_DEFINITIONS.map((mission) => mission.id);
 
 export const WORLDS: WorldDefinition[] = [
