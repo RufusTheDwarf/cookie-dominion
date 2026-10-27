@@ -112,7 +112,7 @@ app.innerHTML = `
           <span class="golden-cookie-copy"><strong>FLACON MYTHIQUE</strong><small id="golden-cookie-status">Premier parfum rare dans 25 s</small></span>
           <span class="golden-cookie-mark">×2</span>
         </button>
-        <div class="rule"></div>
+        <div id="rebirth-divider" class="rule" hidden></div>
         <section id="rebirth-panel" class="prestige-card basic-prestige" hidden>
           <div class="prestige-heading"><span class="eyebrow">PRESTIGE I</span><span class="prestige-pill">PERMANENT</span></div>
           <h2>REBIRTH</h2>
@@ -689,9 +689,9 @@ function render(): void {
   const machineCount = Object.values(state.machines)
     .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
   const stage = !state.rampBuilt ? 0
-    : machineCount === 0 ? 1
-      : machineCount < 2 && state.lifetimeCrumbs < 250 ? 2
-        : state.lifetimeCrumbs < 1000 && state.rebirths === 0 ? 3 : 4;
+    : state.rebirths > 0 || state.lifetimeCrumbs >= 1000 ? 4
+      : machineCount === 0 ? 1
+        : machineCount < 2 && state.lifetimeCrumbs < 250 ? 2 : 3;
   document.documentElement.classList.toggle('workshop-unbuilt', !state.rampBuilt);
   document.documentElement.classList.remove('progression-stage-0', 'progression-stage-1', 'progression-stage-2', 'progression-stage-3', 'progression-stage-4');
   document.documentElement.classList.add('progression-stage-' + stage);
@@ -710,6 +710,7 @@ function render(): void {
   $('customer-order-panel').hidden = stage < 3;
   $('golden-cookie').hidden = stage < 3;
   $('rebirth-panel').hidden = stage < 4;
+  $('rebirth-divider').hidden = stage < 4;
   $('total-rebirth-panel').hidden = state.rebirths < 8 && state.totalRebirths === 0;
   $('missions-panel').hidden = stage < 2;
   $('upgrade-section').hidden = stage < 3;
@@ -1933,7 +1934,7 @@ function renderTutorial(): void {
   banner.hidden = tutorialDismissed;
   if (tutorialDismissed) return;
 
-  const owned = Object.values(state.machines[state.currentWorld])
+  const ownedCurrentWorld = Object.values(state.machines[state.currentWorld])
     .reduce((sum, count) => sum + count, 0);
   const currentFloorMachines = MACHINES.filter((machine) => machine.floor === state.currentFloor)
     .reduce((sum, machine) => sum + state.machines[state.currentWorld][machine.id], 0);
@@ -1944,31 +1945,35 @@ function renderTutorial(): void {
   if (!state.rampBuilt) {
     step = 1;
     title = 'La première rampe';
-    copy = 'Rejoins le panneau de chantier au sud-est et appuie sur E. Les planches vont être posées une à une. Les équipements et les autres espaces viendront ensuite.';
+    copy = 'Rejoins le panneau de chantier au sud-est et appuie sur E. La rampe est la seule construction disponible pour le moment.';
+  } else if (ownedCurrentWorld === 0) {
+    step = 2;
+    title = 'Finance ta première table';
+    copy = 'Clique sur CRÉER UN PARFUM pour gagner tes premiers revenus. Puis achète la Table de formulation dans le catalogue à droite : aucune table n’existe sur la carte avant cet achat.';
   } else if (state.currentFloor === 0 && !state.unlockedFloors.includes(1) && currentFloorMachines < 2) {
     step = 2;
-    title = 'Monte ton premier atelier';
-    copy = 'Achète deux équipements au rez-de-chaussée. Les escaliers n’apparaîtront qu’après cet investissement : le deuxième étage n’est pas gratuit.';
+    title = 'Développe le rez-de-chaussée';
+    copy = 'Achète un deuxième équipement. Les escaliers n’apparaîtront pas avant que tu aies installé deux machines et assez de parfums pour les construire.';
   } else if (state.currentFloor === 0 && !state.unlockedFloors.includes(1)) {
     step = 2;
     title = 'Construis les escaliers';
-    copy = 'Le chantier des escaliers se trouve en bas à droite. Approche-toi et appuie sur E pour payer la construction et ouvrir l’étage 2.';
+    copy = 'Le chantier en bas à droite est maintenant disponible. Approche-toi et appuie sur E pour payer les escaliers qui ouvriront l’étage 2.';
+  } else if (state.currentFloor === 1 && !state.unlockedFloors.includes(2) && currentFloorMachines === 0) {
+    step = 3;
+    title = 'Équipe le nouvel espace';
+    copy = 'Ce nouvel étage est vide. Achète d’abord un équipement depuis le catalogue; le chantier des escaliers suivants apparaîtra après cet achat.';
   } else if (state.currentFloor === 1 && !state.unlockedFloors.includes(2)) {
     step = 3;
-    title = 'Développe le deuxième atelier';
-    copy = 'Installe au moins un équipement à cet étage, puis construis les escaliers suivants. Chaque nouvel espace demande un investissement réel.';
-  } else if (owned === 0) {
-    step = 2;
-    title = 'Lance la production';
-    copy = 'Achète ton premier équipement depuis la boutique ou en approchant du plan de machine. Les flacons rejoindront le convoyeur quand une vraie ligne sera en place.';
+    title = 'Agrandis la manufacture';
+    copy = 'Approche-toi du chantier des escaliers et appuie sur E. Il faut payer pour ouvrir le laboratoire supérieur.';
   } else if (!state.claimedMissions.includes('first-machine')) {
     step = 3;
-    title = 'Réclame les contrats';
-    copy = 'Consulte Contrats dans le panneau de gauche. Quand une mission est terminée, réclame sa récompense : elle finance les prochaines constructions.';
+    title = 'Réclame tes contrats';
+    copy = 'Les contrats suivent tes premières actions. Récupère une récompense quand un objectif est terminé, puis réinvestis-la dans une machine ou une amélioration.';
   } else {
     step = 4;
-    title = 'Développe ta maison';
-    copy = 'Améliore les machines, livre les commandes VIP avec E, ouvre les nouveaux étages puis utilise le rebirth pour renforcer les runs suivants. La sauvegarde est automatique.';
+    title = 'Ton empire prend forme';
+    copy = 'Les commandes VIP, les améliorations et le rebirth apparaissent à mesure que tu développes ta maison. Les étages et les murs ne se débloquent qu’après les investissements nécessaires.';
   }
   $('tutorial-step-label').textContent = 'CARNET DU PARFUMEUR · ' + step + '/4';
   $('tutorial-title').textContent = title;
