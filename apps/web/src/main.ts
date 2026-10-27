@@ -835,6 +835,7 @@ class TycoonScene extends Phaser.Scene {
   private isBuildingRamp = false;
   private productionLayoutDrawn = false;
   private exteriorButtonObjects: Phaser.GameObjects.GameObject[] = [];
+  private extensionObjects: Phaser.GameObjects.GameObject[] = [];
   private playerFaceParts?: { leftEye: Phaser.GameObjects.Rectangle; rightEye: Phaser.GameObjects.Rectangle; nose: Phaser.GameObjects.Rectangle; hairLock: Phaser.GameObjects.Rectangle };
   private playerLimbs?: { leftLeg: Phaser.GameObjects.Rectangle; rightLeg: Phaser.GameObjects.Rectangle; leftArm: Phaser.GameObjects.Rectangle; rightArm: Phaser.GameObjects.Rectangle };
   private facing: MoveDirection = 'down';
@@ -854,6 +855,7 @@ class TycoonScene extends Phaser.Scene {
     this.machineObjects = [];
     this.constructionButtonObjects = [];
     this.exteriorButtonObjects = [];
+    this.extensionObjects = [];
     this.packets = new Set<Phaser.GameObjects.Container>();
     const world = getWorld(state.currentWorld);
     this.cameras.main.setBounds(0, 0, MAP_WIDTH, MAP_HEIGHT);
@@ -1181,9 +1183,9 @@ class TycoonScene extends Phaser.Scene {
     this.machineObjects.forEach((object) => object.destroy());
     this.machineObjects = [];
     const worldMachines = state.machines[state.currentWorld];
+    const world = getWorld(state.currentWorld);
     for (const machine of MACHINES.filter((item) => item.floor === state.currentFloor)) {
       const owned = worldMachines[machine.id];
-      const world = getWorld(state.currentWorld);
       const x = machine.x;
       const y = 292;
       const g = this.add.graphics();
@@ -1500,8 +1502,10 @@ class TycoonScene extends Phaser.Scene {
       state.rampBuilt = true;
       save();
       render();
-      this.scene.restart();
-      setStatus('La rampe est prête. Le reste de la manufacture se construit étape par étape.');
+      this.drawFloorDecoration(getWorld(state.currentWorld).accent);
+      this.drawExteriorExtensions(getWorld(state.currentWorld).accent);
+      this.refreshMachines();
+      setStatus('La rampe est prête. La manufacture se développera à chaque nouvel achat.');
     });
   }
 
@@ -1534,9 +1538,12 @@ class TycoonScene extends Phaser.Scene {
   }
 
   private drawExteriorExtensions(accent: number): void {
+    this.extensionObjects.forEach((object) => object.destroy());
+    this.extensionObjects = [];
     const count = state.outsideExpansions;
     if (count < 1) return;
     const graphics = this.add.graphics().setDepth(1);
+    this.extensionObjects.push(graphics);
     graphics.fillStyle(0xb6a47e, 0.8);
     graphics.fillRoundedRect(845, 465, 145 + (count > 1 ? 95 : 0), 92, 12);
     graphics.lineStyle(3, accent, 0.9);
@@ -1552,7 +1559,8 @@ class TycoonScene extends Phaser.Scene {
       graphics.fillStyle(0x93734a, 1);
       graphics.fillRect(x - 6, 469, 12, 5);
     }
-    this.add.text(918, 535, 'EXTENSION ' + count + '/3', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'9px',fontStyle:'bold',color:'#273f2c',backgroundColor:'#f9f0d0',padding:{x:6,y:3}}).setOrigin(0.5).setDepth(2);
+    const marker = this.add.text(918, 535, 'EXTENSION ' + count + '/3', {fontFamily:'Georgia, serif',fontSize:'9px',fontStyle:'bold',color:'#273f2c',backgroundColor:'#f9f0d0',padding:{x:6,y:3}}).setOrigin(0.5).setDepth(2);
+    this.extensionObjects.push(marker);
   }
 
   private updateInteractionPrompt(): void {
@@ -1585,8 +1593,10 @@ class TycoonScene extends Phaser.Scene {
     else state.outsideExpansions += 1;
     render();
     save();
-    setStatus(build.kind === 'walls' ? 'Murs construits ! Ils seront visibles quand tu te trouveras à l’extérieur.' : 'Extension extérieure achetée. Un nouvel espace est maintenant débloqué.');
-    this.scene.restart();
+    if (build.kind === 'extension') this.drawExteriorExtensions(getWorld(state.currentWorld).accent);
+    this.refreshExteriorBuildButtons();
+    this.updateExteriorWalls();
+    setStatus(build.kind === 'walls' ? 'Murs posés. Tu peux maintenant lire la limite du magasin depuis l’extérieur.' : 'Extension extérieure construite. Un nouvel espace est maintenant ouvert.');
   }
 
   private updateExteriorWalls(): void {
