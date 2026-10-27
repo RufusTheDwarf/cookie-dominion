@@ -178,9 +178,9 @@ describe('tycoon economy', () => {
   it('requires the matching floor to build a machine', () => {
     const state = { ...createInitialState(100), crumbs: 5000 };
     expect(buyMachine(state, 'conveyor-oven')).toBe(state);
-    const floorTwo = enterFloor(enterFloor(state, 1), 2);
+    const floorTwo = { ...state, currentFloor: 2, unlockedFloors: [0, 1, 2] };
     expect(buyMachine(floorTwo, 'quantum-bakery')).toBe(floorTwo);
-    const floorOne = enterFloor(state, 1);
+    const floorOne = { ...state, currentFloor: 1, unlockedFloors: [0, 1] };
     expect(buyMachine(floorOne, 'conveyor-oven').machines['cookie-valley']['conveyor-oven']).toBe(1);
   });
 
@@ -349,6 +349,7 @@ describe('tycoon economy', () => {
       rebirths: 1,
       currentWorld: 'choco-moon' as WorldId,
       currentFloor: 1,
+      unlockedFloors: [0, 1],
       unlockedWorlds: ['cookie-valley', 'choco-moon'] as WorldId[],
       goldenCookiesClaimed: 3,
       ordersCompleted: 4,
