@@ -6,6 +6,7 @@ import {
   buyUpgrade,
   canClaimMission,
   canRebirth,
+  canTotalRebirth,
   claimMission,
   createInitialState,
   enterFloor,
@@ -18,9 +19,12 @@ import {
   parseImportedSave,
   parseSavedState,
   performRebirth,
+  performTotalRebirth,
   productionPerSecond,
   rebirthCost,
   rebirthMultiplier,
+  totalRebirthRequiredLevel,
+  essenceMultiplier,
   upgradeCost,
   type WorldId,
 } from '../apps/web/src/economy';
@@ -171,6 +175,63 @@ describe('tycoon economy', () => {
     expect(performRebirth(state).unlockedWorlds).toContain('galaxy-oven');
   });
 
+  it('unlocks total ascension at the prestige level and resets all normal progress', () => {
+    const initial = createInitialState(100);
+    const ready = {
+      ...initial,
+      crumbs: 999,
+      lifetimeCrumbs: 900000,
+      runCrumbsEarned: rebirthCost(10),
+      rebirths: 10,
+      totalRebirths: 0,
+      essences: 2,
+      currentWorld: 'galaxy-oven' as WorldId,
+      currentFloor: 2,
+      unlockedWorlds: ['cookie-valley', 'choco-moon', 'galaxy-oven'] as WorldId[],
+      upgrades: { production: 4, clickPower: 3, discount: 2 },
+      claimedMissions: ['first-machine'] as const,
+      machines: {
+        ...initial.machines,
+        'galaxy-oven': { ...initial.machines['galaxy-oven'], 'quantum-bakery': 4 },
+      },
+    };
+    expect(totalRebirthRequiredLevel(ready)).toBe(10);
+    expect(canTotalRebirth(ready)).toBe(true);
+    const next = performTotalRebirth(ready, 200);
+    expect(next.crumbs).toBe(0);
+    expect(next.lifetimeCrumbs).toBe(0);
+    expect(next.runCrumbsEarned).toBe(0);
+    expect(next.rebirths).toBe(0);
+    expect(next.currentWorld).toBe('cookie-valley');
+    expect(next.currentFloor).toBe(0);
+    expect(next.unlockedWorlds).toEqual(['cookie-valley']);
+    expect(next.machines['galaxy-oven']['quantum-bakery']).toBe(0);
+    expect(next.upgrades).toEqual({ production: 0, clickPower: 0, discount: 0 });
+    expect(next.claimedMissions).toEqual([]);
+    expect(next.essences).toBe(3);
+    expect(next.totalRebirths).toBe(1);
+    expect(totalRebirthRequiredLevel(next)).toBe(15);
+    expect(essenceMultiplier(next)).toBeCloseTo(3.25);
+  });
+
+  it('does not allow total ascension before the required normal rebirths or run earnings', () => {
+    const initial = createInitialState(100);
+    const underLevel = {
+      ...initial,
+      rebirths: 9,
+      runCrumbsEarned: rebirthCost(9),
+    };
+    expect(canTotalRebirth(underLevel)).toBe(false);
+    expect(performTotalRebirth(underLevel, 200)).toBe(underLevel);
+
+    const noRun = {
+      ...initial,
+      rebirths: 10,
+      runCrumbsEarned: 0,
+    };
+    expect(canTotalRebirth(noRun)).toBe(false);
+  });
+
   it('caps offline production at eight hours', () => {
     const initial = createInitialState(0);
     const state = {
@@ -222,6 +283,8 @@ describe('tycoon economy', () => {
     expect(loaded?.upgrades).toEqual({ production: 0, clickPower: 0, discount: 0 });
     expect(loaded?.claimedMissions).toEqual([]);
     expect(loaded?.goldenCookiesClaimed).toBe(3);
+    expect(loaded?.totalRebirths).toBe(0);
+    expect(loaded?.essences).toBe(0);
   });
 
   it('refuses malformed import text instead of replacing progress with a new game', () => {
