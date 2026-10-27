@@ -1080,7 +1080,7 @@ class TycoonScene extends Phaser.Scene {
     return npc;
   }
 
-  private drawCharacters(accent: number): void {
+  private drawCharacters(): void {
     this.createNpc(760, 360, 0x6c7960, 0x45362c, 'MILA · PARFUMEUSE', false);
     this.createNpc(680, 565, 0xa85e49, 0x644430, 'CLIENT VIP', true);
 
@@ -1089,7 +1089,7 @@ class TycoonScene extends Phaser.Scene {
     deliveryMat.fillEllipse(680, 601, 67, 22);
     deliveryMat.lineStyle(1, 0x575e43, 0.65);
     deliveryMat.strokeEllipse(680, 601, 67, 22);
-    const sign = this.add.text(680, 493, 'COMMANDE À LIVRER', {
+    this.add.text(680, 493, 'COMMANDE À LIVRER', {
       fontFamily: 'Georgia, serif', fontSize: '10px', fontStyle: 'bold',
       color: '#40392d', backgroundColor: '#e8dec5', padding: { x: 6, y: 4 },
     }).setOrigin(0.5).setDepth(590);
@@ -1109,7 +1109,7 @@ class TycoonScene extends Phaser.Scene {
     display.add(this.add.text(0, 29, 'ÉCHANTILLONS', {fontFamily:'Georgia, serif',fontSize:'9px',fontStyle:'bold',color:'#3f3b30'}).setOrigin(0.5));
   }
 
-  private drawConveyor(accent: number, belt: number): void {
+  private drawConveyor(belt: number): void {
     const line = this.add.graphics().setDepth(2);
     line.fillStyle(0x5c4635, 1);
     line.fillRect(245, 447, 710, 57);
@@ -1177,7 +1177,7 @@ class TycoonScene extends Phaser.Scene {
     this.add.text(1037, 660, 'ÉTAGES · E', {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#40382e',backgroundColor:'#e8dec5',padding:{x:5,y:3}}).setOrigin(0.5).setDepth(4);
   }
 
-  private drawFloorDecoration(accent: number): void {
+  private drawFloorDecoration(): void {
     const shelf = this.add.graphics().setDepth(2);
     shelf.fillStyle(0x8d6b49, 1);
     shelf.fillRect(113, 189, 80, 302);
@@ -1203,8 +1203,8 @@ class TycoonScene extends Phaser.Scene {
     }
     for (let i = 0; i < 4; i += 1) {
       const x = 135 + i * 14;
-      const bottle = this.add.ellipse(x, 315, 9, 20, [0x7e9180, 0xa96750, 0xc0a269, 0x657881][i]!).setStrokeStyle(1, 0x453b2e).setDepth(3);
-      const cap = this.add.rectangle(x, 302, 4, 5, 0xc0a269).setStrokeStyle(1, 0x453b2e).setDepth(3);
+      this.add.ellipse(x, 315, 9, 20, [0x7e9180, 0xa96750, 0xc0a269, 0x657881][i]!).setStrokeStyle(1, 0x453b2e).setDepth(3);
+      this.add.rectangle(x, 302, 4, 5, 0xc0a269).setStrokeStyle(1, 0x453b2e).setDepth(3);
       // Decorative shelf items are independent of the machine station lifecycle.
     }
     this.add.text(153, 470, 'NOTES\nNATURELLES', {fontFamily:'Georgia, serif',fontSize:'8px',fontStyle:'bold',color:'#554a38',align:'center'}).setOrigin(0.5).setDepth(3);
@@ -1328,9 +1328,9 @@ class TycoonScene extends Phaser.Scene {
       machine.floor === state.currentFloor && worldMachines[machine.id] > 0,
     ).length;
     if (activeOnFloor > 0 && !this.productionLayoutDrawn) {
-      this.drawConveyor(world.accent, world.belt);
+      this.drawConveyor(world.belt);
       this.drawCollector(world.accent);
-      this.drawCharacters(world.accent);
+      this.drawCharacters();
       this.productionLayoutDrawn = true;
     }
     if (this.collectorLabel) {
@@ -1611,7 +1611,7 @@ class TycoonScene extends Phaser.Scene {
       state.rampBuilt = true;
       save();
       render();
-      this.drawFloorDecoration(getWorld(state.currentWorld).accent);
+      this.drawFloorDecoration();
       this.drawExteriorExtensions(getWorld(state.currentWorld).accent);
       this.refreshMachines();
       setStatus('La rampe est prête. La manufacture se développera à chaque nouvel achat.');
