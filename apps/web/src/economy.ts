@@ -63,6 +63,8 @@ export interface GameState {
   totalRebirths: number;
   essences: number;
   rampBuilt: boolean;
+  /** Number of gathered herbs toward the next hand-crafted perfume. */
+  herbClicks: number;
   wallsBuilt: boolean;
   outsideExpansions: number;
   lastSavedAt: number;
@@ -71,7 +73,7 @@ export interface GameState {
 export const MAX_OFFLINE_SECONDS = 8 * 60 * 60;
 /** The opening plot is a one-time purchase; an empty new game receives this amount. */
 export const STARTING_LAND_COST = 1_000;
-export const COOKIE_CLICK_VALUE = 5;
+export const HERB_CLICKS_PER_PERFUME = 5;
 export const TOTAL_REBIRTH_BASE_LEVEL = 10;
 export const TOTAL_REBIRTH_LEVEL_STEP = 5;
 export const ESSENCE_PRODUCTION_BONUS = 0.75;
@@ -95,10 +97,10 @@ export const UPGRADES: Record<UpgradeId, { name: string; description: string; ba
   },
   clickPower: {
     name: 'Gestuelle du maître',
-    description: 'Chaque création manuelle rapporte 10 parfums supplémentaires par niveau.',
+    description: 'Chaque niveau ajoute un parfum à la recette terminée après cinq récoltes d’herbes.',
     baseCost: 120,
     growth: 1.8,
-    effect: '+10 parfums / création',
+    effect: '+1 parfum / recette',
   },
   discount: {
     name: 'Contrats verriers',
@@ -256,6 +258,7 @@ export function createInitialState(now = Date.now()): GameState {
     totalRebirths: 0,
     essences: 0,
     rampBuilt: false,
+    herbClicks: 0,
     wallsBuilt: false,
     outsideExpansions: 0,
     lastSavedAt: now,
@@ -323,7 +326,29 @@ export function upgradeCost(state: GameState, upgradeId: UpgradeId): number {
 }
 
 export function manualCookieValue(state: Pick<GameState, 'upgrades'>): number {
-  return COOKIE_CLICK_VALUE * (1 + state.upgrades.clickPower);
+  // The click-power research improves the batch yield, not the speed of gathering.
+  return 1 + state.upgrades.clickPower;
+}
+
+export interface HerbCollectionResult {
+  state: GameState;
+  perfumeMade: number;
+  herbClicks: number;
+}
+
+/** Gather one herb; after five clicks, compose a perfume batch. */
+export function collectHerb(state: GameState): HerbCollectionResult {
+  const nextClicks = state.herbClicks + 1;
+  if (nextClicks < HERB_CLICKS_PER_PERFUME) {
+    return {
+      state: { ...state, herbClicks: nextClicks },
+      perfumeMade: 0,
+      herbClicks: nextClicks,
+    };
+  }
+  const perfumeMade = manualCookieValue(state);
+  const rewarded = addCrumbs({ ...state, herbClicks: 0 }, perfumeMade);
+  return { state: rewarded, perfumeMade, herbClicks: 0 };
 }
 
 export function buyUpgrade(state: GameState, upgradeId: UpgradeId): GameState {
@@ -457,6 +482,7 @@ export function performRebirth(state: GameState): GameState {
     machines: createEmptyMachineSave(),
     rebirths: nextRebirths,
     rampBuilt: true,
+    herbClicks: 0,
     wallsBuilt: false,
     outsideExpansions: 0,
     unlockedFloors: [0],
@@ -608,6 +634,9 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
         ? value.essences as number
         : 0,
       rampBuilt: value.rampBuilt === undefined ? true : value.rampBuilt === true,
+      herbClicks: Number.isSafeInteger(value.herbClicks) && (value.herbClicks as number) >= 0
+        ? Math.min(HERB_CLICKS_PER_PERFUME - 1, value.herbClicks as number)
+        : 0,
       wallsBuilt: value.wallsBuilt === true,
       outsideExpansions: Number.isSafeInteger(value.outsideExpansions) && (value.outsideExpansions as number) >= 0
         ? Math.min(3, value.outsideExpansions as number)
@@ -618,6 +647,7 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       .reduce((sum, machinesInWorld) => sum + Object.values(machinesInWorld).reduce((worldSum, count) => worldSum + count, 0), 0);
     const hasMeaningfulProgress =
       state.crumbs > 0 ||
+      state.herbClicks > 0 ||
       state.lifetimeCrumbs > 0 ||
       state.runCrumbsEarned > 0 ||
       state.rebirths > 0 ||
