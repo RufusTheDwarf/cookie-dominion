@@ -1035,201 +1035,295 @@ class TycoonScene extends Phaser.Scene {
   }
 
   private createNpc(x: number, y: number, coatColor: number, hairColor: number, role: string, isClient: boolean): Phaser.GameObjects.Container {
-    const shadow = this.add.ellipse(0, 32, 45, 14, 0x31523a, 0.24);
-    const legLeft = this.add.rectangle(-7, 25, 10, 22, 0x465065).setStrokeStyle(2, 0x2c3d43);
-    const legRight = this.add.rectangle(7, 25, 10, 22, 0x465065).setStrokeStyle(2, 0x2c3d43);
-    const shoeLeft = this.add.rectangle(-7, 37, 14, 7, 0xfff4dd).setStrokeStyle(2, 0x384b3a);
-    const shoeRight = this.add.rectangle(7, 37, 14, 7, 0xfff4dd).setStrokeStyle(2, 0x384b3a);
-    const torso = this.add.rectangle(0, 3, 32, 33, coatColor).setStrokeStyle(2, 0x304a36);
-    const shirt = this.add.rectangle(0, 4, 9, 23, isClient ? 0xffe5ab : 0xfff7df);
-    const head = this.add.rectangle(0, -27, 25, 25, isClient ? 0xd99e73 : 0xe9b789).setStrokeStyle(2, 0x5d4437);
-    const hair = this.add.rectangle(0, -39, 28, 9, hairColor).setStrokeStyle(2, 0x41352b);
-    const sideHair = this.add.rectangle(10, -32, 7, 12, hairColor);
-    const eyeLeft = this.add.rectangle(-5, -26, 3, 4, 0x243a2a);
-    const eyeRight = this.add.rectangle(5, -26, 3, 4, 0x243a2a);
-    const mouth = this.add.rectangle(0, -20, 5, 2, 0x995b50);
-    const neck = this.add.rectangle(0, -14, 9, 5, 0xe2aa81);
+    const ink = 0x433b30;
+    const shadow = this.add.ellipse(0, 31, 34, 10, 0x40382c, 0.2);
+    const legLeft = this.add.ellipse(-7, 24, 11, 22, 0x576454).setStrokeStyle(1.5, ink);
+    const legRight = this.add.ellipse(7, 24, 11, 22, 0x576454).setStrokeStyle(1.5, ink);
+    const shoeLeft = this.add.ellipse(-7, 36, 15, 7, 0x4a3b30).setStrokeStyle(1, ink);
+    const shoeRight = this.add.ellipse(7, 36, 15, 7, 0x4a3b30).setStrokeStyle(1, ink);
+    const torso = this.add.ellipse(0, 3, 31, 35, coatColor).setStrokeStyle(2, ink);
+    const shirt = this.add.ellipse(0, 4, 10, 22, 0xe9ddc2).setStrokeStyle(1, ink);
+    const armLeft = this.add.ellipse(-17, 5, 9, 20, isClient ? 0xd7a078 : 0xd2a27c).setStrokeStyle(1, ink);
+    const armRight = this.add.ellipse(17, 5, 9, 20, isClient ? 0xd7a078 : 0xd2a27c).setStrokeStyle(1, ink);
+    const neck = this.add.ellipse(0, -14, 9, 7, isClient ? 0xd7a078 : 0xe0b08a).setStrokeStyle(1, ink);
+    const head = this.add.ellipse(0, -27, 25, 27, isClient ? 0xc99069 : 0xe0b08a).setStrokeStyle(2, ink);
+    const hair = this.add.ellipse(0, -38, 28, 13, hairColor).setStrokeStyle(1.5, ink);
+    const sideHair = this.add.ellipse(9, -31, 9, 15, hairColor).setStrokeStyle(1, ink);
+    const fringe = this.add.ellipse(-5, -36, 12, 8, hairColor);
+    const eyeLeft = this.add.ellipse(-5, -26, 2.5, 3.5, ink);
+    const eyeRight = this.add.ellipse(5, -26, 2.5, 3.5, ink);
+    const cheek = this.add.ellipse(isClient ? 8 : -8, -22, 4, 2, 0xc27f69, 0.7);
+    const mouth = this.add.ellipse(0, -19, 4, 1.5, 0x8c5947);
     const parts: Phaser.GameObjects.GameObject[] = [
-      shadow, legLeft, legRight, shoeLeft, shoeRight, torso, shirt, neck, head, hair, sideHair, eyeLeft, eyeRight, mouth,
+      shadow, legLeft, legRight, shoeLeft, shoeRight, torso, shirt, armLeft, armRight,
+      neck, head, hair, sideHair, fringe, eyeLeft, eyeRight, cheek, mouth,
     ];
     if (isClient) {
-      parts.push(
-        this.add.rectangle(23, 10, 17, 21, 0xd8b77a).setStrokeStyle(2, 0x654c30),
-        this.add.rectangle(23, 0, 9, 5, 0x8f6e40),
-        this.add.rectangle(23, 10, 11, 10, 0xfff0c1),
-      );
+      const parcel = this.add.rectangle(22, 9, 17, 20, 0xb99a68).setStrokeStyle(2, ink);
+      const parcelTop = this.add.rectangle(22, -2, 8, 5, 0x7d6340).setStrokeStyle(1, ink);
+      const parcelMark = this.add.rectangle(22, 9, 10, 8, 0xe9d9b7).setStrokeStyle(1, ink);
+      parts.push(parcel, parcelTop, parcelMark);
     } else {
-      parts.push(
-        this.add.rectangle(-16, 3, 7, 22, 0xe8b184).setStrokeStyle(1, 0x684b3c),
-        this.add.rectangle(17, 3, 7, 22, 0xe8b184).setStrokeStyle(1, 0x684b3c),
-        this.add.rectangle(17, 13, 9, 13, 0x7fd4c0).setStrokeStyle(2, 0x285740),
-        this.add.rectangle(17, 4, 5, 4, 0xffe8a2),
-      );
+      const bottle = this.add.ellipse(19, 12, 10, 14, 0x718d76).setStrokeStyle(1.5, ink);
+      const cap = this.add.rectangle(19, 3, 5, 4, 0xb58b4d).setStrokeStyle(1, ink);
+      parts.push(bottle, cap);
     }
-    const nameTag = this.add.text(0, -59, role, {
-      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '10px', fontStyle: 'bold',
-      color: '#234632', backgroundColor: isClient ? '#ffe4a0' : '#dcf4dd',
-      padding: { x: 6, y: 3 }, stroke: '#ffffff', strokeThickness: 2,
+    const nameTag = this.add.text(0, -55, role, {
+      fontFamily: 'Georgia, serif', fontSize: '10px', fontStyle: 'bold',
+      color: '#36352a', backgroundColor: '#e8dec5',
+      padding: { x: 5, y: 3 }, stroke: '#e8dec5', strokeThickness: 1,
     }).setOrigin(0.5);
     parts.push(nameTag);
     const npc = this.add.container(x, y, parts);
     npc.setDepth(y);
-    this.tweens.add({ targets: nameTag, y: -62, duration: 700 + x % 200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     return npc;
   }
 
   private drawCharacters(accent: number): void {
-    this.createNpc(760, 360, 0x8a6fc1, 0x402c41, 'MILA · PARFUMEUSE', false);
-    this.createNpc(680, 565, 0xffc96e, 0x8d4d37, 'CLIENT VIP', true);
-    const orderRing = this.add.ellipse(680, 601, 68, 23, 0xffd84e, 0.18).setStrokeStyle(3, 0xc18a23, 0.82);
-    orderRing.setDepth(564);
-    this.tweens.add({ targets: orderRing, scaleX: 1.18, alpha: 0.45, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    const orderBubble = this.add.text(680, 485, 'E  ·  LIVRER', {
-      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '11px', fontStyle: 'bold',
-      color: '#3d351e', backgroundColor: '#ffe77c', padding: { x: 9, y: 6 },
-      stroke: '#fffdf0', strokeThickness: 3,
+    this.createNpc(760, 360, 0x6c7960, 0x45362c, 'MILA · PARFUMEUSE', false);
+    this.createNpc(680, 565, 0xa85e49, 0x644430, 'CLIENT VIP', true);
+
+    const deliveryMat = this.add.graphics().setDepth(560);
+    deliveryMat.fillStyle(0x6c765b, 0.22);
+    deliveryMat.fillEllipse(680, 601, 67, 22);
+    deliveryMat.lineStyle(1, 0x575e43, 0.65);
+    deliveryMat.strokeEllipse(680, 601, 67, 22);
+    const sign = this.add.text(680, 493, 'COMMANDE À LIVRER', {
+      fontFamily: 'Georgia, serif', fontSize: '10px', fontStyle: 'bold',
+      color: '#40392d', backgroundColor: '#e8dec5', padding: { x: 6, y: 4 },
     }).setOrigin(0.5).setDepth(590);
-    this.tweens.add({ targets: orderBubble, y: 480, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    const display = this.add.container(330, 165);
-    display.add(this.add.rectangle(0, 5, 135, 58, 0xf7f2d9).setStrokeStyle(2, accent));
-    display.add(this.add.rectangle(0, -29, 139, 8, accent).setStrokeStyle(2, 0x31543c));
+
+    const display = this.add.container(330, 165).setDepth(2);
+    display.add(this.add.rectangle(0, 13, 137, 15, 0x7d6246).setStrokeStyle(2, 0x433b30));
+    display.add(this.add.rectangle(0, -5, 135, 25, 0xb08b5f).setStrokeStyle(2, 0x433b30));
+    display.add(this.add.rectangle(0, -18, 141, 5, 0x514637).setStrokeStyle(1, 0x433b30));
+    const hues = [0x82937c, 0xb66c55, 0xc3a268, 0x777d84, 0x9d8666];
     for (let i = 0; i < 5; i += 1) {
       const x = -46 + i * 23;
-      const hue = [0x7ed6c0, 0xdda6df, 0xffce7a, 0x9fc5f1, 0xf29eae][i]!;
-      display.add(this.add.rectangle(x, -1, 12, 22, hue).setStrokeStyle(1, 0x39563f));
-      display.add(this.add.rectangle(x, -16, 5, 5, 0xffefb7).setStrokeStyle(1, 0x39563f));
-      display.add(this.add.rectangle(x, -21, 7, 4, 0x9b7248).setStrokeStyle(1, 0x584129));
+      display.add(this.add.ellipse(x, -4, 13, 21, hues[i]!).setStrokeStyle(1, 0x453e32));
+      display.add(this.add.rectangle(x, -18, 5, 5, 0xd7c198).setStrokeStyle(1, 0x453e32));
+      display.add(this.add.rectangle(x, -22, 7, 4, 0x66503b).setStrokeStyle(1, 0x453e32));
+      display.add(this.add.rectangle(x, -3, 8, 5, 0xe2d4b5).setStrokeStyle(1, 0x453e32));
     }
-    display.add(this.add.text(0, 22, 'COLLECTION SIGNATURE', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'9px',fontStyle:'bold',color:'#31543c'}).setOrigin(0.5));
-    display.setDepth(2);
+    display.add(this.add.text(0, 29, 'ÉCHANTILLONS', {fontFamily:'Georgia, serif',fontSize:'9px',fontStyle:'bold',color:'#3f3b30'}).setOrigin(0.5));
   }
 
   private drawConveyor(accent: number, belt: number): void {
-    this.add.rectangle(600, 475, 710, 68, 0x3a684b).setStrokeStyle(3, 0x254b34);
-    this.add.rectangle(600, 475, 690, 48, belt).setStrokeStyle(2, accent);
-    const rails = this.add.graphics();
-    rails.lineStyle(3, 0xfbf2d4, 0.8);
-    rails.lineBetween(252, 451, 948, 451);
-    rails.lineBetween(252, 499, 948, 499);
-    const stripes = this.add.graphics();
-    stripes.lineStyle(5, 0x34694a, 0.7);
-    for (let x = 265; x < 940; x += 32) {
-      stripes.lineBetween(x, 456, x + 12, 494);
+    const line = this.add.graphics().setDepth(2);
+    line.fillStyle(0x5c4635, 1);
+    line.fillRect(245, 447, 710, 57);
+    line.lineStyle(2, 0x40382e, 1);
+    line.strokeRect(245, 447, 710, 57);
+    line.fillStyle(belt, 1);
+    line.fillRect(252, 452, 696, 45);
+    line.lineStyle(1, 0x523f30, 0.8);
+    for (let x = 263; x < 945; x += 34) {
+      line.lineBetween(x, 454, x + 5, 495);
     }
-    this.add.text(600, 520, 'LIGNE D’EMBOUTEILLAGE', {
-      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '11px', color: '#2d5439',
-      backgroundColor: '#f6efda', padding: { x: 8, y: 4 }, fontStyle: 'bold',
+    line.lineStyle(2, 0xddd0ae, 0.9);
+    line.lineBetween(250, 449, 950, 449);
+    line.lineBetween(250, 500, 950, 500);
+    for (let x = 260; x < 945; x += 58) {
+      const roller = this.add.ellipse(x, 503, 8, 8, 0x796c54).setStrokeStyle(1, 0x40382e).setDepth(2);
+      this.machineObjects.push(roller);
+    }
+    const label = this.add.text(600, 526, 'LIGNE D’EMBOUTEILLAGE', {
+      fontFamily: 'Georgia, serif', fontSize: '10px', color: '#45392e',
+      backgroundColor: '#e8dec5', padding: { x: 7, y: 3 }, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(2);
+    this.machineObjects.push(label);
   }
 
   private drawCollector(accent: number): void {
-    const collector = this.add.container(1000, 470);
-    collector.add(this.add.rectangle(0, 7, 116, 104, 0xf8f1da).setStrokeStyle(3, 0x24452f));
-    collector.add(this.add.rectangle(0, -18, 80, 36, accent).setStrokeStyle(3, 0x24452f));
-    collector.add(this.add.rectangle(0, -25, 22, 11, 0xfff4d2).setStrokeStyle(2, 0x24452f));
-    collector.add(this.add.rectangle(0, -38, 13, 7, 0xa9824f).setStrokeStyle(2, 0x24452f));
-    collector.add(this.add.rectangle(0, -18, 53, 18, 0x9ce2cd).setStrokeStyle(2, 0x285540));
-    collector.add(this.add.text(0, -18, 'PE', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'11px',fontStyle:'bold',color:'#254732'}).setOrigin(0.5));
-    collector.add(this.add.text(0, 28, 'VENTES', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'11px',fontStyle:'bold',color:'#355b3b'}).setOrigin(0.5));
-    collector.setDepth(5);
-    this.collectorLabel = this.add.text(1000, 403, '0 / s', {
-      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '12px', fontStyle: 'bold',
-      color: '#274831', backgroundColor: '#ffed9a', padding: {x:7,y:4}, stroke:'#ffffff',strokeThickness:2,
+    const ink = 0x40382e;
+    const collector = this.add.container(1000, 470).setDepth(5);
+    collector.add(this.add.ellipse(0, 53, 99, 12, 0x40382e, 0.16));
+    collector.add(this.add.rectangle(0, 13, 105, 76, 0x8e7654).setStrokeStyle(2, ink));
+    collector.add(this.add.rectangle(0, -15, 87, 21, accent).setStrokeStyle(2, ink));
+    collector.add(this.add.rectangle(0, -26, 29, 6, 0xd7c39c).setStrokeStyle(1, ink));
+    collector.add(this.add.rectangle(0, -35, 13, 9, 0xa8844f).setStrokeStyle(1, ink));
+    collector.add(this.add.rectangle(0, 11, 60, 25, 0xddd0ae).setStrokeStyle(1, ink));
+    collector.add(this.add.text(0, 11, 'VENTES', {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#40382e'}).setOrigin(0.5));
+    this.collectorLabel = this.add.text(1000, 402, '0 / s', {
+      fontFamily: 'Georgia, serif', fontSize: '12px', fontStyle: 'bold',
+      color: '#40382e', backgroundColor: '#e8dec5', padding: {x:6,y:3},
     }).setOrigin(0.5).setDepth(6);
   }
 
   private drawPortal(accent: number): void {
-    const portal = this.add.container(1000, 190);
-    portal.add(this.add.ellipse(0, 0, 104, 112, 0xfff4d8).setStrokeStyle(4, 0x24452f));
-    portal.add(this.add.ellipse(0, 0, 82, 95, 0xbbead0).setStrokeStyle(7, accent));
-    portal.add(this.add.ellipse(0, 0, 57, 70, 0xffd0e0).setStrokeStyle(3, 0xffffff));
-    portal.add(this.add.rectangle(0, -4, 14, 38, 0xe6fff1).setStrokeStyle(2, accent));
-    portal.add(this.add.rectangle(0, 9, 33, 18, 0x7d59b3).setStrokeStyle(2, 0x49376f));
-    portal.add(this.add.text(0, 72, 'NOUVEAU MONDE', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'10px',fontStyle:'bold',color:'#294a34',backgroundColor:'#fff7d9',padding:{x:5,y:3}}).setOrigin(0.5));
-    portal.setDepth(4);
-    this.tweens.add({targets:portal.list.slice(1,3),scaleX:1.08,duration:950,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
+    const portal = this.add.container(1000, 190).setDepth(4);
+    portal.add(this.add.ellipse(0, 0, 94, 102, 0x9b997d).setStrokeStyle(3, 0x453e32));
+    portal.add(this.add.ellipse(0, 0, 72, 83, 0x6f8270).setStrokeStyle(4, 0x453e32));
+    portal.add(this.add.ellipse(0, 0, 48, 59, 0xd0c3a3).setStrokeStyle(2, accent));
+    portal.add(this.add.ellipse(0, 0, 30, 40, 0x5e6955).setStrokeStyle(1, 0x453e32));
+    portal.add(this.add.rectangle(0, 70, 98, 19, 0xe8dec5).setStrokeStyle(1, 0x453e32));
+    portal.add(this.add.text(0, 70, 'PASSAGE', {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#40382e'}).setOrigin(0.5));
   }
 
   private drawStairs(accent: number): void {
-    const stairs = this.add.graphics();
-    stairs.fillStyle(0xfff4d8, 1);
-    stairs.fillRoundedRect(990, 575, 95, 74, 9);
-    stairs.lineStyle(3, accent, 0.9);
-    stairs.strokeRoundedRect(990, 575, 95, 74, 9);
-    stairs.lineStyle(3, 0x6e9870, 0.9);
-    for (let y = 584; y <= 639; y += 11) stairs.lineBetween(1002, y, 1073, y);
-    this.add.text(1037, 660, 'ÉTAGES · E', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'10px',fontStyle:'bold',color:'#2e5438',backgroundColor:'#fff4d8',padding:{x:4,y:2}}).setOrigin(0.5).setDepth(4);
+    const stairs = this.add.graphics().setDepth(4);
+    stairs.fillStyle(0x554334, 0.18);
+    stairs.fillRect(988, 575, 100, 76);
+    stairs.fillStyle(0x8b6c4a, 1);
+    stairs.fillRect(990, 569, 96, 72);
+    stairs.lineStyle(2, 0x40382e, 1);
+    stairs.strokeRect(990, 569, 96, 72);
+    stairs.fillStyle(0xc0a47a, 1);
+    for (let y = 578; y <= 632; y += 11) {
+      stairs.fillRect(998, y, 80, 5);
+      stairs.lineStyle(1, 0x5e4835, 0.9);
+      stairs.lineBetween(998, y + 5, 1078, y + 5);
+    }
+    this.add.text(1037, 660, 'ÉTAGES · E', {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#40382e',backgroundColor:'#e8dec5',padding:{x:5,y:3}}).setOrigin(0.5).setDepth(4);
   }
 
   private drawFloorDecoration(accent: number): void {
-    const props = this.add.graphics();
-    props.fillStyle(0xeff6dd, 1);
-    props.fillRoundedRect(112, 185, 82, 315, 11);
-    props.lineStyle(3, accent, 0.75);
-    props.strokeRoundedRect(112, 185, 82, 315, 11);
-    props.fillStyle(0x658f6b, 1);
-    props.fillRoundedRect(120, 193, 66, 18, 5);
-    this.add.text(153, 204, 'HERBIER', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'8px',fontStyle:'bold',color:'#fff6dc'}).setOrigin(0.5);
-    const leaves = this.add.graphics();
-    const leafColors = [0x6bab78, 0x9bc878, 0x3d8a65];
-    for (let i = 0; i < 8; i += 1) {
-      const y = 234 + i * 27;
+    const shelf = this.add.graphics().setDepth(2);
+    shelf.fillStyle(0x8d6b49, 1);
+    shelf.fillRect(113, 189, 80, 302);
+    shelf.lineStyle(2, 0x453b2e, 1);
+    shelf.strokeRect(113, 189, 80, 302);
+    shelf.fillStyle(0xceb98d, 1);
+    shelf.fillRect(120, 197, 66, 287);
+    shelf.lineStyle(2, 0x8c6846, 1);
+    shelf.lineBetween(121, 280, 185, 280);
+    shelf.lineBetween(121, 363, 185, 363);
+    shelf.lineBetween(121, 444, 185, 444);
+    this.add.text(153, 207, 'HERBIER', {fontFamily:'Georgia, serif',fontSize:'9px',fontStyle:'bold',color:'#40382e'}).setOrigin(0.5).setDepth(3);
+    const leaves = this.add.graphics().setDepth(3);
+    const leafColors = [0x778b68, 0x9aa07a, 0x5c765a];
+    for (let i = 0; i < 7; i += 1) {
+      const y = 238 + i * 35;
+      const x = 139 + (i % 2) * 13;
+      leaves.lineStyle(2, 0x5b6346, 0.9);
+      leaves.lineBetween(x + 7, y + 14, x + 6, y - 9);
       leaves.fillStyle(leafColors[i % leafColors.length]!, 1);
-      leaves.fillEllipse(142, y, 17, 9);
-      leaves.fillEllipse(163, y + 6, 15, 8);
-      leaves.lineStyle(1, 0x46774a, 0.8);
-      leaves.lineBetween(137, y + 5, 171, y + 6);
+      leaves.fillEllipse(x, y, 12, 8);
+      leaves.fillEllipse(x + 13, y - 4, 12, 8);
     }
-    this.add.text(153, 478, 'NOTES\nNATURELLES', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'8px',fontStyle:'bold',color:'#466747',align:'center'}).setOrigin(0.5);
+    for (let i = 0; i < 4; i += 1) {
+      const x = 135 + i * 14;
+      const bottle = this.add.ellipse(x, 315, 9, 20, [0x7e9180, 0xa96750, 0xc0a269, 0x657881][i]!).setStrokeStyle(1, 0x453b2e).setDepth(3);
+      const cap = this.add.rectangle(x, 302, 4, 5, 0xc0a269).setStrokeStyle(1, 0x453b2e).setDepth(3);
+      this.machineObjects.push(bottle, cap);
+    }
+    this.add.text(153, 470, 'NOTES\nNATURELLES', {fontFamily:'Georgia, serif',fontSize:'8px',fontStyle:'bold',color:'#554a38',align:'center'}).setOrigin(0.5).setDepth(3);
   }
 
   refreshMachines(): void {
-    this.machineObjects.forEach((object) => object.destroy());
+    this.machineObjects.forEach((object) => {
+      this.tweens.killTweensOf(object);
+      object.destroy();
+    });
     this.machineObjects = [];
     const worldMachines = state.machines[state.currentWorld];
     const world = getWorld(state.currentWorld);
+    const ink = 0x443b30;
+
+    const keep = (object: Phaser.GameObjects.GameObject) => {
+      object.setDepth(5);
+      this.machineObjects.push(object);
+      return object;
+    };
+
     for (const machine of MACHINES.filter((item) => item.floor === state.currentFloor)) {
       const owned = worldMachines[machine.id];
       const x = machine.x;
       const y = 292;
-      const g = this.add.graphics();
-      g.fillStyle(0x668f70, 0.18);
-      g.fillRoundedRect(x - 77, y - 48, 154, 112, 12);
-      g.fillStyle(0xfffae6, 1);
-      g.fillRoundedRect(x - 72, y - 55, 144, 111, 12);
-      g.lineStyle(3, owned > 0 ? world.accent : 0x81967c, owned > 0 ? 1 : 0.75);
-      g.strokeRoundedRect(x - 72, y - 55, 144, 111, 12);
-      g.fillStyle(owned > 0 ? world.belt : 0xe4ebd9, 1);
-      g.fillRoundedRect(x - 65, y - 47, 130, 18, 6);
-      this.machineObjects.push(g);
-      const frame = this.add.rectangle(x, y - 8, 78, 48, owned > 0 ? world.belt : 0xd8e2d0)
-        .setStrokeStyle(3, owned > 0 ? world.accent : 0x849780, 0.95);
-      const pipeTop = this.add.rectangle(x, y - 42, 13, 12, 0xd3ad72).setStrokeStyle(2, 0x6c5638);
-      const pipeNeck = this.add.rectangle(x, y - 31, 7, 11, 0x91cfc0).setStrokeStyle(1, 0x315b48);
-      const liquid = this.add.rectangle(x, y - 3, 29, 22, owned > 0 ? 0x79d5be : 0xb8c9bb).setStrokeStyle(2, 0x3e7657);
-      const label = this.add.rectangle(x, y - 3, 22, 10, 0xfff0b7);
-      const sideBottleLeft = this.add.rectangle(x - 28, y - 9, 11, 23, 0xc8a0dd).setStrokeStyle(1, 0x614779);
-      const sideBottleRight = this.add.rectangle(x + 28, y - 9, 11, 23, 0x9ccbf0).setStrokeStyle(1, 0x43617d);
-      const heat = this.add.circle(x, y - 3, 5, owned > 0 ? 0xffd45b : 0x9aa99a);
-      const title = this.add.text(x, y + 29, machine.name.toUpperCase(), {
-        fontFamily:'Trebuchet MS, sans-serif',fontSize:'9px',fontStyle:'bold',color:'#294833',align:'center',wordWrap:{width:138},
-      }).setOrigin(0.5);
-      const count = this.add.text(x, y - 65, owned > 0 ? '×' + owned + ' ACTIVES' : 'À DÉBLOQUER', {
-        fontFamily:'Trebuchet MS, sans-serif',fontSize:'8px',fontStyle:'bold',color: owned > 0 ? '#fff8d8' : '#5b765b',
-        backgroundColor: owned > 0 ? '#2f7c51' : '#e5edda',padding:{x:6,y:3},stroke:'#fffdf0',strokeThickness:1,
-      }).setOrigin(0.5);
-      for (const object of [frame, pipeTop, pipeNeck, liquid, label, sideBottleLeft, sideBottleRight, heat, title, count]) {
-        object.setDepth(6);
-        this.machineObjects.push(object);
+      const wood = this.add.graphics();
+      wood.fillStyle(0x4e4132, 0.13);
+      wood.fillEllipse(x, y + 49, 110, 12);
+      wood.fillStyle(0x77573d, 1);
+      wood.fillRect(x - 42, y + 19, 8, 36);
+      wood.fillRect(x + 34, y + 19, 8, 36);
+      wood.fillStyle(0x98744f, 1);
+      wood.fillRect(x - 54, y + 7, 108, 16);
+      wood.lineStyle(2, ink, 1);
+      wood.strokeRect(x - 54, y + 7, 108, 16);
+      wood.lineStyle(1, 0x5b4532, 0.65);
+      wood.lineBetween(x - 49, y + 13, x + 49, y + 13);
+      keep(wood);
+
+      const blueprint = owned === 0;
+      const stationParts: Phaser.GameObjects.GameObject[] = [];
+      const fill = blueprint ? 0xc8bfa8 : world.belt;
+      const detail = blueprint ? 0x9d9278 : 0x776548;
+      const addEllipse = (px: number, py: number, w: number, h: number, color: number, stroke = ink) => {
+        const object = this.add.ellipse(px, py, w, h, color).setStrokeStyle(2, stroke);
+        stationParts.push(object);
+        return object;
+      };
+      const addRect = (px: number, py: number, w: number, h: number, color: number, stroke = ink) => {
+        const object = this.add.rectangle(px, py, w, h, color).setStrokeStyle(1.5, stroke);
+        stationParts.push(object);
+        return object;
+      };
+
+      if (machine.id === 'hand-mixer') {
+        addEllipse(x, y - 12, 47, 28, fill);
+        addEllipse(x, y - 13, 37, 18, owned ? 0x9ba083 : 0xd8cbb0, ink);
+        addEllipse(x + 2, y - 14, 20, 8, owned ? 0x777d5d : 0xc8b99a, ink);
+        addRect(x, y - 32, 4, 26, detail);
+        addEllipse(x, y - 43, 10, 5, 0xb49b6a);
+        addEllipse(x - 27, y - 6, 9, 15, 0x9b7256);
+        addRect(x - 27, y - 18, 4, 5, 0xc4a674);
+        addEllipse(x + 27, y - 7, 9, 15, 0x80927d);
+        addRect(x + 27, y - 19, 4, 5, 0xc4a674);
+      } else if (machine.id === 'brick-oven') {
+        addEllipse(x, y - 10, 40, 47, blueprint ? 0xc7b69a : 0xb28058);
+        addEllipse(x, y - 11, 27, 30, blueprint ? 0xd8cbb0 : 0x8e6345);
+        addRect(x, y - 40, 12, 13, 0xc0a574);
+        addRect(x, y - 48, 18, 5, 0x6d5039);
+        addRect(x, y + 6, 22, 11, 0xddd0ad);
+        addRect(x + 27, y - 2, 9, 22, 0x899681);
+      } else if (machine.id === 'conveyor-oven') {
+        for (let index = 0; index < 3; index += 1) {
+          const bx = x - 25 + index * 25;
+          addEllipse(bx, y - 10, 14, 24, index === 1 && owned ? 0x9b7154 : fill);
+          addRect(bx, y - 26, 6, 7, 0xc1a371);
+          addRect(bx, y - 32, 9, 4, 0x6b4f37);
+          addRect(bx, y - 8, 7, 5, 0xe0d2af);
+        }
+        addRect(x, y - 40, 64, 5, detail);
+      } else if (machine.id === 'frosting-lab') {
+        addRect(x, y - 4, 60, 30, fill);
+        addEllipse(x - 17, y - 20, 19, 28, 0x839482);
+        addRect(x - 17, y - 39, 7, 10, 0xc4ab7c);
+        addEllipse(x + 15, y - 19, 19, 30, 0xb77e58);
+        addRect(x + 15, y - 39, 7, 10, 0xc4ab7c);
+        addRect(x, y - 42, 7, 21, detail);
+        addEllipse(x, y - 46, 15, 6, 0xc4ab7c);
+      } else {
+        addEllipse(x, y - 10, 39, 43, 0x6e7e76);
+        addEllipse(x, y - 17, 26, 32, owned ? 0x78958a : 0xc9c0ab);
+        addRect(x, y - 42, 12, 10, 0xb59a69);
+        addEllipse(x, y - 47, 16, 7, 0xc9b98f);
+        addRect(x - 26, y - 2, 9, 19, 0x9b7458);
+        addRect(x + 26, y - 2, 9, 19, 0x9b7458);
       }
+      stationParts.forEach((object) => keep(object));
+
+      const title = this.add.text(x, y + 39, machine.name, {
+        fontFamily: 'Georgia, serif', fontSize: '11px', fontStyle: 'bold',
+        color: blueprint ? '#6d634e' : '#35392d', align: 'center', wordWrap: { width: 148 },
+      }).setOrigin(0.5).setDepth(6);
+      const status = this.add.text(x, y - 67, blueprint ? 'PLAN · ' + format(machineCost(state, machine.id)) : '×' + owned + ' EN SERVICE', {
+        fontFamily: 'Georgia, serif', fontSize: '9px', fontStyle: 'bold',
+        color: blueprint ? '#5f5948' : '#eee3c9',
+        backgroundColor: blueprint ? '#e4d8bd' : '#4a5d45',
+        padding: { x: 5, y: 3 },
+      }).setOrigin(0.5).setDepth(6);
+      this.machineObjects.push(title, status);
+
       if (owned > 0) {
-        const glow = this.add.circle(x, y - 4, 30, world.accent, 0.12);
-        glow.setDepth(5);
-        this.machineObjects.push(glow);
-        this.tweens.add({targets:heat,alpha:0.35,scale:1.35,duration:480,yoyo:true,repeat:-1});
-        this.tweens.add({targets:liquid,scaleY:0.78,duration:700,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
+        const steam = this.add.graphics().setDepth(4);
+        steam.lineStyle(1.5, 0xe9ddc5, 0.7);
+        steam.lineBetween(x - 8, y - 47, x - 12, y - 54);
+        steam.lineBetween(x + 2, y - 48, x + 5, y - 57);
+        this.machineObjects.push(steam);
       }
     }
+
     const activeOnFloor = MACHINES.filter((machine) =>
       machine.floor === state.currentFloor && worldMachines[machine.id] > 0,
     ).length;
@@ -1246,13 +1340,15 @@ class TycoonScene extends Phaser.Scene {
   }
 
   private makePacket(x: number, y: number, accent: number): Phaser.GameObjects.Container {
-    const glint = this.add.rectangle(-3, -1, 3, 10, 0xffffff, 0.82);
-    const body = this.add.rectangle(0, 2, 16, 22, accent).setStrokeStyle(2, 0x31543c);
-    const neck = this.add.rectangle(0, -11, 7, 5, 0xfff1b7).setStrokeStyle(1, 0x31543c);
-    const cap = this.add.rectangle(0, -16, 9, 5, 0xb88a50).setStrokeStyle(1, 0x60482f);
-    const label = this.add.rectangle(2, 4, 9, 8, 0xfff2c4).setStrokeStyle(1, 0x31543c);
-    const initials = this.add.text(2, 4, 'P', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'7px',fontStyle:'bold',color:'#31543c'}).setOrigin(0.5);
-    const packet = this.add.container(x, y, [glint, body, neck, cap, label, initials]).setDepth(15);
+    const ink = 0x453d31;
+    const shadow = this.add.ellipse(0, 10, 18, 5, ink, 0.18);
+    const body = this.add.ellipse(0, 2, 17, 22, accent).setStrokeStyle(1.5, ink);
+    const glass = this.add.ellipse(-3, 0, 4, 13, 0xeee2c6, 0.5);
+    const shoulder = this.add.ellipse(0, -8, 10, 5, accent).setStrokeStyle(1, ink);
+    const neck = this.add.rectangle(0, -12, 6, 6, 0xc6ac7a).setStrokeStyle(1, ink);
+    const cap = this.add.rectangle(0, -16, 8, 4, 0x6e5137).setStrokeStyle(1, ink);
+    const label = this.add.rectangle(2, 3, 8, 6, 0xe9d9b8).setStrokeStyle(1, ink);
+    const packet = this.add.container(x, y, [shadow, body, glass, shoulder, neck, cap, label]).setDepth(15);
     this.packets.add(packet);
     return packet;
   }
