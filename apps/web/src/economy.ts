@@ -603,6 +603,33 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
         : 0,
       lastSavedAt: value.lastSavedAt,
     };
+    const ownedMachineCount = Object.values(state.machines)
+      .reduce((sum, machinesInWorld) => sum + Object.values(machinesInWorld).reduce((worldSum, count) => worldSum + count, 0), 0);
+    const hasMeaningfulProgress =
+      state.crumbs > 0 ||
+      state.lifetimeCrumbs > 0 ||
+      state.runCrumbsEarned > 0 ||
+      state.rebirths > 0 ||
+      state.totalRebirths > 0 ||
+      state.essences > 0 ||
+      state.ordersCompleted > 0 ||
+      state.goldenCookiesClaimed > 0 ||
+      state.claimedMissions.length > 0 ||
+      state.upgrades.production > 0 ||
+      state.upgrades.clickPower > 0 ||
+      state.upgrades.discount > 0 ||
+      ownedMachineCount > 0;
+    // Old prototype saves sometimes recorded an empty starting room as already built.
+    // If nothing was ever earned or bought, migrate that false positive back to the real first-run state.
+    if (!hasMeaningfulProgress) {
+      state.rampBuilt = false;
+      state.wallsBuilt = false;
+      state.outsideExpansions = 0;
+      state.currentFloor = 0;
+      state.unlockedFloors = [0];
+      state.currentWorld = 'cookie-valley';
+      state.unlockedWorlds = ['cookie-valley'];
+    }
     state.unlockedFloors = state.unlockedFloors.filter((floor) => floor >= 0 && floor <= 2);
     if (!state.unlockedFloors.includes(0)) state.unlockedFloors.unshift(0);
     if (!state.unlockedFloors.includes(state.currentFloor)) state.currentFloor = 0;
