@@ -832,6 +832,8 @@ class TycoonScene extends Phaser.Scene {
   private collectorLabel?: Phaser.GameObjects.Text;
   private exteriorWalls?: Phaser.GameObjects.Graphics;
   private constructionButtonObjects: Phaser.GameObjects.GameObject[] = [];
+  private isBuildingRamp = false;
+  private productionLayoutDrawn = false;
   private exteriorButtonObjects: Phaser.GameObjects.GameObject[] = [];
   private playerFaceParts?: { leftEye: Phaser.GameObjects.Rectangle; rightEye: Phaser.GameObjects.Rectangle; nose: Phaser.GameObjects.Rectangle; hairLock: Phaser.GameObjects.Rectangle };
   private playerLimbs?: { leftLeg: Phaser.GameObjects.Rectangle; rightLeg: Phaser.GameObjects.Rectangle; leftArm: Phaser.GameObjects.Rectangle; rightArm: Phaser.GameObjects.Rectangle };
@@ -847,6 +849,12 @@ class TycoonScene extends Phaser.Scene {
 
   create(): void {
     bakeryScene = this;
+    this.isBuildingRamp = false;
+    this.productionLayoutDrawn = false;
+    this.machineObjects = [];
+    this.constructionButtonObjects = [];
+    this.exteriorButtonObjects = [];
+    this.packets = new Set<Phaser.GameObjects.Container>();
     const world = getWorld(state.currentWorld);
     this.cameras.main.setBounds(0, 0, MAP_WIDTH, MAP_HEIGHT);
     this.add.rectangle(MAP_WIDTH / 2, MAP_HEIGHT / 2, MAP_WIDTH, MAP_HEIGHT, world.background);
@@ -883,8 +891,10 @@ class TycoonScene extends Phaser.Scene {
       this.drawExteriorExtensions(world.accent);
       this.refreshMachines();
       if (state.unlockedWorlds.length > 1) this.drawPortal(world.accent);
-      if (state.unlockedFloors.includes(state.currentFloor + 1)) this.drawStairs(world.accent);
-      else this.drawFloorBuildPad(world.accent);
+      if (state.currentFloor < 2) {
+        if (state.unlockedFloors.includes(state.currentFloor + 1)) this.drawStairs(world.accent);
+        else this.drawFloorBuildPad(world.accent);
+      }
     } else {
       this.drawRampBuildButton();
     }
@@ -1214,6 +1224,15 @@ class TycoonScene extends Phaser.Scene {
         this.tweens.add({targets:liquid,scaleY:0.78,duration:700,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
       }
     }
+    const activeOnFloor = MACHINES.filter((machine) =>
+      machine.floor === state.currentFloor && worldMachines[machine.id] > 0,
+    ).length;
+    if (activeOnFloor > 0 && !this.productionLayoutDrawn) {
+      this.drawConveyor(world.accent, world.belt);
+      this.drawCollector(world.accent);
+      this.drawCharacters(world.accent);
+      this.productionLayoutDrawn = true;
+    }
     if (this.collectorLabel) {
       this.collectorLabel.setText(format(productionPerSecond(state)) + ' / s');
     }
@@ -1286,11 +1305,13 @@ class TycoonScene extends Phaser.Scene {
     const playerX = this.player.x;
     const playerY = this.player.y;
     if (!state.rampBuilt) {
+      if (this.isBuildingRamp) {
+        setStatus('La rampe est en cours de construction…');
+        return;
+      }
       if (Phaser.Math.Distance.Between(playerX, playerY, 260, 555) < 92) {
-        state.rampBuilt = true;
-        render();
-        save();
-        setStatus('Construction lancée ! La rampe se monte…');
+        this.isBuildingRamp = true;
+        setStatus('Les planches sont posées une par une…');
         this.animateRampConstruction(getWorld(state.currentWorld).accent);
       } else {
         setStatus('Approche-toi du bouton jaune près du bas de l’atelier, puis appuie sur E.');
@@ -1306,10 +1327,31 @@ class TycoonScene extends Phaser.Scene {
       completeVipOrder();
       return;
     }
-    if (Phaser.Math.Distance.Between(playerX, playerY, 1037, 612) < 105) {
-      const nextFloor = (state.currentFloor + 1) % 3;
-      changeFloor(nextFloor);
-      setStatus('Tu arrives à l’étage ' + (nextFloor + 1) + '.');
+    if (state.currentFloor < 2 && Phaser.Math.Distance.Between(playerX, playerY, 1037, 612) < 105) {
+      const nextFloor = state.currentFloor + 1;
+      if (state.unlockedFloors.includes(nextFloor)) {
+        changeFloor(nextFloor);
+        setStatus('Tu montes à l’étage ' + (nextFloor + 1) + '.');
+        return;
+      }
+      if (!this.floorBuildRequirementReached()) {
+        setStatus(nextFloor === 1
+          ? 'Installe deux équipements au rez-de-chaussée pour construire les escaliers.'
+          : 'Installe au moins un équipement à l’étage 2 pour poursuivre la construction.');
+        return;
+      }
+      const opened = unlockFloor(state, nextFloor);
+      if (opened === state) {
+        setStatus('Les escaliers coûtent ' + format(floorUnlockCost(nextFloor)) + ' parfums. Il t’en manque ' + format(Math.max(0, floorUnlockCost(nextFloor) - state.crumbs) + '.'));
+        return;
+      }
+      state = opened;
+      render();
+      save();
+      this.constructionButtonObjects.forEach((object) => object.destroy());
+      this.constructionButtonObjects = [];
+      this.drawStairs(getWorld(state.currentWorld).accent);
+      setStatus('Escaliers construits ! Le nouvel étage est maintenant accessible.');
       return;
     }
     if (Phaser.Math.Distance.Between(playerX, playerY, 1000, 190) < 110) {
@@ -1361,6 +1403,53 @@ class TycoonScene extends Phaser.Scene {
     }
   }
 
+  private drawBuiltRamp(accent: number): void {
+    const ramp = this.add.graphics().setDepth(1);
+    ramp.fillStyle(0x594834, 0.22);
+    ramp.fillPoints([{x:196,y:575},{x:320,y:511},{x:359,y:530},{x:233,y:596}], true);
+    ramp.fillStyle(0x8e6749, 1);
+    ramp.fillPoints([{x:198,y:568},{x:320,y:507},{x:350,y:523},{x:226,y:585}], true);
+    ramp.lineStyle(2, 0x4e3d2e, 0.9);
+    ramp.lineBetween(198, 568, 226, 585);
+    ramp.lineBetween(320, 507, 350, 523);
+    for (let index = 0; index < 6; index += 1) {
+      const x = 211 + index * 19;
+      const y = 570 - index * 9;
+      ramp.lineStyle(2, index % 2 ? 0xb08a60 : 0x6f5037, 0.95);
+      ramp.lineBetween(x, y, x + 28, y + 15);
+    }
+    ramp.lineStyle(1, 0xd7b58b, 0.55);
+    ramp.lineBetween(205, 566, 324, 506);
+  }
+
+  private floorBuildRequirementReached(): boolean {
+    const nextFloor = state.currentFloor + 1;
+    if (nextFloor > 2) return false;
+    const owned = MACHINES.filter((machine) => machine.floor === state.currentFloor)
+      .reduce((sum, machine) => sum + state.machines[state.currentWorld][machine.id], 0);
+    return owned >= (nextFloor === 1 ? 2 : 1);
+  }
+
+  private drawFloorBuildPad(accent: number): void {
+    if (!this.floorBuildRequirementReached()) return;
+    const floor = state.currentFloor + 1;
+    const cost = floorUnlockCost(floor);
+    const pad = this.add.container(1037, 612).setDepth(7);
+    pad.add(this.add.ellipse(0, 12, 96, 25, 0x3e3428, 0.15));
+    const plaque = this.add.graphics();
+    plaque.fillStyle(0xd8c49d, 1);
+    plaque.fillRect(-46, -19, 92, 40);
+    plaque.lineStyle(2, 0x635341, 1);
+    plaque.strokeRect(-46, -19, 92, 40);
+    plaque.lineStyle(1, 0x9c7950, 1);
+    plaque.lineBetween(-38, -10, 38, -10);
+    pad.add(plaque);
+    pad.add(this.add.text(0, -3, 'ESCALIERS', {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#493b2a'}).setOrigin(0.5));
+    pad.add(this.add.text(0, 29, 'ÉTAGE ' + (floor + 1) + ' · ' + format(cost), {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#f3e5c8',backgroundColor:'#3d4b3b',padding:{x:7,y:4}}).setOrigin(0.5));
+    pad.add(this.add.text(0, -43, 'E · CONSTRUIRE', {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#332d22',backgroundColor:'#e8dcc1',padding:{x:5,y:3}}).setOrigin(0.5));
+    this.constructionButtonObjects.push(pad);
+  }
+
   private drawRampBuildButton(): void {
     const pad = this.add.container(260, 555).setDepth(10);
     pad.add(this.add.ellipse(0, 15, 122, 40, 0x1c3829, 0.22));
@@ -1379,25 +1468,40 @@ class TycoonScene extends Phaser.Scene {
     this.constructionButtonObjects.forEach((item) => item.destroy());
     this.constructionButtonObjects = [];
     const pieces: Phaser.GameObjects.Rectangle[] = [];
-    for (let index = 0; index < 7; index += 1) {
-      const step = this.add.rectangle(226 + index * 11, 574 - index * 7, 34, 12, accent).setStrokeStyle(2, 0x273f2b).setDepth(12);
-      step.setAlpha(0.1);
-      pieces.push(step);
+    for (let index = 0; index < 6; index += 1) {
+      const x = 211 + index * 19;
+      const y = 570 - index * 9;
+      const plank = this.add.rectangle(x, y, 34, 11, 0x8e6749)
+        .setStrokeStyle(2, 0x4e3d2e)
+        .setRotation(-0.22)
+        .setDepth(2)
+        .setAlpha(0)
+        .setScale(0.88);
+      pieces.push(plank);
       this.tweens.add({
-        targets: step,
-        y: step.y - 10,
+        targets: plank,
         alpha: 1,
-        scaleX: 1.15,
-        duration: 240,
-        delay: index * 145,
-        ease: 'Back.easeOut',
-        onStart: () => step.setAlpha(1),
+        scale: 1,
+        duration: 170,
+        delay: index * 160,
+        ease: 'Sine.easeOut',
       });
     }
-    this.time.delayedCall(1500, () => {
-      pieces.forEach((piece) => piece.destroy());
-      if (this.scene.isActive()) this.scene.restart();
-      setStatus('Rampe terminée. Tu peux maintenant construire ton atelier.');
+    const progress = this.add.text(260, 515, 'POSE DES PLANCHES…', {
+      fontFamily: 'Georgia, serif', fontSize: '12px', fontStyle: 'bold',
+      color: '#493b2a', backgroundColor: '#e8dcc1', padding: { x: 8, y: 5 },
+    }).setOrigin(0.5).setDepth(20);
+    this.constructionButtonObjects.push(progress);
+    this.time.delayedCall(1250, () => {
+      if (!this.scene.isActive()) return;
+      this.constructionButtonObjects.forEach((object) => object.destroy());
+      this.constructionButtonObjects = [];
+      this.isBuildingRamp = false;
+      state.rampBuilt = true;
+      save();
+      render();
+      this.scene.restart();
+      setStatus('La rampe est prête. Le reste de la manufacture se construit étape par étape.');
     });
   }
 
