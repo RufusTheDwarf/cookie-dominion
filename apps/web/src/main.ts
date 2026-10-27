@@ -1619,37 +1619,41 @@ class TycoonScene extends Phaser.Scene {
     for (let index = 0; index < 6; index += 1) {
       const x = 211 + index * 19;
       const y = 570 - index * 9;
-      const plank = this.add.rectangle(x, y, 34, 11, 0x8e6749)
+      const plank = this.add.rectangle(x - 64, y + 28, 34, 11, 0x8e6749)
         .setStrokeStyle(2, 0x4e3d2e)
-        .setRotation(-0.38)
+        .setRotation(0)
         .setDepth(2)
         .setAlpha(0)
-        .setScale(0.88);
+        .setScale(0.96);
       pieces.push(plank);
       this.tweens.add({
         targets: plank,
+        x,
+        y,
+        rotation: -0.38,
         alpha: 1,
         scale: 1,
-        duration: 170,
-        delay: index * 160,
+        duration: 260,
+        delay: index * 145,
         ease: 'Sine.easeOut',
       });
     }
-    const progress = this.add.text(260, 515, 'POSE DES PLANCHES…', {
+    const progress = this.add.text(382, 515, 'POSE DES PLANCHES…', {
       fontFamily: 'Georgia, serif', fontSize: '12px', fontStyle: 'bold',
       color: '#493b2a', backgroundColor: '#e8dcc1', padding: { x: 8, y: 5 },
     }).setOrigin(0.5).setDepth(20);
     this.constructionButtonObjects.push(progress);
-    this.time.delayedCall(1250, () => {
+    this.time.delayedCall(1550, () => {
       if (!this.scene.isActive()) return;
       this.constructionButtonObjects.forEach((object) => object.destroy());
       this.constructionButtonObjects = [];
+      pieces.forEach((piece) => piece.destroy());
       this.isBuildingRamp = false;
       state.rampBuilt = true;
       save();
       render();
+      this.drawBuiltRamp();
       this.drawFloorDecoration();
-      this.drawExteriorExtensions(getWorld(state.currentWorld).accent);
       this.refreshMachines();
       setStatus('La rampe est prête. La manufacture se développera à chaque nouvel achat.');
     });
@@ -1712,6 +1716,11 @@ class TycoonScene extends Phaser.Scene {
   private updateInteractionPrompt(): void {
     const hint = $('map-hint');
     const action = $('interact-button').querySelector('span');
+    if (this.isBuildingRamp) {
+      hint.textContent = 'POSE DES PLANCHES…';
+      if (action) action.textContent = 'EN COURS';
+      return;
+    }
     if (!state.rampBuilt) {
       const nearRamp = Phaser.Math.Distance.Between(this.player.x, this.player.y, 382, 566) < 92;
       hint.textContent = nearRamp ? 'APPUIE SUR E POUR CONSTRUIRE LA RAMPE' : 'APPROCHE LE BOUTON JAUNE · E POUR CONSTRUIRE';
