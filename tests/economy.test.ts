@@ -57,13 +57,16 @@ describe('tycoon economy', () => {
 
     const staleEmptySave = parseSavedState(JSON.stringify({
       ...initial,
-      rampBuilt: true,
+      rampBuilt: undefined,
       unlockedFloors: [0, 1],
       currentFloor: 1,
     }), 100);
     expect(staleEmptySave.rampBuilt).toBe(false);
     expect(staleEmptySave.currentFloor).toBe(0);
     expect(staleEmptySave.unlockedFloors).toEqual([0]);
+
+    const explicitRampSave = parseSavedState(JSON.stringify({ ...initial, rampBuilt: true }), 100);
+    expect(explicitRampSave.rampBuilt).toBe(true);
   });
 
   it('migrates an empty first-generation save to the unbuilt starting room', () => {
