@@ -573,7 +573,7 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
         ? value.currentFloor as number
         : 0,
       unlockedFloors: Array.isArray(value.unlockedFloors)
-        ? [...new Set((value.unlockedFloors as unknown[]).filter((floor): floor is number => Number.isInteger(floor) && floor >= 0 && floor <= 2))].concat(0).sort((a, b) => a - b)
+        ? [...new Set((value.unlockedFloors as unknown[]).filter((floor): floor is number => typeof floor === 'number' && Number.isInteger(floor) && floor >= 0 && floor <= 2))].concat(0).sort((a, b) => a - b)
         : [0, ...MACHINES.filter((machine) => machines[WORLD_IDS.includes(currentWorld) ? currentWorld : 'cookie-valley'][machine.id] > 0).map((machine) => machine.floor), Number.isInteger(value.currentFloor) && (value.currentFloor as number) >= 0 && (value.currentFloor as number) <= 2 ? value.currentFloor as number : 0].filter((floor) => floor >= 0 && floor <= 2).filter((floor, index, all) => all.indexOf(floor) === index).sort((a, b) => a - b),
       unlockedWorlds,
       upgrades: {
