@@ -13,6 +13,7 @@ import {
   customerOrderCost,
   customerOrderReward,
   enterFloor,
+  floorUnlockCost,
   exportSaveFile,
   enterWorld,
   ESSENCE_PRESTIGE_VALUE,
@@ -33,6 +34,7 @@ import {
   rebirthCost,
   rebirthMultiplier,
   totalRebirthRequiredLevel,
+  unlockFloor,
   upgradeCost,
   UPGRADES,
   WORLDS,
@@ -156,8 +158,8 @@ app.innerHTML = `
           <div class="nav-heading"><span class="eyebrow">ÉTAGES</span><span class="muted">Escaliers sur la carte ou accès rapide</span></div>
           <div class="nav-buttons">
             <button class="nav-button is-active" data-floor="0">01 · Atelier</button>
-            <button class="nav-button" data-floor="1">02 · Production</button>
-            <button class="nav-button" data-floor="2">03 · Laboratoire</button>
+            <button class="nav-button" data-floor="1" hidden disabled>02 · Escaliers</button>
+            <button class="nav-button" data-floor="2" hidden disabled>03 · Laboratoire</button>
           </div>
         </div>
         <div class="nav-block">
@@ -588,6 +590,7 @@ function renderMachineCards(): void {
   const signature = [
     state.currentWorld,
     state.currentFloor,
+    state.unlockedFloors.join(','),
     ...MACHINES.map((machine) => [
       machine.id,
       state.machines[state.currentWorld][machine.id],
@@ -597,7 +600,7 @@ function renderMachineCards(): void {
   ].join('|');
   if (signature === machineUiKey) return;
   machineUiKey = signature;
-  $('machine-list').innerHTML = MACHINES.map((machine) => {
+  $('machine-list').innerHTML = MACHINES.filter((machine) => state.unlockedFloors.includes(machine.floor)).map((machine) => {
     const owned = state.machines[state.currentWorld][machine.id];
     const cost = machineCost(state, machine.id);
     const inaccessible = machine.floor !== state.currentFloor;
@@ -677,7 +680,12 @@ function render(): void {
       : 'Chaque essence vaut 1 000 000 points de valeur d’empire et ajoute +75 % de rendement. Gagne encore ' + format(Math.max(0, rebirthCost(state.rebirths) - state.runCrumbsEarned)) + ' parfums avant l’ascension totale.';
   document.querySelectorAll<HTMLButtonElement>('[data-floor]').forEach((button) => {
     const floor = Number(button.dataset.floor);
+    const unlocked = state.unlockedFloors.includes(floor);
+    button.hidden = !unlocked;
+    button.disabled = !unlocked;
     button.classList.toggle('is-active', floor === state.currentFloor);
+    if (floor === 1) button.textContent = '02 · Atelier haut';
+    if (floor === 2) button.textContent = '03 · Laboratoire';
   });
   renderUpgradeCards();
   renderMissionCards();
@@ -744,7 +752,12 @@ function changeWorld(worldId: WorldId): void {
 }
 
 function changeFloor(floor: number): void {
-  state = enterFloor(state, floor);
+  const next = enterFloor(state, floor);
+  if (next === state) {
+    setStatus('Cet étage est encore fermé. Construis les escaliers depuis l’étage précédent.');
+    return;
+  }
+  state = next;
   render();
   bakeryScene?.loadFloor();
   save();
@@ -818,9 +831,12 @@ class TycoonScene extends Phaser.Scene {
   private collectorLabel?: Phaser.GameObjects.Text;
   private exteriorWalls?: Phaser.GameObjects.Graphics;
   private constructionButtonObjects: Phaser.GameObjects.GameObject[] = [];
+  private isBuildingRamp = false;
+  private productionLayoutDrawn = false;
   private exteriorButtonObjects: Phaser.GameObjects.GameObject[] = [];
-  private playerFaceParts?: { leftEye: Phaser.GameObjects.Rectangle; rightEye: Phaser.GameObjects.Rectangle; nose: Phaser.GameObjects.Rectangle; hairLock: Phaser.GameObjects.Rectangle };
-  private playerLimbs?: { leftLeg: Phaser.GameObjects.Rectangle; rightLeg: Phaser.GameObjects.Rectangle; leftArm: Phaser.GameObjects.Rectangle; rightArm: Phaser.GameObjects.Rectangle };
+  private extensionObjects: Phaser.GameObjects.GameObject[] = [];
+  private playerFaceParts?: { leftEye: Phaser.GameObjects.Ellipse; rightEye: Phaser.GameObjects.Ellipse; nose: Phaser.GameObjects.Ellipse; hairLock: Phaser.GameObjects.Ellipse; hair: Phaser.GameObjects.Ellipse; hairCurl: Phaser.GameObjects.Ellipse; browLeft: Phaser.GameObjects.Ellipse; browRight: Phaser.GameObjects.Ellipse; cheekLeft: Phaser.GameObjects.Ellipse; cheekRight: Phaser.GameObjects.Ellipse; bottle: Phaser.GameObjects.Ellipse; bottleLabel: Phaser.GameObjects.Rectangle; bottleNeck: Phaser.GameObjects.Rectangle; bottleCap: Phaser.GameObjects.Rectangle };
+  private playerLimbs?: { leftLeg: Phaser.GameObjects.Ellipse; rightLeg: Phaser.GameObjects.Ellipse; leftArm: Phaser.GameObjects.Ellipse; rightArm: Phaser.GameObjects.Ellipse };
   private facing: MoveDirection = 'down';
   private walkPhase = 0;
   private moveTarget: { x: number; y: number } | null = null;
@@ -833,17 +849,37 @@ class TycoonScene extends Phaser.Scene {
 
   create(): void {
     bakeryScene = this;
+    this.isBuildingRamp = false;
+    this.productionLayoutDrawn = false;
+    this.machineObjects = [];
+    this.constructionButtonObjects = [];
+    this.exteriorButtonObjects = [];
+    this.extensionObjects = [];
+    this.packets = new Set<Phaser.GameObjects.Container>();
+    this.collectorLabel = undefined;
     const world = getWorld(state.currentWorld);
     this.cameras.main.setBounds(0, 0, MAP_WIDTH, MAP_HEIGHT);
     this.add.rectangle(MAP_WIDTH / 2, MAP_HEIGHT / 2, MAP_WIDTH, MAP_HEIGHT, world.background);
     const floor = this.add.graphics();
     floor.fillStyle(world.floorColor, 1);
-    floor.fillRoundedRect(70, 70, 1060, 620, 18);
-    floor.lineStyle(4, world.accent, 0.75);
-    floor.strokeRoundedRect(70, 70, 1060, 620, 18);
-    floor.lineStyle(1, world.accent, 0.14);
-    for (let x = 88; x < 1120; x += 36) floor.lineBetween(x, 80, x, 680);
-    for (let y = 88; y < 680; y += 36) floor.lineBetween(80, y, 1120, y);
+    floor.fillRect(70, 70, 1060, 620);
+    floor.lineStyle(2, 0x625842, 0.28);
+    floor.strokeRect(70, 70, 1060, 620);
+    // Quiet plank seams instead of a uniform tile grid; slight alternation keeps the room handmade.
+    floor.lineStyle(1, 0x6a5b44, 0.16);
+    for (let y = 116; y < 685; y += 48) {
+      floor.lineBetween(72, y, 1128, y);
+      const offset = (Math.floor(y / 48) % 2) * 45;
+      for (let x = 115 + offset; x < 1120; x += 135) {
+        floor.lineBetween(x, y - 48, x, y);
+      }
+    }
+    floor.fillStyle(0x77674e, 0.05);
+    for (let index = 0; index < 74; index += 1) {
+      const x = 88 + ((index * 137) % 1010);
+      const y = 88 + ((index * 79) % 580);
+      floor.fillCircle(x, y, index % 3 === 0 ? 2 : 1);
+    }
     this.exteriorWalls = this.add.graphics().setDepth(8);
 
     this.add.text(110, 105, world.name.toUpperCase() + ' / FLOOR 0' + (state.currentFloor + 1), {
@@ -852,14 +888,12 @@ class TycoonScene extends Phaser.Scene {
     }).setDepth(3);
 
     if (state.rampBuilt) {
-      this.drawConveyor(world.accent, world.belt);
-      this.drawCollector(world.accent);
-      this.drawPortal(world.accent);
-      this.drawStairs(world.accent);
-      this.drawFloorDecoration(world.accent);
-      this.drawCharacters(world.accent);
+      this.drawBuiltRamp();
+      this.drawFloorDecoration();
       this.drawExteriorExtensions(world.accent);
       this.refreshMachines();
+      if (state.unlockedWorlds.length > 1) this.drawPortal(world.accent);
+      if (state.currentFloor < 2 && state.unlockedFloors.includes(state.currentFloor + 1)) this.drawStairs(world.accent);
     } else {
       this.drawRampBuildButton();
     }
@@ -951,258 +985,371 @@ class TycoonScene extends Phaser.Scene {
   }
 
   private createPlayer(x: number, y: number, accent: number): Phaser.GameObjects.Container {
-    const shadow = this.add.ellipse(0, 33, 49, 15, 0x31523a, 0.25);
-    const glow = this.add.ellipse(0, 1, 45, 62, 0xfff5cb, 0.26).setStrokeStyle(2, 0xffffff, 0.7);
-    const legLeft = this.add.rectangle(-8, 27, 11, 25, 0x34435a).setStrokeStyle(2, 0x223747);
-    const legRight = this.add.rectangle(8, 27, 11, 25, 0x34435a).setStrokeStyle(2, 0x223747);
-    const shoeLeft = this.add.rectangle(-8, 40, 16, 8, 0x27372e).setStrokeStyle(2, 0xf8f4dd);
-    const shoeRight = this.add.rectangle(8, 40, 16, 8, 0x27372e).setStrokeStyle(2, 0xf8f4dd);
-    const body = this.add.rectangle(0, 3, 34, 36, 0xfff6e3).setStrokeStyle(2, 0x324c39);
-    const apron = this.add.rectangle(0, 10, 25, 28, accent).setStrokeStyle(2, 0x31563d);
-    const apronPocket = this.add.rectangle(0, 15, 12, 8, 0xffe99a).setStrokeStyle(1, 0x31563d);
-    const strapLeft = this.add.rectangle(-9, -5, 4, 12, 0x4f6f4d);
-    const strapRight = this.add.rectangle(9, -5, 4, 12, 0x4f6f4d);
-    const armLeft = this.add.rectangle(-22, 5, 9, 23, 0xf4c79f).setStrokeStyle(2, 0x6b5140);
-    const armRight = this.add.rectangle(22, 5, 9, 23, 0xf4c79f).setStrokeStyle(2, 0x6b5140);
-    const neck = this.add.rectangle(0, -17, 12, 9, 0xeab38c);
-    const head = this.add.rectangle(0, -31, 27, 27, 0xf0bd91).setStrokeStyle(2, 0x5d4437);
-    const hair = this.add.rectangle(0, -43, 30, 10, 0x49302a).setStrokeStyle(2, 0x302821);
-    const hairLock = this.add.rectangle(-9, -36, 9, 13, 0x49302a).setStrokeStyle(1, 0x302821);
-    const eyeLeft = this.add.rectangle(-6, -29, 3, 4, 0x243a2a);
-    const eyeRight = this.add.rectangle(6, -29, 3, 4, 0x243a2a);
-    const nose = this.add.rectangle(0, -24, 4, 3, 0xd99c75);
-    const collar = this.add.rectangle(0, -14, 12, 5, 0xfffdf0).setStrokeStyle(1, 0x324c39);
-    const miniBottle = this.add.rectangle(28, 5, 10, 15, 0x81d8c3).setStrokeStyle(2, 0x24543e);
-    const bottleNeck = this.add.rectangle(28, -5, 5, 5, 0xffefb5).setStrokeStyle(1, 0x24543e);
-    const bottleCap = this.add.rectangle(28, -9, 7, 4, 0xb88752).setStrokeStyle(1, 0x553d29);
-    const bottleLabel = this.add.rectangle(28, 6, 6, 5, 0xfff0b8);
-    const tag = this.add.text(0, -64, '▼ TOI · PARFUMEUR', {
-      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '12px', fontStyle: 'bold', color: '#183d29',
-      backgroundColor: '#fff6bf', padding: { x: 7, y: 4 }, stroke: '#ffffff', strokeThickness: 3,
-    }).setOrigin(0.5);
-    this.playerFaceParts = { leftEye: eyeLeft, rightEye: eyeRight, nose, hairLock };
+    const ink = 0x413a30;
+    const skin = 0xd9a77f;
+    const shadow = this.add.ellipse(0, 33, 36, 10, 0x443c2c, 0.22);
+    const legLeft = this.add.ellipse(-7, 24, 12, 26, 0x596454).setStrokeStyle(2, ink);
+    const legRight = this.add.ellipse(7, 24, 12, 26, 0x596454).setStrokeStyle(2, ink);
+    const shoeLeft = this.add.ellipse(-8, 37, 17, 9, 0x4a3a31).setStrokeStyle(2, ink);
+    const shoeRight = this.add.ellipse(8, 37, 17, 9, 0x4a3a31).setStrokeStyle(2, ink);
+    const body = this.add.ellipse(0, 2, 33, 40, 0xe6d5b4).setStrokeStyle(2, ink);
+    const apron = this.add.ellipse(0, 10, 25, 29, accent).setStrokeStyle(2, ink);
+    const apronBib = this.add.rectangle(0, -2, 16, 15, accent).setStrokeStyle(1, ink);
+    const apronPocket = this.add.rectangle(0, 15, 11, 8, 0xd8b875).setStrokeStyle(1, ink);
+    const strapLeft = this.add.line(-9, -7, 0, 0, 1, 13, 0x65523e).setLineWidth(3);
+    const strapRight = this.add.line(9, -7, 0, 0, -1, 13, 0x65523e).setLineWidth(3);
+    const armLeft = this.add.ellipse(-20, 5, 11, 23, skin).setStrokeStyle(2, ink);
+    const armRight = this.add.ellipse(20, 5, 11, 23, skin).setStrokeStyle(2, ink);
+    const cuffLeft = this.add.ellipse(-20, 15, 12, 8, 0xe4d2af).setStrokeStyle(1, ink);
+    const cuffRight = this.add.ellipse(20, 15, 12, 8, 0xe4d2af).setStrokeStyle(1, ink);
+    const neck = this.add.ellipse(0, -17, 11, 9, skin).setStrokeStyle(1, ink);
+    const head = this.add.ellipse(0, -30, 28, 30, skin).setStrokeStyle(2, ink);
+    const hair = this.add.ellipse(0, -42, 31, 14, 0x4c382c).setStrokeStyle(2, ink);
+    const hairLock = this.add.ellipse(-10, -35, 10, 17, 0x4c382c).setStrokeStyle(1, ink);
+    const hairCurl = this.add.ellipse(8, -41, 12, 8, 0x6c4a34).setStrokeStyle(1, ink);
+    const browLeft = this.add.ellipse(-6, -32, 5, 2, 0x5a4232);
+    const browRight = this.add.ellipse(6, -32, 5, 2, 0x5a4232);
+    const eyeLeft = this.add.ellipse(-6, -28, 3, 4, ink);
+    const eyeRight = this.add.ellipse(6, -28, 3, 4, ink);
+    const cheekLeft = this.add.ellipse(-10, -24, 4, 2, 0xc8806b, 0.7);
+    const cheekRight = this.add.ellipse(10, -24, 4, 2, 0xc8806b, 0.7);
+    const nose = this.add.ellipse(0, -23, 3, 4, 0xc48664);
+    const collar = this.add.ellipse(0, -14, 13, 6, 0xf3e7cf).setStrokeStyle(1, ink);
+    const bottle = this.add.ellipse(27, 6, 11, 16, 0x739d8c).setStrokeStyle(2, ink);
+    const bottleLabel = this.add.rectangle(27, 7, 7, 5, 0xe7d6a8).setStrokeStyle(1, ink);
+    const bottleNeck = this.add.rectangle(27, -4, 5, 5, 0xd5bf8d).setStrokeStyle(1, ink);
+    const bottleCap = this.add.rectangle(27, -8, 7, 4, 0x6d503b).setStrokeStyle(1, ink);
+    this.playerFaceParts = { leftEye: eyeLeft, rightEye: eyeRight, nose, hairLock, hair, hairCurl, browLeft, browRight, cheekLeft, cheekRight, bottle, bottleLabel, bottleNeck, bottleCap };
     this.playerLimbs = { leftLeg: legLeft, rightLeg: legRight, leftArm: armLeft, rightArm: armRight };
     const player = this.add.container(x, y, [
-      shadow, glow, legLeft, legRight, shoeLeft, shoeRight, body, apron, apronPocket,
-      strapLeft, strapRight, armLeft, armRight, neck, head, hair, hairLock, eyeLeft,
-      eyeRight, nose, collar, miniBottle, bottleNeck, bottleCap, bottleLabel, tag,
+      shadow, legLeft, legRight, shoeLeft, shoeRight, body, apron, apronBib, apronPocket,
+      strapLeft, strapRight, armLeft, armRight, cuffLeft, cuffRight, neck, head, hair, hairLock,
+      hairCurl, browLeft, browRight, eyeLeft, eyeRight, cheekLeft, cheekRight, nose, collar,
+      bottle, bottleLabel, bottleNeck, bottleCap,
     ]);
     player.setDepth(y);
-    this.tweens.add({ targets: tag, y: -68, duration: 520, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    this.tweens.add({ targets: glow, alpha: 0.16, duration: 900, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     return player;
   }
 
   private createNpc(x: number, y: number, coatColor: number, hairColor: number, role: string, isClient: boolean): Phaser.GameObjects.Container {
-    const shadow = this.add.ellipse(0, 32, 45, 14, 0x31523a, 0.24);
-    const legLeft = this.add.rectangle(-7, 25, 10, 22, 0x465065).setStrokeStyle(2, 0x2c3d43);
-    const legRight = this.add.rectangle(7, 25, 10, 22, 0x465065).setStrokeStyle(2, 0x2c3d43);
-    const shoeLeft = this.add.rectangle(-7, 37, 14, 7, 0xfff4dd).setStrokeStyle(2, 0x384b3a);
-    const shoeRight = this.add.rectangle(7, 37, 14, 7, 0xfff4dd).setStrokeStyle(2, 0x384b3a);
-    const torso = this.add.rectangle(0, 3, 32, 33, coatColor).setStrokeStyle(2, 0x304a36);
-    const shirt = this.add.rectangle(0, 4, 9, 23, isClient ? 0xffe5ab : 0xfff7df);
-    const head = this.add.rectangle(0, -27, 25, 25, isClient ? 0xd99e73 : 0xe9b789).setStrokeStyle(2, 0x5d4437);
-    const hair = this.add.rectangle(0, -39, 28, 9, hairColor).setStrokeStyle(2, 0x41352b);
-    const sideHair = this.add.rectangle(10, -32, 7, 12, hairColor);
-    const eyeLeft = this.add.rectangle(-5, -26, 3, 4, 0x243a2a);
-    const eyeRight = this.add.rectangle(5, -26, 3, 4, 0x243a2a);
-    const mouth = this.add.rectangle(0, -20, 5, 2, 0x995b50);
-    const neck = this.add.rectangle(0, -14, 9, 5, 0xe2aa81);
+    const ink = 0x433b30;
+    const shadow = this.add.ellipse(0, 31, 34, 10, 0x40382c, 0.2);
+    const legLeft = this.add.ellipse(-7, 24, 11, 22, 0x576454).setStrokeStyle(1.5, ink);
+    const legRight = this.add.ellipse(7, 24, 11, 22, 0x576454).setStrokeStyle(1.5, ink);
+    const shoeLeft = this.add.ellipse(-7, 36, 15, 7, 0x4a3b30).setStrokeStyle(1, ink);
+    const shoeRight = this.add.ellipse(7, 36, 15, 7, 0x4a3b30).setStrokeStyle(1, ink);
+    const torso = this.add.ellipse(0, 3, 31, 35, coatColor).setStrokeStyle(2, ink);
+    const shirt = this.add.ellipse(0, 4, 10, 22, 0xe9ddc2).setStrokeStyle(1, ink);
+    const armLeft = this.add.ellipse(-17, 5, 9, 20, isClient ? 0xd7a078 : 0xd2a27c).setStrokeStyle(1, ink);
+    const armRight = this.add.ellipse(17, 5, 9, 20, isClient ? 0xd7a078 : 0xd2a27c).setStrokeStyle(1, ink);
+    const neck = this.add.ellipse(0, -14, 9, 7, isClient ? 0xd7a078 : 0xe0b08a).setStrokeStyle(1, ink);
+    const head = this.add.ellipse(0, -27, 25, 27, isClient ? 0xc99069 : 0xe0b08a).setStrokeStyle(2, ink);
+    const hair = this.add.ellipse(0, -38, 28, 13, hairColor).setStrokeStyle(1.5, ink);
+    const sideHair = this.add.ellipse(9, -31, 9, 15, hairColor).setStrokeStyle(1, ink);
+    const fringe = this.add.ellipse(-5, -36, 12, 8, hairColor);
+    const eyeLeft = this.add.ellipse(-5, -26, 2.5, 3.5, ink);
+    const eyeRight = this.add.ellipse(5, -26, 2.5, 3.5, ink);
+    const cheek = this.add.ellipse(isClient ? 8 : -8, -22, 4, 2, 0xc27f69, 0.7);
+    const mouth = this.add.ellipse(0, -19, 4, 1.5, 0x8c5947);
     const parts: Phaser.GameObjects.GameObject[] = [
-      shadow, legLeft, legRight, shoeLeft, shoeRight, torso, shirt, neck, head, hair, sideHair, eyeLeft, eyeRight, mouth,
+      shadow, legLeft, legRight, shoeLeft, shoeRight, torso, shirt, armLeft, armRight,
+      neck, head, hair, sideHair, fringe, eyeLeft, eyeRight, cheek, mouth,
     ];
     if (isClient) {
-      parts.push(
-        this.add.rectangle(23, 10, 17, 21, 0xd8b77a).setStrokeStyle(2, 0x654c30),
-        this.add.rectangle(23, 0, 9, 5, 0x8f6e40),
-        this.add.rectangle(23, 10, 11, 10, 0xfff0c1),
-      );
+      const parcel = this.add.rectangle(22, 9, 17, 20, 0xb99a68).setStrokeStyle(2, ink);
+      const parcelTop = this.add.rectangle(22, -2, 8, 5, 0x7d6340).setStrokeStyle(1, ink);
+      const parcelMark = this.add.rectangle(22, 9, 10, 8, 0xe9d9b7).setStrokeStyle(1, ink);
+      parts.push(parcel, parcelTop, parcelMark);
     } else {
-      parts.push(
-        this.add.rectangle(-16, 3, 7, 22, 0xe8b184).setStrokeStyle(1, 0x684b3c),
-        this.add.rectangle(17, 3, 7, 22, 0xe8b184).setStrokeStyle(1, 0x684b3c),
-        this.add.rectangle(17, 13, 9, 13, 0x7fd4c0).setStrokeStyle(2, 0x285740),
-        this.add.rectangle(17, 4, 5, 4, 0xffe8a2),
-      );
+      const bottle = this.add.ellipse(19, 12, 10, 14, 0x718d76).setStrokeStyle(1.5, ink);
+      const cap = this.add.rectangle(19, 3, 5, 4, 0xb58b4d).setStrokeStyle(1, ink);
+      parts.push(bottle, cap);
     }
-    const nameTag = this.add.text(0, -59, role, {
-      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '10px', fontStyle: 'bold',
-      color: '#234632', backgroundColor: isClient ? '#ffe4a0' : '#dcf4dd',
-      padding: { x: 6, y: 3 }, stroke: '#ffffff', strokeThickness: 2,
+    const nameTag = this.add.text(0, -55, role, {
+      fontFamily: 'Georgia, serif', fontSize: '10px', fontStyle: 'bold',
+      color: '#36352a', backgroundColor: '#e8dec5',
+      padding: { x: 5, y: 3 }, stroke: '#e8dec5', strokeThickness: 1,
     }).setOrigin(0.5);
     parts.push(nameTag);
     const npc = this.add.container(x, y, parts);
     npc.setDepth(y);
-    this.tweens.add({ targets: nameTag, y: -62, duration: 700 + x % 200, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
     return npc;
   }
 
-  private drawCharacters(accent: number): void {
-    this.createNpc(760, 360, 0x8a6fc1, 0x402c41, 'MILA · PARFUMEUSE', false);
-    this.createNpc(680, 565, 0xffc96e, 0x8d4d37, 'CLIENT VIP', true);
-    const orderRing = this.add.ellipse(680, 601, 68, 23, 0xffd84e, 0.18).setStrokeStyle(3, 0xc18a23, 0.82);
-    orderRing.setDepth(564);
-    this.tweens.add({ targets: orderRing, scaleX: 1.18, alpha: 0.45, duration: 800, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    const orderBubble = this.add.text(680, 485, 'E  ·  LIVRER', {
-      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '11px', fontStyle: 'bold',
-      color: '#3d351e', backgroundColor: '#ffe77c', padding: { x: 9, y: 6 },
-      stroke: '#fffdf0', strokeThickness: 3,
+  private drawCharacters(): void {
+    this.createNpc(760, 360, 0x6c7960, 0x45362c, 'MILA · PARFUMEUSE', false);
+    this.createNpc(680, 565, 0xa85e49, 0x644430, 'CLIENT VIP', true);
+
+    const deliveryMat = this.add.graphics().setDepth(560);
+    deliveryMat.fillStyle(0x6c765b, 0.22);
+    deliveryMat.fillEllipse(680, 601, 67, 22);
+    deliveryMat.lineStyle(1, 0x575e43, 0.65);
+    deliveryMat.strokeEllipse(680, 601, 67, 22);
+    this.add.text(680, 493, 'COMMANDE À LIVRER', {
+      fontFamily: 'Georgia, serif', fontSize: '10px', fontStyle: 'bold',
+      color: '#40392d', backgroundColor: '#e8dec5', padding: { x: 6, y: 4 },
     }).setOrigin(0.5).setDepth(590);
-    this.tweens.add({ targets: orderBubble, y: 480, duration: 650, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
-    const display = this.add.container(330, 165);
-    display.add(this.add.rectangle(0, 5, 135, 58, 0xf7f2d9).setStrokeStyle(2, accent));
-    display.add(this.add.rectangle(0, -29, 139, 8, accent).setStrokeStyle(2, 0x31543c));
+
+    const display = this.add.container(330, 165).setDepth(2);
+    display.add(this.add.rectangle(0, 13, 137, 15, 0x7d6246).setStrokeStyle(2, 0x433b30));
+    display.add(this.add.rectangle(0, -5, 135, 25, 0xb08b5f).setStrokeStyle(2, 0x433b30));
+    display.add(this.add.rectangle(0, -18, 141, 5, 0x514637).setStrokeStyle(1, 0x433b30));
+    const hues = [0x82937c, 0xb66c55, 0xc3a268, 0x777d84, 0x9d8666];
     for (let i = 0; i < 5; i += 1) {
       const x = -46 + i * 23;
-      const hue = [0x7ed6c0, 0xdda6df, 0xffce7a, 0x9fc5f1, 0xf29eae][i]!;
-      display.add(this.add.rectangle(x, -1, 12, 22, hue).setStrokeStyle(1, 0x39563f));
-      display.add(this.add.rectangle(x, -16, 5, 5, 0xffefb7).setStrokeStyle(1, 0x39563f));
-      display.add(this.add.rectangle(x, -21, 7, 4, 0x9b7248).setStrokeStyle(1, 0x584129));
+      display.add(this.add.ellipse(x, -4, 13, 21, hues[i]!).setStrokeStyle(1, 0x453e32));
+      display.add(this.add.rectangle(x, -18, 5, 5, 0xd7c198).setStrokeStyle(1, 0x453e32));
+      display.add(this.add.rectangle(x, -22, 7, 4, 0x66503b).setStrokeStyle(1, 0x453e32));
+      display.add(this.add.rectangle(x, -3, 8, 5, 0xe2d4b5).setStrokeStyle(1, 0x453e32));
     }
-    display.add(this.add.text(0, 22, 'COLLECTION SIGNATURE', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'9px',fontStyle:'bold',color:'#31543c'}).setOrigin(0.5));
-    display.setDepth(2);
+    display.add(this.add.text(0, 29, 'ÉCHANTILLONS', {fontFamily:'Georgia, serif',fontSize:'9px',fontStyle:'bold',color:'#3f3b30'}).setOrigin(0.5));
   }
 
-  private drawConveyor(accent: number, belt: number): void {
-    this.add.rectangle(600, 475, 710, 68, 0x3a684b).setStrokeStyle(3, 0x254b34);
-    this.add.rectangle(600, 475, 690, 48, belt).setStrokeStyle(2, accent);
-    const rails = this.add.graphics();
-    rails.lineStyle(3, 0xfbf2d4, 0.8);
-    rails.lineBetween(252, 451, 948, 451);
-    rails.lineBetween(252, 499, 948, 499);
-    const stripes = this.add.graphics();
-    stripes.lineStyle(5, 0x34694a, 0.7);
-    for (let x = 265; x < 940; x += 32) {
-      stripes.lineBetween(x, 456, x + 12, 494);
+  private drawConveyor(belt: number): void {
+    const line = this.add.graphics().setDepth(2);
+    line.fillStyle(0x5c4635, 1);
+    line.fillRect(245, 447, 710, 57);
+    line.lineStyle(2, 0x40382e, 1);
+    line.strokeRect(245, 447, 710, 57);
+    line.fillStyle(belt, 1);
+    line.fillRect(252, 452, 696, 45);
+    line.lineStyle(1, 0x523f30, 0.8);
+    for (let x = 263; x < 945; x += 34) {
+      line.lineBetween(x, 454, x + 5, 495);
     }
-    this.add.text(600, 520, 'LIGNE D’EMBOUTEILLAGE', {
-      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '11px', color: '#2d5439',
-      backgroundColor: '#f6efda', padding: { x: 8, y: 4 }, fontStyle: 'bold',
+    line.lineStyle(2, 0xddd0ae, 0.9);
+    line.lineBetween(250, 449, 950, 449);
+    line.lineBetween(250, 500, 950, 500);
+    for (let x = 260; x < 945; x += 58) {
+      this.add.ellipse(x, 503, 8, 8, 0x796c54).setStrokeStyle(1, 0x40382e).setDepth(2);
+    }
+    this.add.text(600, 526, 'LIGNE D’EMBOUTEILLAGE', {
+      fontFamily: 'Georgia, serif', fontSize: '10px', color: '#45392e',
+      backgroundColor: '#e8dec5', padding: { x: 7, y: 3 }, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(2);
   }
 
   private drawCollector(accent: number): void {
-    const collector = this.add.container(1000, 470);
-    collector.add(this.add.rectangle(0, 7, 116, 104, 0xf8f1da).setStrokeStyle(3, 0x24452f));
-    collector.add(this.add.rectangle(0, -18, 80, 36, accent).setStrokeStyle(3, 0x24452f));
-    collector.add(this.add.rectangle(0, -25, 22, 11, 0xfff4d2).setStrokeStyle(2, 0x24452f));
-    collector.add(this.add.rectangle(0, -38, 13, 7, 0xa9824f).setStrokeStyle(2, 0x24452f));
-    collector.add(this.add.rectangle(0, -18, 53, 18, 0x9ce2cd).setStrokeStyle(2, 0x285540));
-    collector.add(this.add.text(0, -18, 'PE', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'11px',fontStyle:'bold',color:'#254732'}).setOrigin(0.5));
-    collector.add(this.add.text(0, 28, 'VENTES', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'11px',fontStyle:'bold',color:'#355b3b'}).setOrigin(0.5));
-    collector.setDepth(5);
-    this.collectorLabel = this.add.text(1000, 403, '0 / s', {
-      fontFamily: 'Trebuchet MS, sans-serif', fontSize: '12px', fontStyle: 'bold',
-      color: '#274831', backgroundColor: '#ffed9a', padding: {x:7,y:4}, stroke:'#ffffff',strokeThickness:2,
+    const ink = 0x40382e;
+    const collector = this.add.container(1000, 470).setDepth(5);
+    collector.add(this.add.ellipse(0, 53, 99, 12, 0x40382e, 0.16));
+    collector.add(this.add.rectangle(0, 13, 105, 76, 0x8e7654).setStrokeStyle(2, ink));
+    collector.add(this.add.rectangle(0, -15, 87, 21, accent).setStrokeStyle(2, ink));
+    collector.add(this.add.rectangle(0, -26, 29, 6, 0xd7c39c).setStrokeStyle(1, ink));
+    collector.add(this.add.rectangle(0, -35, 13, 9, 0xa8844f).setStrokeStyle(1, ink));
+    collector.add(this.add.rectangle(0, 11, 60, 25, 0xddd0ae).setStrokeStyle(1, ink));
+    collector.add(this.add.text(0, 11, 'VENTES', {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#40382e'}).setOrigin(0.5));
+    this.collectorLabel = this.add.text(1000, 402, '0 / s', {
+      fontFamily: 'Georgia, serif', fontSize: '12px', fontStyle: 'bold',
+      color: '#40382e', backgroundColor: '#e8dec5', padding: {x:6,y:3},
     }).setOrigin(0.5).setDepth(6);
   }
 
   private drawPortal(accent: number): void {
-    const portal = this.add.container(1000, 190);
-    portal.add(this.add.ellipse(0, 0, 104, 112, 0xfff4d8).setStrokeStyle(4, 0x24452f));
-    portal.add(this.add.ellipse(0, 0, 82, 95, 0xbbead0).setStrokeStyle(7, accent));
-    portal.add(this.add.ellipse(0, 0, 57, 70, 0xffd0e0).setStrokeStyle(3, 0xffffff));
-    portal.add(this.add.rectangle(0, -4, 14, 38, 0xe6fff1).setStrokeStyle(2, accent));
-    portal.add(this.add.rectangle(0, 9, 33, 18, 0x7d59b3).setStrokeStyle(2, 0x49376f));
-    portal.add(this.add.text(0, 72, 'NOUVEAU MONDE', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'10px',fontStyle:'bold',color:'#294a34',backgroundColor:'#fff7d9',padding:{x:5,y:3}}).setOrigin(0.5));
-    portal.setDepth(4);
-    this.tweens.add({targets:portal.list.slice(1,3),scaleX:1.08,duration:950,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
+    const portal = this.add.container(1000, 190).setDepth(4);
+    portal.add(this.add.ellipse(0, 0, 94, 102, 0x9b997d).setStrokeStyle(3, 0x453e32));
+    portal.add(this.add.ellipse(0, 0, 72, 83, 0x6f8270).setStrokeStyle(4, 0x453e32));
+    portal.add(this.add.ellipse(0, 0, 48, 59, 0xd0c3a3).setStrokeStyle(2, accent));
+    portal.add(this.add.ellipse(0, 0, 30, 40, 0x5e6955).setStrokeStyle(1, 0x453e32));
+    portal.add(this.add.rectangle(0, 70, 98, 19, 0xe8dec5).setStrokeStyle(1, 0x453e32));
+    portal.add(this.add.text(0, 70, 'PASSAGE', {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#40382e'}).setOrigin(0.5));
   }
 
   private drawStairs(accent: number): void {
-    const stairs = this.add.graphics();
-    stairs.fillStyle(0xfff4d8, 1);
-    stairs.fillRoundedRect(990, 575, 95, 74, 9);
-    stairs.lineStyle(3, accent, 0.9);
-    stairs.strokeRoundedRect(990, 575, 95, 74, 9);
-    stairs.lineStyle(3, 0x6e9870, 0.9);
-    for (let y = 584; y <= 639; y += 11) stairs.lineBetween(1002, y, 1073, y);
-    this.add.text(1037, 660, 'ÉTAGES · E', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'10px',fontStyle:'bold',color:'#2e5438',backgroundColor:'#fff4d8',padding:{x:4,y:2}}).setOrigin(0.5).setDepth(4);
+    const stairs = this.add.graphics().setDepth(4);
+    stairs.fillStyle(0x554334, 0.18);
+    stairs.fillRect(988, 575, 100, 76);
+    stairs.fillStyle(0x8b6c4a, 1);
+    stairs.fillRect(990, 569, 96, 72);
+    stairs.lineStyle(2, 0x40382e, 1);
+    stairs.strokeRect(990, 569, 96, 72);
+    stairs.lineStyle(1, accent, 0.72);
+    stairs.lineBetween(998, 575, 1078, 575);
+    stairs.fillStyle(0xc0a47a, 1);
+    for (let y = 578; y <= 632; y += 11) {
+      stairs.fillRect(998, y, 80, 5);
+      stairs.lineStyle(1, 0x5e4835, 0.9);
+      stairs.lineBetween(998, y + 5, 1078, y + 5);
+    }
+    this.add.text(1037, 660, 'ÉTAGES · E', {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#40382e',backgroundColor:'#e8dec5',padding:{x:5,y:3}}).setOrigin(0.5).setDepth(4);
   }
 
-  private drawFloorDecoration(accent: number): void {
-    const props = this.add.graphics();
-    props.fillStyle(0xeff6dd, 1);
-    props.fillRoundedRect(112, 185, 82, 315, 11);
-    props.lineStyle(3, accent, 0.75);
-    props.strokeRoundedRect(112, 185, 82, 315, 11);
-    props.fillStyle(0x658f6b, 1);
-    props.fillRoundedRect(120, 193, 66, 18, 5);
-    this.add.text(153, 204, 'HERBIER', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'8px',fontStyle:'bold',color:'#fff6dc'}).setOrigin(0.5);
-    const leaves = this.add.graphics();
-    const leafColors = [0x6bab78, 0x9bc878, 0x3d8a65];
-    for (let i = 0; i < 8; i += 1) {
-      const y = 234 + i * 27;
+  private drawFloorDecoration(): void {
+    const shelf = this.add.graphics().setDepth(2);
+    shelf.fillStyle(0x8d6b49, 1);
+    shelf.fillRect(113, 189, 80, 302);
+    shelf.lineStyle(2, 0x453b2e, 1);
+    shelf.strokeRect(113, 189, 80, 302);
+    shelf.fillStyle(0xceb98d, 1);
+    shelf.fillRect(120, 197, 66, 287);
+    shelf.lineStyle(2, 0x8c6846, 1);
+    shelf.lineBetween(121, 280, 185, 280);
+    shelf.lineBetween(121, 363, 185, 363);
+    shelf.lineBetween(121, 444, 185, 444);
+    this.add.text(153, 207, 'HERBIER', {fontFamily:'Georgia, serif',fontSize:'9px',fontStyle:'bold',color:'#40382e'}).setOrigin(0.5).setDepth(3);
+    const leaves = this.add.graphics().setDepth(3);
+    const leafColors = [0x778b68, 0x9aa07a, 0x5c765a];
+    for (let i = 0; i < 7; i += 1) {
+      const y = 238 + i * 35;
+      const x = 139 + (i % 2) * 13;
+      leaves.lineStyle(2, 0x5b6346, 0.9);
+      leaves.lineBetween(x + 7, y + 14, x + 6, y - 9);
       leaves.fillStyle(leafColors[i % leafColors.length]!, 1);
-      leaves.fillEllipse(142, y, 17, 9);
-      leaves.fillEllipse(163, y + 6, 15, 8);
-      leaves.lineStyle(1, 0x46774a, 0.8);
-      leaves.lineBetween(137, y + 5, 171, y + 6);
+      leaves.fillEllipse(x, y, 12, 8);
+      leaves.fillEllipse(x + 13, y - 4, 12, 8);
     }
-    this.add.text(153, 478, 'NOTES\nNATURELLES', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'8px',fontStyle:'bold',color:'#466747',align:'center'}).setOrigin(0.5);
+    for (let i = 0; i < 4; i += 1) {
+      const x = 135 + i * 14;
+      this.add.ellipse(x, 315, 9, 20, [0x7e9180, 0xa96750, 0xc0a269, 0x657881][i]!).setStrokeStyle(1, 0x453b2e).setDepth(3);
+      this.add.rectangle(x, 302, 4, 5, 0xc0a269).setStrokeStyle(1, 0x453b2e).setDepth(3);
+      // Decorative shelf items are independent of the machine station lifecycle.
+    }
+    this.add.text(153, 470, 'NOTES\nNATURELLES', {fontFamily:'Georgia, serif',fontSize:'8px',fontStyle:'bold',color:'#554a38',align:'center'}).setOrigin(0.5).setDepth(3);
   }
 
   refreshMachines(): void {
-    this.machineObjects.forEach((object) => object.destroy());
+    this.machineObjects.forEach((object) => {
+      this.tweens.killTweensOf(object);
+      object.destroy();
+    });
     this.machineObjects = [];
     const worldMachines = state.machines[state.currentWorld];
+    const world = getWorld(state.currentWorld);
+    const ink = 0x443b30;
+
+    const keep = (object: Phaser.GameObjects.GameObject) => {
+      this.machineObjects.push(object);
+      return object;
+    };
+
     for (const machine of MACHINES.filter((item) => item.floor === state.currentFloor)) {
       const owned = worldMachines[machine.id];
-      const world = getWorld(state.currentWorld);
       const x = machine.x;
       const y = 292;
-      const g = this.add.graphics();
-      g.fillStyle(0x668f70, 0.18);
-      g.fillRoundedRect(x - 77, y - 48, 154, 112, 12);
-      g.fillStyle(0xfffae6, 1);
-      g.fillRoundedRect(x - 72, y - 55, 144, 111, 12);
-      g.lineStyle(3, owned > 0 ? world.accent : 0x81967c, owned > 0 ? 1 : 0.75);
-      g.strokeRoundedRect(x - 72, y - 55, 144, 111, 12);
-      g.fillStyle(owned > 0 ? world.belt : 0xe4ebd9, 1);
-      g.fillRoundedRect(x - 65, y - 47, 130, 18, 6);
-      this.machineObjects.push(g);
-      const frame = this.add.rectangle(x, y - 8, 78, 48, owned > 0 ? world.belt : 0xd8e2d0)
-        .setStrokeStyle(3, owned > 0 ? world.accent : 0x849780, 0.95);
-      const pipeTop = this.add.rectangle(x, y - 42, 13, 12, 0xd3ad72).setStrokeStyle(2, 0x6c5638);
-      const pipeNeck = this.add.rectangle(x, y - 31, 7, 11, 0x91cfc0).setStrokeStyle(1, 0x315b48);
-      const liquid = this.add.rectangle(x, y - 3, 29, 22, owned > 0 ? 0x79d5be : 0xb8c9bb).setStrokeStyle(2, 0x3e7657);
-      const label = this.add.rectangle(x, y - 3, 22, 10, 0xfff0b7);
-      const sideBottleLeft = this.add.rectangle(x - 28, y - 9, 11, 23, 0xc8a0dd).setStrokeStyle(1, 0x614779);
-      const sideBottleRight = this.add.rectangle(x + 28, y - 9, 11, 23, 0x9ccbf0).setStrokeStyle(1, 0x43617d);
-      const heat = this.add.circle(x, y - 3, 5, owned > 0 ? 0xffd45b : 0x9aa99a);
-      const title = this.add.text(x, y + 29, machine.name.toUpperCase(), {
-        fontFamily:'Trebuchet MS, sans-serif',fontSize:'9px',fontStyle:'bold',color:'#294833',align:'center',wordWrap:{width:138},
-      }).setOrigin(0.5);
-      const count = this.add.text(x, y - 65, owned > 0 ? '×' + owned + ' ACTIVES' : 'À DÉBLOQUER', {
-        fontFamily:'Trebuchet MS, sans-serif',fontSize:'8px',fontStyle:'bold',color: owned > 0 ? '#fff8d8' : '#5b765b',
-        backgroundColor: owned > 0 ? '#2f7c51' : '#e5edda',padding:{x:6,y:3},stroke:'#fffdf0',strokeThickness:1,
-      }).setOrigin(0.5);
-      for (const object of [frame, pipeTop, pipeNeck, liquid, label, sideBottleLeft, sideBottleRight, heat, title, count]) {
-        object.setDepth(6);
-        this.machineObjects.push(object);
+      const wood = this.add.graphics();
+      wood.fillStyle(0x4e4132, 0.13);
+      wood.fillEllipse(x, y + 49, 110, 12);
+      wood.fillStyle(0x77573d, 1);
+      wood.fillRect(x - 42, y + 19, 8, 36);
+      wood.fillRect(x + 34, y + 19, 8, 36);
+      wood.fillStyle(0x98744f, 1);
+      wood.fillRect(x - 54, y + 7, 108, 16);
+      wood.lineStyle(2, ink, 1);
+      wood.strokeRect(x - 54, y + 7, 108, 16);
+      wood.lineStyle(1, 0x5b4532, 0.65);
+      wood.lineBetween(x - 49, y + 13, x + 49, y + 13);
+      keep(wood);
+
+      const blueprint = owned === 0;
+      const stationParts: Phaser.GameObjects.GameObject[] = [];
+      const fill = blueprint ? 0xc8bfa8 : world.belt;
+      const detail = blueprint ? 0x9d9278 : 0x776548;
+      const addEllipse = (px: number, py: number, w: number, h: number, color: number, stroke = ink) => {
+        const object = this.add.ellipse(px, py, w, h, color).setStrokeStyle(2, stroke);
+        stationParts.push(object);
+        return object;
+      };
+      const addRect = (px: number, py: number, w: number, h: number, color: number, stroke = ink) => {
+        const object = this.add.rectangle(px, py, w, h, color).setStrokeStyle(1.5, stroke);
+        stationParts.push(object);
+        return object;
+      };
+
+      if (machine.id === 'hand-mixer') {
+        addEllipse(x, y - 12, 47, 28, fill);
+        addEllipse(x, y - 13, 37, 18, owned ? 0x9ba083 : 0xd8cbb0, ink);
+        addEllipse(x + 2, y - 14, 20, 8, owned ? 0x777d5d : 0xc8b99a, ink);
+        addRect(x, y - 32, 4, 26, detail);
+        addEllipse(x, y - 43, 10, 5, 0xb49b6a);
+        addEllipse(x - 27, y - 6, 9, 15, 0x9b7256);
+        addRect(x - 27, y - 18, 4, 5, 0xc4a674);
+        addEllipse(x + 27, y - 7, 9, 15, 0x80927d);
+        addRect(x + 27, y - 19, 4, 5, 0xc4a674);
+      } else if (machine.id === 'brick-oven') {
+        addEllipse(x, y - 10, 40, 47, blueprint ? 0xc7b69a : 0xb28058);
+        addEllipse(x, y - 11, 27, 30, blueprint ? 0xd8cbb0 : 0x8e6345);
+        addRect(x, y - 40, 12, 13, 0xc0a574);
+        addRect(x, y - 48, 18, 5, 0x6d5039);
+        addRect(x, y + 6, 22, 11, 0xddd0ad);
+        addRect(x + 27, y - 2, 9, 22, 0x899681);
+      } else if (machine.id === 'conveyor-oven') {
+        for (let index = 0; index < 3; index += 1) {
+          const bx = x - 25 + index * 25;
+          addEllipse(bx, y - 10, 14, 24, index === 1 && owned ? 0x9b7154 : fill);
+          addRect(bx, y - 26, 6, 7, 0xc1a371);
+          addRect(bx, y - 32, 9, 4, 0x6b4f37);
+          addRect(bx, y - 8, 7, 5, 0xe0d2af);
+        }
+        addRect(x, y - 40, 64, 5, detail);
+      } else if (machine.id === 'frosting-lab') {
+        addRect(x, y - 4, 60, 30, fill);
+        addEllipse(x - 17, y - 20, 19, 28, 0x839482);
+        addRect(x - 17, y - 39, 7, 10, 0xc4ab7c);
+        addEllipse(x + 15, y - 19, 19, 30, 0xb77e58);
+        addRect(x + 15, y - 39, 7, 10, 0xc4ab7c);
+        addRect(x, y - 42, 7, 21, detail);
+        addEllipse(x, y - 46, 15, 6, 0xc4ab7c);
+      } else {
+        addEllipse(x, y - 10, 39, 43, 0x6e7e76);
+        addEllipse(x, y - 17, 26, 32, owned ? 0x78958a : 0xc9c0ab);
+        addRect(x, y - 42, 12, 10, 0xb59a69);
+        addEllipse(x, y - 47, 16, 7, 0xc9b98f);
+        addRect(x - 26, y - 2, 9, 19, 0x9b7458);
+        addRect(x + 26, y - 2, 9, 19, 0x9b7458);
       }
+      stationParts.forEach((object) => keep(object));
+
+      const title = this.add.text(x, y + 39, machine.name, {
+        fontFamily: 'Georgia, serif', fontSize: '11px', fontStyle: 'bold',
+        color: blueprint ? '#6d634e' : '#35392d', align: 'center', wordWrap: { width: 148 },
+      }).setOrigin(0.5).setDepth(6);
+      const status = this.add.text(x, y - 67, blueprint ? 'PLAN · ' + format(machineCost(state, machine.id)) : '×' + owned + ' EN SERVICE', {
+        fontFamily: 'Georgia, serif', fontSize: '9px', fontStyle: 'bold',
+        color: blueprint ? '#5f5948' : '#eee3c9',
+        backgroundColor: blueprint ? '#e4d8bd' : '#4a5d45',
+        padding: { x: 5, y: 3 },
+      }).setOrigin(0.5).setDepth(6);
+      this.machineObjects.push(title, status);
+
       if (owned > 0) {
-        const glow = this.add.circle(x, y - 4, 30, world.accent, 0.12);
-        glow.setDepth(5);
-        this.machineObjects.push(glow);
-        this.tweens.add({targets:heat,alpha:0.35,scale:1.35,duration:480,yoyo:true,repeat:-1});
-        this.tweens.add({targets:liquid,scaleY:0.78,duration:700,yoyo:true,repeat:-1,ease:'Sine.easeInOut'});
+        const steam = this.add.graphics().setDepth(4);
+        steam.lineStyle(1.5, 0xe9ddc5, 0.7);
+        steam.lineBetween(x - 8, y - 47, x - 12, y - 54);
+        steam.lineBetween(x + 2, y - 48, x + 5, y - 57);
+        this.machineObjects.push(steam);
       }
+    }
+
+    const activeOnFloor = MACHINES.filter((machine) =>
+      machine.floor === state.currentFloor && worldMachines[machine.id] > 0,
+    ).length;
+    if (activeOnFloor > 0 && !this.productionLayoutDrawn) {
+      this.drawConveyor(world.belt);
+      this.drawCollector(world.accent);
+      this.drawCharacters();
+      this.productionLayoutDrawn = true;
     }
     if (this.collectorLabel) {
       this.collectorLabel.setText(format(productionPerSecond(state)) + ' / s');
+    }
+    this.constructionButtonObjects.forEach((object) => object.destroy());
+    this.constructionButtonObjects = [];
+    if (state.rampBuilt && state.currentFloor < 2 && !state.unlockedFloors.includes(state.currentFloor + 1)) {
+      this.drawFloorBuildPad();
     }
     this.refreshExteriorBuildButtons();
   }
 
   private makePacket(x: number, y: number, accent: number): Phaser.GameObjects.Container {
-    const glint = this.add.rectangle(-3, -1, 3, 10, 0xffffff, 0.82);
-    const body = this.add.rectangle(0, 2, 16, 22, accent).setStrokeStyle(2, 0x31543c);
-    const neck = this.add.rectangle(0, -11, 7, 5, 0xfff1b7).setStrokeStyle(1, 0x31543c);
-    const cap = this.add.rectangle(0, -16, 9, 5, 0xb88a50).setStrokeStyle(1, 0x60482f);
-    const label = this.add.rectangle(2, 4, 9, 8, 0xfff2c4).setStrokeStyle(1, 0x31543c);
-    const initials = this.add.text(2, 4, 'P', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'7px',fontStyle:'bold',color:'#31543c'}).setOrigin(0.5);
-    const packet = this.add.container(x, y, [glint, body, neck, cap, label, initials]).setDepth(15);
+    const ink = 0x453d31;
+    const shadow = this.add.ellipse(0, 10, 18, 5, ink, 0.18);
+    const body = this.add.ellipse(0, 2, 17, 22, accent).setStrokeStyle(1.5, ink);
+    const glass = this.add.ellipse(-3, 0, 4, 13, 0xeee2c6, 0.5);
+    const shoulder = this.add.ellipse(0, -8, 10, 5, accent).setStrokeStyle(1, ink);
+    const neck = this.add.rectangle(0, -12, 6, 6, 0xc6ac7a).setStrokeStyle(1, ink);
+    const cap = this.add.rectangle(0, -16, 8, 4, 0x6e5137).setStrokeStyle(1, ink);
+    const label = this.add.rectangle(2, 3, 8, 6, 0xe9d9b8).setStrokeStyle(1, ink);
+    const packet = this.add.container(x, y, [shadow, body, glass, shoulder, neck, cap, label]).setDepth(15);
     this.packets.add(packet);
     return packet;
   }
@@ -1261,12 +1408,14 @@ class TycoonScene extends Phaser.Scene {
     const playerX = this.player.x;
     const playerY = this.player.y;
     if (!state.rampBuilt) {
-      if (Phaser.Math.Distance.Between(playerX, playerY, 260, 555) < 92) {
-        state.rampBuilt = true;
-        render();
-        save();
-        setStatus('Construction lancée ! La rampe se monte…');
-        this.animateRampConstruction(getWorld(state.currentWorld).accent);
+      if (this.isBuildingRamp) {
+        setStatus('La rampe est en cours de construction…');
+        return;
+      }
+      if (Phaser.Math.Distance.Between(playerX, playerY, 382, 566) < 92) {
+        this.isBuildingRamp = true;
+        setStatus('Les planches sont posées une par une…');
+        this.animateRampConstruction();
       } else {
         setStatus('Approche-toi du bouton jaune près du bas de l’atelier, puis appuie sur E.');
       }
@@ -1281,10 +1430,31 @@ class TycoonScene extends Phaser.Scene {
       completeVipOrder();
       return;
     }
-    if (Phaser.Math.Distance.Between(playerX, playerY, 1037, 612) < 105) {
-      const nextFloor = (state.currentFloor + 1) % 3;
-      changeFloor(nextFloor);
-      setStatus('Tu arrives à l’étage ' + (nextFloor + 1) + '.');
+    if (state.currentFloor < 2 && Phaser.Math.Distance.Between(playerX, playerY, 1037, 612) < 105) {
+      const nextFloor = state.currentFloor + 1;
+      if (state.unlockedFloors.includes(nextFloor)) {
+        changeFloor(nextFloor);
+        setStatus('Tu montes à l’étage ' + (nextFloor + 1) + '.');
+        return;
+      }
+      if (!this.floorBuildRequirementReached()) {
+        setStatus(nextFloor === 1
+          ? 'Installe deux équipements au rez-de-chaussée pour construire les escaliers.'
+          : 'Installe au moins un équipement à l’étage 2 pour poursuivre la construction.');
+        return;
+      }
+      const opened = unlockFloor(state, nextFloor);
+      if (opened === state) {
+        setStatus('Les escaliers coûtent ' + format(floorUnlockCost(nextFloor)) + ' parfums. Il t’en manque ' + format(Math.max(0, floorUnlockCost(nextFloor) - state.crumbs)) + '.');
+        return;
+      }
+      state = opened;
+      render();
+      save();
+      this.constructionButtonObjects.forEach((object) => object.destroy());
+      this.constructionButtonObjects = [];
+      this.drawStairs(getWorld(state.currentWorld).accent);
+      setStatus('Escaliers construits ! Le nouvel étage est maintenant accessible.');
       return;
     }
     if (Phaser.Math.Distance.Between(playerX, playerY, 1000, 190) < 110) {
@@ -1313,66 +1483,179 @@ class TycoonScene extends Phaser.Scene {
   private setFacing(direction: MoveDirection): void {
     if (this.facing === direction || !this.playerFaceParts) return;
     this.facing = direction;
-    const { leftEye, rightEye, nose, hairLock } = this.playerFaceParts;
-    const front = direction !== 'up';
-    leftEye.setVisible(front);
-    rightEye.setVisible(front);
-    nose.setVisible(front);
+    const parts = this.playerFaceParts;
+    const faceVisible = direction !== 'up';
+    parts.leftEye.setVisible(faceVisible);
+    parts.rightEye.setVisible(faceVisible);
+    parts.nose.setVisible(faceVisible);
+    parts.browLeft.setVisible(faceVisible);
+    parts.browRight.setVisible(faceVisible);
+    parts.cheekLeft.setVisible(faceVisible);
+    parts.cheekRight.setVisible(faceVisible);
+
+    // Profile poses expose only the near eye; back view hides the whole face.
     if (direction === 'left') {
-      leftEye.setPosition(-10, -29);
-      rightEye.setPosition(-3, -29);
-      nose.setPosition(-13, -24);
-      hairLock.setPosition(-11, -36);
+      parts.leftEye.setPosition(-9, -28);
+      parts.rightEye.setVisible(false);
+      parts.browLeft.setPosition(-9, -32);
+      parts.browRight.setVisible(false);
+      parts.cheekLeft.setPosition(-10, -24);
+      parts.cheekRight.setVisible(false);
+      parts.nose.setPosition(-13, -23);
+      parts.hairLock.setPosition(-12, -35);
+      parts.hair.setPosition(-4, -41);
+      parts.hairCurl.setPosition(-12, -40);
+      parts.bottle.setPosition(-27, 6);
+      parts.bottleLabel.setPosition(-27, 7);
+      parts.bottleNeck.setPosition(-27, -4);
+      parts.bottleCap.setPosition(-27, -8);
     } else if (direction === 'right') {
-      leftEye.setPosition(3, -29);
-      rightEye.setPosition(10, -29);
-      nose.setPosition(13, -24);
-      hairLock.setPosition(11, -36);
+      parts.leftEye.setVisible(false);
+      parts.rightEye.setPosition(9, -28);
+      parts.browLeft.setVisible(false);
+      parts.browRight.setPosition(9, -32);
+      parts.cheekLeft.setVisible(false);
+      parts.cheekRight.setPosition(10, -24);
+      parts.nose.setPosition(13, -23);
+      parts.hairLock.setPosition(12, -35);
+      parts.hair.setPosition(4, -41);
+      parts.hairCurl.setPosition(12, -40);
+      parts.bottle.setPosition(27, 6);
+      parts.bottleLabel.setPosition(27, 7);
+      parts.bottleNeck.setPosition(27, -4);
+      parts.bottleCap.setPosition(27, -8);
     } else {
-      leftEye.setPosition(-6, -29);
-      rightEye.setPosition(6, -29);
-      nose.setPosition(0, -24);
-      hairLock.setPosition(-9, -36);
+      parts.leftEye.setPosition(-6, -28);
+      parts.rightEye.setPosition(6, -28);
+      parts.nose.setPosition(0, -23);
+      parts.browLeft.setPosition(-6, -32);
+      parts.browRight.setPosition(6, -32);
+      parts.cheekLeft.setPosition(-10, -24);
+      parts.cheekRight.setPosition(10, -24);
+      parts.hairLock.setPosition(direction === 'up' ? -8 : -10, direction === 'up' ? -34 : -35);
+      parts.hair.setPosition(0, -42);
+      parts.hairCurl.setPosition(8, -41);
+      parts.bottle.setPosition(27, 6);
+      parts.bottleLabel.setPosition(27, 7);
+      parts.bottleNeck.setPosition(27, -4);
+      parts.bottleCap.setPosition(27, -8);
     }
+  }
+
+  private drawBuiltRamp(): void {
+    const ramp = this.add.graphics().setDepth(1);
+    ramp.fillStyle(0x51412f, 0.2);
+    ramp.fillPoints([{x:196,y:575},{x:320,y:511},{x:359,y:530},{x:233,y:596}], true);
+    ramp.fillStyle(0x8e6749, 1);
+    ramp.fillPoints([{x:198,y:568},{x:320,y:507},{x:350,y:523},{x:226,y:585}], true);
+    ramp.lineStyle(2, 0x4e3d2e, 0.95);
+    ramp.lineBetween(198, 568, 226, 585);
+    ramp.lineBetween(320, 507, 350, 523);
+    for (let index = 0; index < 6; index += 1) {
+      const x = 211 + index * 19;
+      const y = 570 - index * 9;
+      this.add.rectangle(x, y, 34, 11, index % 2 ? 0x98714e : 0x8e6749)
+        .setStrokeStyle(2, 0x4e3d2e)
+        .setRotation(-0.38)
+        .setDepth(2);
+    }
+    ramp.lineStyle(1, 0xd7b58b, 0.55);
+    ramp.lineBetween(205, 566, 324, 506);
+  }
+
+  private floorBuildRequirementReached(): boolean {
+    const nextFloor = state.currentFloor + 1;
+    if (nextFloor > 2) return false;
+    const owned = MACHINES.filter((machine) => machine.floor === state.currentFloor)
+      .reduce((sum, machine) => sum + state.machines[state.currentWorld][machine.id], 0);
+    return owned >= (nextFloor === 1 ? 2 : 1);
+  }
+
+  private drawFloorBuildPad(): void {
+    if (!this.floorBuildRequirementReached()) return;
+    const floor = state.currentFloor + 1;
+    const cost = floorUnlockCost(floor);
+    const pad = this.add.container(1037, 612).setDepth(7);
+    pad.add(this.add.ellipse(0, 12, 96, 25, 0x3e3428, 0.15));
+    const plaque = this.add.graphics();
+    plaque.fillStyle(0xd8c49d, 1);
+    plaque.fillRect(-46, -19, 92, 40);
+    plaque.lineStyle(2, 0x635341, 1);
+    plaque.strokeRect(-46, -19, 92, 40);
+    plaque.lineStyle(1, 0x9c7950, 1);
+    plaque.lineBetween(-38, -10, 38, -10);
+    pad.add(plaque);
+    pad.add(this.add.text(0, -3, 'ESCALIERS', {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#493b2a'}).setOrigin(0.5));
+    pad.add(this.add.text(0, 29, 'ÉTAGE ' + (floor + 1) + ' · ' + format(cost), {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#f3e5c8',backgroundColor:'#3d4b3b',padding:{x:7,y:4}}).setOrigin(0.5));
+    pad.add(this.add.text(0, -43, 'E · CONSTRUIRE', {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#332d22',backgroundColor:'#e8dcc1',padding:{x:5,y:3}}).setOrigin(0.5));
+    this.constructionButtonObjects.push(pad);
   }
 
   private drawRampBuildButton(): void {
-    const pad = this.add.container(260, 555).setDepth(10);
-    pad.add(this.add.ellipse(0, 15, 122, 40, 0x1c3829, 0.22));
-    pad.add(this.add.ellipse(0, 0, 112, 48, 0xffe05a).setStrokeStyle(5, 0x735d20));
-    pad.add(this.add.rectangle(0, 0, 68, 18, 0xfff7bf).setStrokeStyle(2, 0x735d20));
-    pad.add(this.add.text(0, 0, 'E  CONSTRUIRE', { fontFamily: 'Trebuchet MS, sans-serif', fontSize: '10px', fontStyle: 'bold', color: '#48391b' }).setOrigin(0.5));
-    const label = this.add.text(0, -43, 'RAMPE · GRATUIT', { fontFamily: 'Trebuchet MS, sans-serif', fontSize: '11px', fontStyle: 'bold', color: '#243f2e', backgroundColor: '#fff9dc', padding: { x: 8, y: 5 }, stroke: '#ffffff', strokeThickness: 3 }).setOrigin(0.5);
-    pad.add(label);
-    this.tweens.add({ targets: pad, scale: 1.06, duration: 620, yoyo: true, repeat: -1, ease: 'Sine.easeInOut' });
+    const pad = this.add.container(382, 566).setDepth(10);
+    pad.add(this.add.ellipse(0, 19, 105, 19, 0x463a2b, 0.14));
+    const sign = this.add.graphics();
+    sign.fillStyle(0xd9c6a0, 1);
+    sign.fillRect(-55, -20, 110, 40);
+    sign.lineStyle(2, 0x514334, 1);
+    sign.strokeRect(-55, -20, 110, 40);
+    sign.lineStyle(1, 0x9f8258, 0.9);
+    sign.lineBetween(-46, -11, 46, -11);
+    pad.add(sign);
+    pad.add(this.add.text(0, -4, 'CHANTIER 01', {fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#45392b'}).setOrigin(0.5));
+    pad.add(this.add.text(0, 9, 'E · MONTER LA RAMPE', {fontFamily:'Georgia, serif',fontSize:'8px',fontStyle:'bold',color:'#754535'}).setOrigin(0.5));
     this.constructionButtonObjects.push(pad);
-    const instruction = this.add.text(260, 610, 'Approche-toi puis appuie sur E', { fontFamily: 'Trebuchet MS, sans-serif', fontSize: '12px', color: '#2b4733', backgroundColor: '#fff8e7', padding: { x: 8, y: 5 } }).setOrigin(0.5).setDepth(10);
+    const instruction = this.add.text(382, 604, 'La première construction est gratuite', {
+      fontFamily: 'Georgia, serif', fontSize: '10px', fontStyle: 'italic',
+      color: '#4f4637', backgroundColor: '#e8dec5', padding: { x: 6, y: 3 },
+    }).setOrigin(0.5).setDepth(10);
     this.constructionButtonObjects.push(instruction);
   }
 
-  private animateRampConstruction(accent: number): void {
+  private animateRampConstruction(): void {
     this.constructionButtonObjects.forEach((item) => item.destroy());
     this.constructionButtonObjects = [];
     const pieces: Phaser.GameObjects.Rectangle[] = [];
-    for (let index = 0; index < 7; index += 1) {
-      const step = this.add.rectangle(226 + index * 11, 574 - index * 7, 34, 12, accent).setStrokeStyle(2, 0x273f2b).setDepth(12);
-      step.setAlpha(0.1);
-      pieces.push(step);
+    for (let index = 0; index < 6; index += 1) {
+      const x = 211 + index * 19;
+      const y = 570 - index * 9;
+      const plank = this.add.rectangle(x - 64, y + 28, 34, 11, 0x8e6749)
+        .setStrokeStyle(2, 0x4e3d2e)
+        .setRotation(0)
+        .setDepth(2)
+        .setAlpha(0)
+        .setScale(0.96);
+      pieces.push(plank);
       this.tweens.add({
-        targets: step,
-        y: step.y - 10,
+        targets: plank,
+        x,
+        y,
+        rotation: -0.38,
         alpha: 1,
-        scaleX: 1.15,
-        duration: 240,
+        scale: 1,
+        duration: 260,
         delay: index * 145,
-        ease: 'Back.easeOut',
-        onStart: () => step.setAlpha(1),
+        ease: 'Sine.easeOut',
       });
     }
-    this.time.delayedCall(1500, () => {
+    const progress = this.add.text(382, 515, 'POSE DES PLANCHES…', {
+      fontFamily: 'Georgia, serif', fontSize: '12px', fontStyle: 'bold',
+      color: '#493b2a', backgroundColor: '#e8dcc1', padding: { x: 8, y: 5 },
+    }).setOrigin(0.5).setDepth(20);
+    this.constructionButtonObjects.push(progress);
+    this.time.delayedCall(1550, () => {
+      if (!this.scene.isActive()) return;
+      this.constructionButtonObjects.forEach((object) => object.destroy());
+      this.constructionButtonObjects = [];
       pieces.forEach((piece) => piece.destroy());
-      if (this.scene.isActive()) this.scene.restart();
-      setStatus('Rampe terminée. Tu peux maintenant construire ton atelier.');
+      this.isBuildingRamp = false;
+      state.rampBuilt = true;
+      save();
+      render();
+      this.drawBuiltRamp();
+      this.drawFloorDecoration();
+      this.refreshMachines();
+      setStatus('La rampe est prête. La manufacture se développera à chaque nouvel achat.');
     });
   }
 
@@ -1405,9 +1688,12 @@ class TycoonScene extends Phaser.Scene {
   }
 
   private drawExteriorExtensions(accent: number): void {
+    this.extensionObjects.forEach((object) => object.destroy());
+    this.extensionObjects = [];
     const count = state.outsideExpansions;
     if (count < 1) return;
     const graphics = this.add.graphics().setDepth(1);
+    this.extensionObjects.push(graphics);
     graphics.fillStyle(0xb6a47e, 0.8);
     graphics.fillRoundedRect(845, 465, 145 + (count > 1 ? 95 : 0), 92, 12);
     graphics.lineStyle(3, accent, 0.9);
@@ -1423,22 +1709,36 @@ class TycoonScene extends Phaser.Scene {
       graphics.fillStyle(0x93734a, 1);
       graphics.fillRect(x - 6, 469, 12, 5);
     }
-    this.add.text(918, 535, 'EXTENSION ' + count + '/3', {fontFamily:'Trebuchet MS, sans-serif',fontSize:'9px',fontStyle:'bold',color:'#273f2c',backgroundColor:'#f9f0d0',padding:{x:6,y:3}}).setOrigin(0.5).setDepth(2);
+    const marker = this.add.text(918, 535, 'EXTENSION ' + count + '/3', {fontFamily:'Georgia, serif',fontSize:'9px',fontStyle:'bold',color:'#273f2c',backgroundColor:'#f9f0d0',padding:{x:6,y:3}}).setOrigin(0.5).setDepth(2);
+    this.extensionObjects.push(marker);
   }
 
   private updateInteractionPrompt(): void {
     const hint = $('map-hint');
     const action = $('interact-button').querySelector('span');
+    if (this.isBuildingRamp) {
+      hint.textContent = 'POSE DES PLANCHES…';
+      if (action) action.textContent = 'EN COURS';
+      return;
+    }
     if (!state.rampBuilt) {
-      const nearRamp = Phaser.Math.Distance.Between(this.player.x, this.player.y, 260, 555) < 92;
+      const nearRamp = Phaser.Math.Distance.Between(this.player.x, this.player.y, 382, 566) < 92;
       hint.textContent = nearRamp ? 'APPUIE SUR E POUR CONSTRUIRE LA RAMPE' : 'APPROCHE LE BOUTON JAUNE · E POUR CONSTRUIRE';
       if (action) action.textContent = nearRamp ? 'CONSTRUIRE' : 'INTERAGIR';
       return;
     }
     const build = this.exteriorBuildPad();
     if (build && Phaser.Math.Distance.Between(this.player.x, this.player.y, build.x, build.y) < 96) {
-      hint.textContent = build.kind === 'walls' ? 'APPUIE SUR E POUR CONSTRUIRE LES MURS' : 'APPUIE SUR E POUR ACHETER L’EXTENSION';
+      hint.textContent = build.kind === 'walls' ? 'E · CONSTRUIRE LES MURS' : 'E · CONSTRUIRE L’EXTENSION';
       if (action) action.textContent = 'ACHETER';
+      return;
+    }
+    if (state.currentFloor < 2 && Phaser.Math.Distance.Between(this.player.x, this.player.y, 1037, 612) < 105) {
+      const nextFloor = state.currentFloor + 1;
+      hint.textContent = state.unlockedFloors.includes(nextFloor)
+        ? 'E · MONTER À L’ÉTAGE SUIVANT'
+        : 'E · CONSTRUIRE LES ESCALIERS · ' + format(floorUnlockCost(nextFloor));
+      if (action) action.textContent = state.unlockedFloors.includes(nextFloor) ? 'MONTER' : 'CONSTRUIRE';
       return;
     }
     if (action) action.textContent = 'INTERAGIR';
@@ -1456,8 +1756,10 @@ class TycoonScene extends Phaser.Scene {
     else state.outsideExpansions += 1;
     render();
     save();
-    setStatus(build.kind === 'walls' ? 'Murs construits ! Ils seront visibles quand tu te trouveras à l’extérieur.' : 'Extension extérieure achetée. Un nouvel espace est maintenant débloqué.');
-    this.scene.restart();
+    if (build.kind === 'extension') this.drawExteriorExtensions(getWorld(state.currentWorld).accent);
+    this.refreshExteriorBuildButtons();
+    this.updateExteriorWalls();
+    setStatus(build.kind === 'walls' ? 'Murs posés. Tu peux maintenant lire la limite du magasin depuis l’extérieur.' : 'Extension extérieure construite. Un nouvel espace est maintenant ouvert.');
   }
 
   private updateExteriorWalls(): void {
@@ -1479,7 +1781,7 @@ class TycoonScene extends Phaser.Scene {
 
   pulsePlayer(): void {
     if (!this.player?.active) return;
-    this.tweens.add({targets:this.player,scale:0.92,duration:60,yoyo:true,ease:'Quad.easeOut'});
+    this.tweens.add({ targets: this.player, y: this.player.y - 2, duration: 75, yoyo: true, ease: 'Sine.easeOut' });
   }
 
   loadWorld(): void {
@@ -1541,29 +1843,45 @@ function renderTutorial(): void {
   const banner = $('tutorial-banner');
   banner.hidden = tutorialDismissed;
   if (tutorialDismissed) return;
-  const owned = Object.values(state.machines).reduce((sum, machines) =>
-    sum + Object.values(machines).reduce((worldSum, count) => worldSum + count, 0), 0);
+
+  const owned = Object.values(state.machines[state.currentWorld])
+    .reduce((sum, count) => sum + count, 0);
+  const currentFloorMachines = MACHINES.filter((machine) => machine.floor === state.currentFloor)
+    .reduce((sum, machine) => sum + state.machines[state.currentWorld][machine.id], 0);
   let step = 1;
   let title = 'Les commandes';
-  let copy = 'Déplace-toi avec WASD ou les flèches. Tu peux aussi cliquer sur un point de la carte. Appuie sur E près d’un objet pour interagir.';
+  let copy = 'WASD ou les flèches pour marcher. Appuie sur E près d’un panneau ou d’un personnage pour interagir.';
+
   if (!state.rampBuilt) {
     step = 1;
-    title = 'Construis ton premier accès';
-    copy = 'Déplace-toi vers le bouton jaune près du bas de l’atelier. Quand tu es proche, appuie sur E : la rampe se construira avec une animation.';
+    title = 'La première rampe';
+    copy = 'Rejoins le panneau de chantier au sud-est et appuie sur E. Les planches vont être posées une à une. Les équipements et les autres espaces viendront ensuite.';
+  } else if (state.currentFloor === 0 && !state.unlockedFloors.includes(1) && currentFloorMachines < 2) {
+    step = 2;
+    title = 'Monte ton premier atelier';
+    copy = 'Achète deux équipements au rez-de-chaussée. Les escaliers n’apparaîtront qu’après cet investissement : le deuxième étage n’est pas gratuit.';
+  } else if (state.currentFloor === 0 && !state.unlockedFloors.includes(1)) {
+    step = 2;
+    title = 'Construis les escaliers';
+    copy = 'Le chantier des escaliers se trouve en bas à droite. Approche-toi et appuie sur E pour payer la construction et ouvrir l’étage 2.';
+  } else if (state.currentFloor === 1 && !state.unlockedFloors.includes(2)) {
+    step = 3;
+    title = 'Développe le deuxième atelier';
+    copy = 'Installe au moins un équipement à cet étage, puis construis les escaliers suivants. Chaque nouvel espace demande un investissement réel.';
   } else if (owned === 0) {
     step = 2;
     title = 'Lance la production';
-    copy = 'Ouvre Équipements, achète ta première machine, puis approche-toi d’un bouton de construction extérieur quand il apparaît. Les gains sont volontairement progressifs.';
+    copy = 'Achète ton premier équipement depuis la boutique ou en approchant du plan de machine. Les flacons rejoindront le convoyeur quand une vraie ligne sera en place.';
   } else if (!state.claimedMissions.includes('first-machine')) {
     step = 3;
     title = 'Réclame les contrats';
-    copy = 'Consulte Contrats dans le panneau de gauche. Quand une mission est terminée, réclame sa récompense : elle finance la suite.';
+    copy = 'Consulte Contrats dans le panneau de gauche. Quand une mission est terminée, réclame sa récompense : elle finance les prochaines constructions.';
   } else {
     step = 4;
     title = 'Développe ta maison';
-    copy = 'Améliore les machines, livre les commandes VIP avec E, débloque les étages, puis utilise le rebirth pour accélérer les prochains runs. La sauvegarde est automatique.';
+    copy = 'Améliore les machines, livre les commandes VIP avec E, ouvre les nouveaux étages puis utilise le rebirth pour renforcer les runs suivants. La sauvegarde est automatique.';
   }
-  $('tutorial-step-label').textContent = 'GUIDE DE DÉPART · ' + step + '/4';
+  $('tutorial-step-label').textContent = 'CARNET DU PARFUMEUR · ' + step + '/4';
   $('tutorial-title').textContent = title;
   $('tutorial-text').textContent = copy;
 }

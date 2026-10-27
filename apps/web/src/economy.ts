@@ -54,6 +54,7 @@ export interface GameState {
   rebirths: number;
   currentWorld: WorldId;
   currentFloor: number;
+  unlockedFloors: number[];
   unlockedWorlds: WorldId[];
   upgrades: UpgradeLevels;
   claimedMissions: MissionId[];
@@ -125,10 +126,10 @@ export const WORLDS: WorldDefinition[] = [
     unlockRebirths: 0,
     costMultiplier: 1,
     incomeMultiplier: 1,
-    background: 0xb8e5ad,
-    floorColor: 0xf5e8c9,
-    accent: 0x2d8c68,
-    belt: 0x8bd4ac,
+    background: 0x9da88f,
+    floorColor: 0xe3d5b7,
+    accent: 0x4b5a43,
+    belt: 0xa46f4e,
   },
   {
     id: 'choco-moon',
@@ -137,10 +138,10 @@ export const WORLDS: WorldDefinition[] = [
     unlockRebirths: 1,
     costMultiplier: 5,
     incomeMultiplier: 8,
-    background: 0xd9c3f3,
-    floorColor: 0xeee0fb,
-    accent: 0x8754b8,
-    belt: 0xc5a4e6,
+    background: 0x827a80,
+    floorColor: 0xd2c3a6,
+    accent: 0x5b4d54,
+    belt: 0x9a715c,
   },
   {
     id: 'galaxy-oven',
@@ -149,10 +150,10 @@ export const WORLDS: WorldDefinition[] = [
     unlockRebirths: 3,
     costMultiplier: 35,
     incomeMultiplier: 65,
-    background: 0xa8dcea,
-    floorColor: 0xdceef4,
-    accent: 0x287d9b,
-    belt: 0x78c6dc,
+    background: 0x718a87,
+    floorColor: 0xc2d0be,
+    accent: 0x3a5c58,
+    belt: 0xb18c53,
   },
 ];
 
@@ -244,6 +245,7 @@ export function createInitialState(now = Date.now()): GameState {
     rebirths: 0,
     currentWorld: 'cookie-valley',
     currentFloor: 0,
+    unlockedFloors: [0],
     unlockedWorlds: ['cookie-valley'],
     upgrades: { production: 0, clickPower: 0, discount: 0 },
     claimedMissions: [],
@@ -446,6 +448,7 @@ export function performRebirth(state: GameState): GameState {
     rampBuilt: true,
     wallsBuilt: false,
     outsideExpansions: 0,
+    unlockedFloors: [0],
     currentWorld: 'cookie-valley',
     currentFloor: 0,
     unlockedWorlds,
@@ -457,8 +460,31 @@ export function enterWorld(state: GameState, worldId: WorldId): GameState {
   return { ...state, currentWorld: worldId, currentFloor: 0 };
 }
 
+export function floorUnlockCost(floor: number): number {
+  return floor === 1 ? 260 : floor === 2 ? 2_400 : Number.POSITIVE_INFINITY;
+}
+
+export function canUnlockFloor(state: GameState, floor: number): boolean {
+  if (!Number.isInteger(floor) || floor < 1 || floor > 2) return false;
+  if (state.unlockedFloors.includes(floor) || !state.rampBuilt || state.currentFloor !== floor - 1) return false;
+  const previousFloorMachineCount = MACHINES
+    .filter((machine) => machine.floor === floor - 1)
+    .reduce((sum, machine) => sum + state.machines[state.currentWorld][machine.id], 0);
+  const requiredMachines = floor === 1 ? 2 : 1;
+  return previousFloorMachineCount >= requiredMachines && state.crumbs >= floorUnlockCost(floor);
+}
+
+export function unlockFloor(state: GameState, floor: number): GameState {
+  if (!canUnlockFloor(state, floor)) return state;
+  return {
+    ...state,
+    crumbs: state.crumbs - floorUnlockCost(floor),
+    unlockedFloors: [...state.unlockedFloors, floor].sort((a, b) => a - b),
+  };
+}
+
 export function enterFloor(state: GameState, floor: number): GameState {
-  if (!Number.isInteger(floor) || floor < 0 || floor > 2) return state;
+  if (!Number.isInteger(floor) || floor < 0 || floor > 2 || !state.unlockedFloors.includes(floor)) return state;
   return { ...state, currentFloor: floor };
 }
 
@@ -546,6 +572,9 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       currentFloor: Number.isSafeInteger(value.currentFloor) && (value.currentFloor as number) >= 0 && (value.currentFloor as number) <= 2
         ? value.currentFloor as number
         : 0,
+      unlockedFloors: Array.isArray(value.unlockedFloors)
+        ? [...new Set([0, ...(value.unlockedFloors as unknown[]).filter((floor): floor is number => typeof floor === 'number' && Number.isInteger(floor) && floor >= 0 && floor <= 2)])].sort((a, b) => a - b)
+        : [0, ...MACHINES.filter((machine) => machines[WORLD_IDS.includes(currentWorld) ? currentWorld : 'cookie-valley'][machine.id] > 0).map((machine) => machine.floor), Number.isInteger(value.currentFloor) && (value.currentFloor as number) >= 0 && (value.currentFloor as number) <= 2 ? value.currentFloor as number : 0].filter((floor) => floor >= 0 && floor <= 2).filter((floor, index, all) => all.indexOf(floor) === index).sort((a, b) => a - b),
       unlockedWorlds,
       upgrades: {
         production: parseUpgradeLevel(value.upgrades, 'production'),
@@ -574,6 +603,9 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
         : 0,
       lastSavedAt: value.lastSavedAt,
     };
+    state.unlockedFloors = state.unlockedFloors.filter((floor) => floor >= 0 && floor <= 2);
+    if (!state.unlockedFloors.includes(0)) state.unlockedFloors.unshift(0);
+    if (!state.unlockedFloors.includes(state.currentFloor)) state.currentFloor = 0;
     state.unlockedWorlds = WORLDS.filter((world) =>
       state.unlockedWorlds.includes(world.id) || world.unlockRebirths <= state.rebirths,
     ).map((world) => world.id);
