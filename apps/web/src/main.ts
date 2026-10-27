@@ -55,8 +55,8 @@ const MAP_WIDTH = 1800;
 const MAP_HEIGHT = 1200;
 const STAIRS_X = 940;
 const STAIRS_Y = 520;
-const ROOM_BOUNDS = { left: 165, right: 1000, top: 220, bottom: 552 };
-const GATE_BOUNDS = { top: 335, bottom: 435 };
+const ROOM_BOUNDS = { left: 165, right: 1000, top: 230, bottom: 552 };
+const GATE_BOUNDS = { top: 345, bottom: 435 };
 const DARK_MODE_KEY = 'parfum-empire-dark-mode-v1';
 const INTRO_TUTORIAL_KEY = 'parfum-empire-intro-tutorial-v1';
 const COACHMARKS_KEY = 'parfum-empire-ui-coachmarks-v1';
@@ -1176,7 +1176,7 @@ class TycoonScene extends Phaser.Scene {
     const world = getWorld(state.currentWorld);
     this.cameras.main.setBounds(0, 0, MAP_WIDTH, MAP_HEIGHT);
     this.drawOutdoorGround(world);
-    this.exteriorWalls = this.add.graphics().setDepth(8);
+    this.exteriorWalls = this.add.graphics().setDepth(10_000);
 
     this.add.text(110, 160, state.rampBuilt
       ? world.name.toUpperCase() + ' / ESPACE ' + String(state.currentFloor + 1).padStart(2, '0')
@@ -1287,7 +1287,6 @@ class TycoonScene extends Phaser.Scene {
       this.moveTarget = null;
     }
     this.player.setDepth(this.player.y);
-    this.updateExteriorWalls();
     if (this.time.now - this.lastPositionUpdate > 120) {
       $('player-position').textContent = 'Position : ' + Math.round(this.player.x) + ' · ' + Math.round(this.player.y);
       this.lastPositionUpdate = this.time.now;
@@ -2253,7 +2252,6 @@ class TycoonScene extends Phaser.Scene {
     this.exteriorWalls.clear();
     const enclosedFloor = state.currentFloor > 0;
     if (!state.wallsBuilt && !enclosedFloor) return;
-    this.exteriorWalls.setDepth(10_000);
     this.exteriorWalls.fillStyle(0x8f7958, 1);
     this.exteriorWalls.fillRect(135, 180, 900, 8);
     this.exteriorWalls.fillRect(135, 592, 900, 8);
