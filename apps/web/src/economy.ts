@@ -1,5 +1,22 @@
 export type WorldId = 'cookie-valley' | 'choco-moon' | 'galaxy-oven';
 export type MachineId = 'hand-mixer' | 'brick-oven' | 'conveyor-oven' | 'frosting-lab' | 'quantum-bakery';
+export type UpgradeId = 'production' | 'clickPower' | 'discount';
+export type MissionId = 'first-machine' | 'industrialist' | 'lifetime-baker' | 'world-explorer' | 'galactic-empire';
+
+export interface UpgradeLevels {
+  production: number;
+  clickPower: number;
+  discount: number;
+}
+
+export interface MissionDefinition {
+  id: MissionId;
+  name: string;
+  description: string;
+  target: number;
+  reward: number;
+  kind: 'machines' | 'lifetime' | 'worlds';
+}
 
 export interface WorldDefinition {
   id: WorldId;
@@ -38,6 +55,8 @@ export interface GameState {
   currentWorld: WorldId;
   currentFloor: number;
   unlockedWorlds: WorldId[];
+  upgrades: UpgradeLevels;
+  claimedMissions: MissionId[];
   lastSavedAt: number;
 }
 
@@ -47,6 +66,42 @@ export const REBIRTH_BASE_COST = 1500;
 export const REBIRTH_COST_GROWTH = 1.55;
 export const REBIRTH_MULTIPLIER = 1.75;
 export const MACHINE_COST_GROWTH = 1.22;
+export const MAX_UPGRADE_LEVEL = 10;
+
+export const UPGRADES: Record<UpgradeId, { name: string; description: string; baseCost: number; growth: number; effect: string }> = {
+  production: {
+    name: 'Fermentation turbo',
+    description: 'Toutes tes machines produisent 20 % de cookies en plus par niveau.',
+    baseCost: 120,
+    growth: 1.85,
+    effect: '+20 % production / niveau',
+  },
+  clickPower: {
+    name: 'Doigts de pâtissier',
+    description: 'Chaque clic manuel rapporte 10 cookies supplémentaires par niveau.',
+    baseCost: 60,
+    growth: 1.8,
+    effect: '+10 cookies / clic / niveau',
+  },
+  discount: {
+    name: 'Achats en gros',
+    description: 'Réduit le prix de toutes les nouvelles machines de 5 % par niveau.',
+    baseCost: 180,
+    growth: 2,
+    effect: '−5 % prix des machines / niveau',
+  },
+};
+
+export const MISSION_DEFINITIONS: MissionDefinition[] = [
+  { id: 'first-machine', name: 'Première ligne', description: 'Installe ta première machine, tous mondes confondus.', target: 1, reward: 75, kind: 'machines' },
+  { id: 'industrialist', name: 'Petit industriel', description: 'Possède 5 machines en même temps.', target: 5, reward: 400, kind: 'machines' },
+  { id: 'lifetime-baker', name: 'Le carnet de commandes', description: 'Produis 1 000 cookies au total.', target: 1000, reward: 500, kind: 'lifetime' },
+  { id: 'world-explorer', name: 'Explorateur sucré', description: 'Déverrouille un deuxième monde.', target: 2, reward: 1500, kind: 'worlds' },
+  { id: 'galactic-empire', name: 'Empire galactique', description: 'Déverrouille les trois mondes.', target: 3, reward: 8000, kind: 'worlds' },
+];
+
+const UPGRADE_IDS: UpgradeId[] = ['production', 'clickPower', 'discount'];
+const MISSION_IDS: MissionId[] = MISSION_DEFINITIONS.map((mission) => mission.id);
 
 export const WORLDS: WorldDefinition[] = [
   {
@@ -176,6 +231,8 @@ export function createInitialState(now = Date.now()): GameState {
     currentWorld: 'cookie-valley',
     currentFloor: 0,
     unlockedWorlds: ['cookie-valley'],
+    upgrades: { production: 0, clickPower: 0, discount: 0 },
+    claimedMissions: [],
     lastSavedAt: now,
   };
 }
@@ -196,7 +253,59 @@ export function machineCost(state: GameState, machineId: MachineId): number {
   const machine = getMachine(machineId);
   const owned = state.machines[state.currentWorld][machineId];
   const world = getWorld(state.currentWorld);
-  return Math.ceil(machine.cost * world.costMultiplier * MACHINE_COST_GROWTH ** owned);
+  const discount = Math.min(0.5, state.upgrades.discount * 0.05);
+  return Math.max(1, Math.ceil(machine.cost * world.costMultiplier * MACHINE_COST_GROWTH ** owned * (1 - discount)));
+}
+
+export function upgradeCost(state: GameState, upgradeId: UpgradeId): number {
+  const definition = UPGRADES[upgradeId];
+  const level = state.upgrades[upgradeId];
+  return Math.ceil(definition.baseCost * definition.growth ** level);
+}
+
+export function manualCookieValue(state: Pick<GameState, 'upgrades'>): number {
+  return COOKIE_CLICK_VALUE * (1 + state.upgrades.clickPower);
+}
+
+export function buyUpgrade(state: GameState, upgradeId: UpgradeId): GameState {
+  const level = state.upgrades[upgradeId];
+  if (level >= MAX_UPGRADE_LEVEL) return state;
+  const cost = upgradeCost(state, upgradeId);
+  if (state.crumbs < cost) return state;
+  return {
+    ...state,
+    crumbs: state.crumbs - cost,
+    upgrades: { ...state.upgrades, [upgradeId]: level + 1 },
+  };
+}
+
+function totalMachinesOwned(state: GameState): number {
+  return Object.values(state.machines).reduce(
+    (worldTotal, worldMachines) => worldTotal + Object.values(worldMachines).reduce((sum, count) => sum + count, 0),
+    0,
+  );
+}
+
+export function missionProgress(state: GameState, mission: MissionDefinition): number {
+  const progress = mission.kind === 'machines'
+    ? totalMachinesOwned(state)
+    : mission.kind === 'lifetime'
+      ? state.lifetimeCrumbs
+      : state.unlockedWorlds.length;
+  return Math.min(mission.target, progress);
+}
+
+export function canClaimMission(state: GameState, missionId: MissionId): boolean {
+  const mission = MISSION_DEFINITIONS.find((item) => item.id === missionId);
+  return Boolean(mission && !state.claimedMissions.includes(missionId) && missionProgress(state, mission) >= mission.target);
+}
+
+export function claimMission(state: GameState, missionId: MissionId): GameState {
+  if (!canClaimMission(state, missionId)) return state;
+  const mission = MISSION_DEFINITIONS.find((item) => item.id === missionId);
+  if (!mission) return state;
+  const rewarded = addCrumbs(state, mission.reward);
+  return { ...rewarded, claimedMissions: [...rewarded.claimedMissions, missionId] };
 }
 
 export function productionPerSecond(
@@ -208,7 +317,8 @@ export function productionPerSecond(
   const base = MACHINES.reduce((total, machine) => {
     return total + worldMachines[machine.id] * (machine.payout / machine.cycleSeconds);
   }, 0);
-  return base * world.incomeMultiplier * REBIRTH_MULTIPLIER ** state.rebirths;
+  const productionUpgrade = 1 + state.upgrades.production * 0.2;
+  return base * world.incomeMultiplier * REBIRTH_MULTIPLIER ** state.rebirths * productionUpgrade;
 }
 
 export function addCrumbs(state: GameState, amount: number): GameState {
@@ -294,6 +404,14 @@ function isFiniteNonNegative(value: unknown): value is number {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0;
 }
 
+function parseUpgradeLevel(value: unknown, key: UpgradeId): number {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return 0;
+  const level = (value as Record<string, unknown>)[key];
+  return Number.isSafeInteger(level) && (level as number) >= 0
+    ? Math.min(MAX_UPGRADE_LEVEL, level as number)
+    : 0;
+}
+
 export function parseSavedState(raw: string | null, now = Date.now()): GameState {
   if (!raw) return createInitialState(now);
   try {
@@ -354,6 +472,14 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
         ? value.currentFloor as number
         : 0,
       unlockedWorlds,
+      upgrades: {
+        production: parseUpgradeLevel(value.upgrades, 'production'),
+        clickPower: parseUpgradeLevel(value.upgrades, 'clickPower'),
+        discount: parseUpgradeLevel(value.upgrades, 'discount'),
+      },
+      claimedMissions: Array.isArray(value.claimedMissions)
+        ? value.claimedMissions.filter((id): id is MissionId => typeof id === 'string' && MISSION_IDS.includes(id as MissionId))
+        : [],
       lastSavedAt: value.lastSavedAt,
     };
     state.unlockedWorlds = WORLDS.filter((world) =>
