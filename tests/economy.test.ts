@@ -162,6 +162,7 @@ describe('tycoon economy', () => {
 
     const withTwoMachines = {
       ...initial,
+      rampBuilt: true,
       machines: {
         ...initial.machines,
         'cookie-valley': { ...initial.machines['cookie-valley'], 'hand-mixer': 1, 'brick-oven': 1 },
