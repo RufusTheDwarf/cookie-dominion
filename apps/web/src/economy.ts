@@ -69,6 +69,8 @@ export interface GameState {
 }
 
 export const MAX_OFFLINE_SECONDS = 8 * 60 * 60;
+/** The opening plot is a one-time purchase; an empty new game receives this amount. */
+export const STARTING_LAND_COST = 1_000;
 export const COOKIE_CLICK_VALUE = 5;
 export const TOTAL_REBIRTH_BASE_LEVEL = 10;
 export const TOTAL_REBIRTH_LEVEL_STEP = 5;
@@ -258,6 +260,15 @@ export function createInitialState(now = Date.now()): GameState {
     outsideExpansions: 0,
     lastSavedAt: now,
   };
+}
+
+/**
+ * Purchase the starting outdoor plot. The serialized rampBuilt field is retained
+ * for save compatibility; it now means the starter plot/workshop entrance exists.
+ */
+export function buyStartingLand(state: GameState): GameState {
+  if (state.rampBuilt || state.crumbs < STARTING_LAND_COST) return state;
+  return { ...state, crumbs: state.crumbs - STARTING_LAND_COST, rampBuilt: true };
 }
 
 export function getWorld(worldId: WorldId): WorldDefinition {
