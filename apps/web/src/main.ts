@@ -888,14 +888,14 @@ class TycoonScene extends Phaser.Scene {
     }).setDepth(3);
 
     if (state.rampBuilt) {
-      this.drawBuiltRamp(world.accent);
+      this.drawBuiltRamp();
       this.drawFloorDecoration(world.accent);
       this.drawExteriorExtensions(world.accent);
       this.refreshMachines();
       if (state.unlockedWorlds.length > 1) this.drawPortal(world.accent);
       if (state.currentFloor < 2) {
         if (state.unlockedFloors.includes(state.currentFloor + 1)) this.drawStairs(world.accent);
-        else this.drawFloorBuildPad(world.accent);
+        else this.drawFloorBuildPad();
       }
     } else {
       this.drawRampBuildButton();
@@ -1318,7 +1318,7 @@ class TycoonScene extends Phaser.Scene {
       if (Phaser.Math.Distance.Between(playerX, playerY, 260, 555) < 92) {
         this.isBuildingRamp = true;
         setStatus('Les planches sont posées une par une…');
-        this.animateRampConstruction(getWorld(state.currentWorld).accent);
+        this.animateRampConstruction();
       } else {
         setStatus('Approche-toi du bouton jaune près du bas de l’atelier, puis appuie sur E.');
       }
@@ -1409,7 +1409,7 @@ class TycoonScene extends Phaser.Scene {
     }
   }
 
-  private drawBuiltRamp(accent: number): void {
+  private drawBuiltRamp(): void {
     const ramp = this.add.graphics().setDepth(1);
     ramp.fillStyle(0x594834, 0.22);
     ramp.fillPoints([{x:196,y:575},{x:320,y:511},{x:359,y:530},{x:233,y:596}], true);
@@ -1436,7 +1436,7 @@ class TycoonScene extends Phaser.Scene {
     return owned >= (nextFloor === 1 ? 2 : 1);
   }
 
-  private drawFloorBuildPad(accent: number): void {
+  private drawFloorBuildPad(): void {
     if (!this.floorBuildRequirementReached()) return;
     const floor = state.currentFloor + 1;
     const cost = floorUnlockCost(floor);
@@ -1469,7 +1469,7 @@ class TycoonScene extends Phaser.Scene {
     this.constructionButtonObjects.push(instruction);
   }
 
-  private animateRampConstruction(accent: number): void {
+  private animateRampConstruction(): void {
     this.constructionButtonObjects.forEach((item) => item.destroy());
     this.constructionButtonObjects = [];
     const pieces: Phaser.GameObjects.Rectangle[] = [];
