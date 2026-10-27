@@ -57,6 +57,7 @@ export interface GameState {
   unlockedWorlds: WorldId[];
   upgrades: UpgradeLevels;
   claimedMissions: MissionId[];
+  goldenCookiesClaimed: number;
   lastSavedAt: number;
 }
 
@@ -232,6 +233,7 @@ export function createInitialState(now = Date.now()): GameState {
     unlockedWorlds: ['cookie-valley'],
     upgrades: { production: 0, clickPower: 0, discount: 0 },
     claimedMissions: [],
+    goldenCookiesClaimed: 0,
     lastSavedAt: now,
   };
 }
@@ -479,6 +481,9 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       claimedMissions: Array.isArray(value.claimedMissions)
         ? value.claimedMissions.filter((id): id is MissionId => typeof id === 'string' && MISSION_IDS.includes(id as MissionId))
         : [],
+      goldenCookiesClaimed: Number.isSafeInteger(value.goldenCookiesClaimed) && (value.goldenCookiesClaimed as number) >= 0
+        ? value.goldenCookiesClaimed as number
+        : 0,
       lastSavedAt: value.lastSavedAt,
     };
     state.unlockedWorlds = WORLDS.filter((world) =>
