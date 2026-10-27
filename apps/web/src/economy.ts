@@ -309,7 +309,7 @@ export function claimMission(state: GameState, missionId: MissionId): GameState 
 }
 
 export function productionPerSecond(
-  state: Pick<GameState, 'machines' | 'currentWorld' | 'rebirths'>,
+  state: Pick<GameState, 'machines' | 'currentWorld' | 'rebirths' | 'upgrades'>,
   worldId: WorldId = state.currentWorld,
 ): number {
   const world = getWorld(worldId);
