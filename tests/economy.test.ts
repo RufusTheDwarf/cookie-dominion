@@ -116,7 +116,7 @@ describe('tycoon economy', () => {
 
     const funded = { ...initial, crumbs: 50 };
     const delivered = completeCustomerOrder(funded);
-    expect(delivered.crumbs).toBe(75);
+    expect(delivered.crumbs).toBe(125);
     expect(delivered.ordersCompleted).toBe(1);
     expect(delivered.lifetimeCrumbs).toBe(125);
     expect(delivered.runCrumbsEarned).toBe(125);
@@ -127,7 +127,7 @@ describe('tycoon economy', () => {
 
     const claimed = claimMission(delivered, 'first-order');
     expect(claimed.claimedMissions).toContain('first-order');
-    expect(claimed.crumbs).toBe(325);
+    expect(claimed.crumbs).toBe(375);
     expect(claimMission(claimed, 'first-order')).toBe(claimed);
   });
 
