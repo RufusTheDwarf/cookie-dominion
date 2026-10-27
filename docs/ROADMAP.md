@@ -5,8 +5,10 @@
 - [x] Phase 4: CI, tests unitaires, vérification TypeScript et build de production.
 - [x] Phase 5: tycoon 2D avec personnage contrôlable, trois étages, convoyeurs visibles, collecteur, trois mondes et rebirths.
 - [x] Phase 6: contrôles visibles (clavier, D-pad, clic pour se déplacer) et gestion des sauvegardes (export/import/effacement confirmé).
-- [ ] Phase 7: test manuel dans un navigateur, ajuster caméra/déplacements et vérifier différentes tailles d’écran.
-- [ ] Phase 8: ajouter des lignes d’usine, améliorations et objectifs spécifiques aux mondes.
+- [ ] Phase 7: test manuel dans un navigateur réel, ajuster caméra/déplacements et vérifier différentes tailles d’écran.
+- [x] Phase 8a: ajouter un panneau de recherche avec améliorations permanentes (production, puissance du clic, réduction des coûts).
+- [x] Phase 8b: ajouter cinq contrats de progression avec barre de progression, récompenses et sauvegarde des récompenses réclamées.
+- [ ] Phase 8c: ajouter des lignes de production à plusieurs étapes, des commandes clients et des objectifs propres à chaque monde.
 - [ ] Phase 9: concevoir et tester des sessions multijoueurs autoritaires et des sauvegardes cloud.
 - [ ] Phase 10: déployer une version web publique et organiser des tests de joueurs.
 - [ ] Phase 11: décider si le packaging Tauri a de la valeur.
