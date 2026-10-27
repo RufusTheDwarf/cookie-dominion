@@ -53,8 +53,8 @@ import './style.css';
 const SAVE_KEY = 'cookie-dominion-save-v1';
 const MAP_WIDTH = 1800;
 const MAP_HEIGHT = 1200;
-const STAIRS_X = 940;
-const STAIRS_Y = 520;
+const STAIRS_X = 790;
+const STAIRS_Y = 255;
 const ROOM_BOUNDS = { left: 165, right: 1000, top: 230, bottom: 552 };
 const GATE_BOUNDS = { top: 345, bottom: 435 };
 const DARK_MODE_KEY = 'parfum-empire-dark-mode-v1';
@@ -206,7 +206,7 @@ app.innerHTML = `
           <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>ou les flèches pour te déplacer dehors</span></div>
           <div><kbd>E</kbd><span>près d'un panneau pour construire ou interagir</span></div>
           <div><span class="tutorial-step-number">1</span><span>Rejoins le panneau « TERRAIN · 1 000 » et appuie sur E.</span></div>
-          <div><span class="tutorial-step-number">2</span><span>Crée des parfums puis achète ta première table dans le catalogue.</span></div>
+          <div><span class="tutorial-step-number">2</span><span>Récolte cinq herbes pour composer un parfum, puis achète ta première table dans le catalogue.</span></div>
           <div><span class="tutorial-step-number">3</span><span>Les personnages, les contrats et les autres systèmes arriveront avec ta progression.</span></div>
         </div>
         <button id="tutorial-start-button" class="menu-primary" type="button">ENTRER DANS LE JARDIN</button>
@@ -1528,9 +1528,9 @@ class TycoonScene extends Phaser.Scene {
       stairs.lineStyle(1, 0x5e4835, 0.9);
       stairs.lineBetween(left + 8, y + 5, left + 88, y + 5);
     }
-    this.add.text(STAIRS_X, STAIRS_Y + 49, state.currentFloor === 2 ? 'DESCENDRE · E' : 'ÉTAGES · E', {
+    this.add.text(STAIRS_X + 45, STAIRS_Y + 18, state.currentFloor === 2 ? 'DESCENDRE · E' : 'ÉTAGES · E', {
       fontFamily:'Georgia, serif',fontSize:'10px',fontStyle:'bold',color:'#40382e',backgroundColor:'#e8dec5',padding:{x:5,y:3},
-    }).setOrigin(0.5).setDepth(4);
+    }).setOrigin(0, 0.5).setDepth(4);
   }
 
   private drawFloorDecoration(): void {
@@ -2356,7 +2356,7 @@ function renderTutorial(): void {
   } else if (ownedCurrentWorld === 0) {
     step = 2;
     title = 'Finance ta première table';
-    copy = 'Clique sur CRÉER UN PARFUM pour gagner tes premiers revenus. Puis achète la Table de formulation dans le catalogue à droite : aucune table n’existe sur la carte avant cet achat.';
+    copy = 'Clique cinq fois sur CUEILLIR DES HERBES pour composer ton premier parfum. Répète la récolte jusqu’à pouvoir acheter la Table de formulation dans le catalogue à droite.';
   } else if (state.currentFloor === 0 && !state.unlockedFloors.includes(1) && currentFloorMachines < 2) {
     step = 2;
     title = 'Développe le rez-de-chaussée';
