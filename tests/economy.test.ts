@@ -3,12 +3,17 @@ import {
   addCrumbs,
   applyOfflineProgress,
   buyMachine,
+  buyUpgrade,
+  canClaimMission,
   canRebirth,
+  claimMission,
   createInitialState,
   enterFloor,
   enterWorld,
   exportSaveFile,
   machineCost,
+  manualCookieValue,
+  missionProgress,
   MAX_OFFLINE_SECONDS,
   parseImportedSave,
   parseSavedState,
@@ -16,6 +21,7 @@ import {
   productionPerSecond,
   rebirthCost,
   rebirthMultiplier,
+  upgradeCost,
   type WorldId,
 } from '../apps/web/src/economy';
 
@@ -40,6 +46,53 @@ describe('tycoon economy', () => {
     expect(next.machines['cookie-valley']['hand-mixer']).toBe(1);
     expect(productionPerSecond(next)).toBe(3);
     expect(machineCost(next, 'hand-mixer')).toBe(19);
+  });
+
+  it('buys permanent research upgrades and applies their effects', () => {
+    const initial = createInitialState(100);
+    const withMixer = {
+      ...initial,
+      crumbs: 120,
+      machines: {
+        ...initial.machines,
+        'cookie-valley': { ...initial.machines['cookie-valley'], 'hand-mixer': 1 },
+      },
+    };
+    expect(manualCookieValue(withMixer)).toBe(10);
+    expect(productionPerSecond(withMixer)).toBe(3);
+
+    const researched = buyUpgrade(withMixer, 'production');
+    expect(researched.crumbs).toBe(0);
+    expect(researched.upgrades.production).toBe(1);
+    expect(productionPerSecond(researched)).toBeCloseTo(3.6);
+    expect(upgradeCost(researched, 'production')).toBe(222);
+
+    const clickResearch = buyUpgrade({ ...withMixer, crumbs: 60 }, 'clickPower');
+    expect(manualCookieValue(clickResearch)).toBe(20);
+
+    const discounted = buyUpgrade({ ...withMixer, crumbs: 180 }, 'discount');
+    expect(machineCost(discounted, 'brick-oven')).toBe(105);
+    expect(buyUpgrade({ ...researched, upgrades: { ...researched.upgrades, production: 10 } }, 'production').upgrades.production).toBe(10);
+  });
+
+  it('tracks and rewards completed factory missions exactly once', () => {
+    const initial = createInitialState(100);
+    expect(canClaimMission(initial, 'first-machine')).toBe(false);
+    const built = {
+      ...initial,
+      machines: {
+        ...initial.machines,
+        'cookie-valley': { ...initial.machines['cookie-valley'], 'hand-mixer': 1 },
+      },
+    };
+    expect(missionProgress(built, {
+      id: 'first-machine', name: 'First', description: 'Build', target: 1, reward: 75, kind: 'machines',
+    })).toBe(1);
+    expect(canClaimMission(built, 'first-machine')).toBe(true);
+    const rewarded = claimMission(built, 'first-machine');
+    expect(rewarded.crumbs).toBe(75);
+    expect(rewarded.claimedMissions).toContain('first-machine');
+    expect(claimMission(rewarded, 'first-machine')).toBe(rewarded);
   });
 
   it('requires the matching floor to build a machine', () => {
@@ -165,6 +218,8 @@ describe('tycoon economy', () => {
     expect(loaded?.currentWorld).toBe('choco-moon');
     expect(loaded?.currentFloor).toBe(1);
     expect(loaded?.machines['choco-moon']['conveyor-oven']).toBe(2);
+    expect(loaded?.upgrades).toEqual({ production: 0, clickPower: 0, discount: 0 });
+    expect(loaded?.claimedMissions).toEqual([]);
   });
 
   it('refuses malformed import text instead of replacing progress with a new game', () => {
