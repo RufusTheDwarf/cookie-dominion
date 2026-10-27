@@ -2,7 +2,10 @@ import Phaser from 'phaser';
 import {
   addCrumbs,
   buyMachine,
+  buyUpgrade,
+  canClaimMission,
   canRebirth,
+  claimMission,
   COOKIE_CLICK_VALUE,
   createInitialState,
   enterFloor,
@@ -11,16 +14,24 @@ import {
   getMachine,
   getWorld,
   MACHINES,
+  MAX_UPGRADE_LEVEL,
+  MISSION_DEFINITIONS,
   machineCost,
+  manualCookieValue,
+  missionProgress,
   parseImportedSave,
   parseSavedState,
   performRebirth,
   productionPerSecond,
   rebirthCost,
   rebirthMultiplier,
+  upgradeCost,
+  UPGRADES,
   WORLDS,
   type GameState,
   type MachineId,
+  type MissionId,
+  type UpgradeId,
   type WorldId,
 } from './economy';
 import './style.css';
@@ -34,7 +45,7 @@ if (!app) throw new Error('Missing app root');
 app.innerHTML = `
   <main class="shell">
     <header class="topbar">
-      <div class="brand"><div class="eyebrow">COOKIE INDUSTRIES // TYCOON LABS</div><h1>OVEN<span>FALL</span></h1><p class="subtitle">Construis. Automatise. Recommence plus fort.</p></div>
+      <div class="brand"><div class="eyebrow">COOKIE INDUSTRIES // TYCOON LABS</div><h1>COOKIE<span> DOMINION</span></h1><p class="subtitle">Construis ton empire. Automatise la production. Domine chaque monde.</p></div>
       <div class="header-stats"><div><span class="eyebrow">MONDE</span><strong id="world-name">Cookie Valley</strong></div><div><span class="eyebrow">SAUVEGARDE</span><strong id="save-state">LOCALE</strong></div></div>
     </header>
     <section class="panel save-toolbar">
@@ -66,6 +77,11 @@ app.innerHTML = `
         <p class="objective" id="rebirth-info">Gagne des cookies pour débloquer le rebirth.</p>
         <button class="rebirth-button" id="rebirth-button" disabled>REBIRTH <span id="rebirth-cost">1 500</span></button>
         <p class="hint">Le rebirth remet tes machines et tes cookies à zéro, mais augmente définitivement tes gains.</p>
+        <div class="rule"></div>
+        <div class="eyebrow">QUÊTES & CONTRATS</div>
+        <h2>OBJECTIFS DE L'USINE</h2>
+        <p class="panel-intro">Accomplis des missions, réclame tes récompenses et finance ta prochaine expansion.</p>
+        <div id="mission-list" class="mission-list"></div>
       </aside>
       <section class="panel map-panel">
         <div class="panel-heading"><div><div class="eyebrow">USINE EN 2D</div><h2 id="floor-title">ÉTAGE 1 — ATELIER</h2></div><div class="live-dot">EN DIRECT</div></div>
@@ -96,6 +112,10 @@ app.innerHTML = `
         </div>
       </section>
       <aside class="panel building-panel">
+        <div class="eyebrow">RECHERCHE & DÉVELOPPEMENT</div><h2>AMÉLIORATIONS</h2>
+        <p class="panel-intro">Investis tes cookies dans des bonus permanents. Les niveaux sont conservés après un rebirth.</p>
+        <div id="upgrade-list" class="upgrade-list"></div>
+        <div class="rule"></div>
         <div class="eyebrow">CONSTRUCTION</div><h2>MACHINES</h2>
         <p class="panel-intro">Achète des machines. Elles fabriquent des cookies qui avancent sur le convoyeur jusqu'au collecteur.</p>
         <div class="machine-list" id="machine-list"></div>
@@ -106,7 +126,7 @@ app.innerHTML = `
         <div class="loop-step"><span>03</span><div><strong>Rebirth</strong><small>Repars vite avec un bonus permanent.</small></div></div>
       </aside>
     </section>
-    <footer><span>OVENFALL // PROTOTYPE JOUABLE</span><span>SAUVEGARDE LOCALE · UNE PARTIE PAR NAVIGATEUR</span></footer>
+    <footer><span>COOKIE DOMINION // TYCOON PROTOTYPE</span><span>SAUVEGARDE LOCALE · UNE PARTIE PAR NAVIGATEUR</span></footer>
   </main>
 `;
 
@@ -124,6 +144,8 @@ type MoveDirection = 'up' | 'down' | 'left' | 'right';
 const activeMoveControls = new Set<MoveDirection>();
 let machineUiKey = '';
 let worldUiKey = '';
+let upgradeUiKey = '';
+let missionUiKey = '';
 let bakeryScene: TycoonScene | undefined;
 
 const $ = <T extends HTMLElement>(id: string): T => {
@@ -272,6 +294,89 @@ window.addEventListener('blur', () => {
 });
 $('interact-button').addEventListener('click', () => bakeryScene?.requestInteract());
 
+function renderUpgradeCards(): void {
+  const signature = (Object.keys(UPGRADES) as UpgradeId[]).map((id) =>
+    [id, state.upgrades[id], upgradeCost(state, id), state.crumbs >= upgradeCost(state, id) ? 1 : 0].join(':'),
+  ).join('|');
+  if (signature === upgradeUiKey) return;
+  upgradeUiKey = signature;
+  $('upgrade-list').innerHTML = (Object.keys(UPGRADES) as UpgradeId[]).map((id) => {
+    const upgrade = UPGRADES[id];
+    const level = state.upgrades[id];
+    const maxed = level >= MAX_UPGRADE_LEVEL;
+    const cost = upgradeCost(state, id);
+    return `
+      <button class="upgrade-card ${maxed ? 'is-maxed' : ''}" data-upgrade="${id}" ${maxed || state.crumbs < cost ? 'disabled' : ''}>
+        <span class="upgrade-level">${String(level).padStart(2, '0')}<small>/${MAX_UPGRADE_LEVEL}</small></span>
+        <span class="upgrade-copy"><strong>${upgrade.name}</strong><small>${upgrade.effect}</small><small>${upgrade.description}</small></span>
+        <span class="upgrade-cost">${maxed ? 'MAX' : format(cost)}</span>
+      </button>`;
+  }).join('');
+  document.querySelectorAll<HTMLButtonElement>('[data-upgrade]').forEach((button) => {
+    button.addEventListener('click', () => buyUpgradeById(button.dataset.upgrade as UpgradeId));
+  });
+}
+
+function renderMissionCards(): void {
+  const readyIds = MISSION_DEFINITIONS.filter((mission) => canClaimMission(state, mission.id)).map((mission) => mission.id);
+  const signature = [...state.claimedMissions, 'ready:' + readyIds.join(',')].join('|');
+  if (signature !== missionUiKey) {
+    missionUiKey = signature;
+    $('mission-list').innerHTML = MISSION_DEFINITIONS.map((mission) => {
+      const claimed = state.claimedMissions.includes(mission.id);
+      const ready = canClaimMission(state, mission.id);
+      const progress = missionProgress(state, mission);
+      return `
+        <article class="mission-card ${claimed ? 'is-claimed' : ready ? 'is-ready' : ''}">
+          <div class="mission-topline"><strong>${mission.name}</strong><span>${claimed ? 'TERMINÉ' : '+' + format(mission.reward) + ' 🍪'}</span></div>
+          <p>${mission.description}</p>
+          <div class="mission-progress"><i id="mission-bar-${mission.id}" style="width:${Math.min(100, progress / mission.target * 100)}%"></i></div>
+          <div class="mission-bottomline"><small id="mission-count-${mission.id}">${format(progress)} / ${format(mission.target)}</small>
+          <button type="button" data-mission="${mission.id}" ${claimed || !ready ? 'disabled' : ''}>${claimed ? 'RÉCLAMÉ' : ready ? 'RÉCUPÉRER' : 'EN COURS'}</button></div>
+        </article>`;
+    }).join('');
+    document.querySelectorAll<HTMLButtonElement>('[data-mission]').forEach((button) => {
+      button.addEventListener('click', () => claimMissionReward(button.dataset.mission as MissionId));
+    });
+  }
+
+  for (const mission of MISSION_DEFINITIONS) {
+    const progress = missionProgress(state, mission);
+    const count = document.getElementById('mission-count-' + mission.id);
+    const bar = document.getElementById('mission-bar-' + mission.id);
+    if (count) count.textContent = format(progress) + ' / ' + format(mission.target);
+    if (bar) bar.style.width = Math.min(100, progress / mission.target * 100) + '%';
+  }
+}
+
+function buyUpgradeById(upgradeId: UpgradeId): void {
+  const previous = state;
+  state = buyUpgrade(state, upgradeId);
+  if (state === previous) {
+    setStatus(state.upgrades[upgradeId] >= MAX_UPGRADE_LEVEL
+      ? 'Cette amélioration est déjà au niveau maximal.'
+      : 'Pas assez de cookies pour cette amélioration.');
+    return;
+  }
+  render();
+  save();
+  const upgrade = UPGRADES[upgradeId];
+  setStatus(upgrade.name + ' améliorée au niveau ' + state.upgrades[upgradeId] + '.');
+}
+
+function claimMissionReward(missionId: MissionId): void {
+  const previous = state;
+  state = claimMission(state, missionId);
+  if (state === previous) {
+    setStatus('Cette mission n’est pas encore terminée.');
+    return;
+  }
+  const mission = MISSION_DEFINITIONS.find((item) => item.id === missionId);
+  render();
+  save();
+  if (mission) setStatus('Contrat terminé : +' + format(mission.reward) + ' cookies.');
+}
+
 function renderMachineCards(): void {
   const signature = [
     state.currentWorld,
@@ -342,12 +447,14 @@ function render(): void {
     const floor = Number(button.dataset.floor);
     button.classList.toggle('is-active', floor === state.currentFloor);
   });
+  renderUpgradeCards();
+  renderMissionCards();
   renderMachineCards();
   renderWorldButtons();
 }
 
 function bake(): void {
-  state = addCrumbs(state, COOKIE_CLICK_VALUE);
+  state = addCrumbs(state, manualCookieValue(state));
   render();
   bakeryScene?.pulsePlayer();
   saveSoon();
