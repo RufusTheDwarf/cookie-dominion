@@ -69,7 +69,7 @@ app.innerHTML = `
         <div class="world-save" id="world-save"><strong id="world-name">Jardin de Verre</strong><small id="save-state">SAUVEGARDE LOCALE</small></div>
       </div>
     </header>
-    <details class="utility-drawer">
+    <details class="utility-drawer" id="utility-drawer">
       <summary>⚙ Options et sauvegarde</summary>
       <section class="panel save-toolbar">
       <div class="save-toolbar-heading"><div><div class="eyebrow">DONNÉES DE LA PARTIE</div><strong>SAUVEGARDE / CHARGEMENT</strong><small>Export JSON, import d'une autre sauvegarde ou effacement complet.</small></div></div>
@@ -913,6 +913,7 @@ class TycoonScene extends Phaser.Scene {
   private constructionButtonObjects: Phaser.GameObjects.GameObject[] = [];
   private isBuildingRamp = false;
   private productionLayoutDrawn = false;
+  private vipCustomerVisible = false;
   private exteriorButtonObjects: Phaser.GameObjects.GameObject[] = [];
   private extensionObjects: Phaser.GameObjects.GameObject[] = [];
   private playerFaceParts?: { leftEye: Phaser.GameObjects.Ellipse; rightEye: Phaser.GameObjects.Ellipse; nose: Phaser.GameObjects.Ellipse; hairLock: Phaser.GameObjects.Ellipse; hair: Phaser.GameObjects.Ellipse; hairCurl: Phaser.GameObjects.Ellipse; browLeft: Phaser.GameObjects.Ellipse; browRight: Phaser.GameObjects.Ellipse; cheekLeft: Phaser.GameObjects.Ellipse; cheekRight: Phaser.GameObjects.Ellipse; bottle: Phaser.GameObjects.Ellipse; bottleLabel: Phaser.GameObjects.Rectangle; bottleNeck: Phaser.GameObjects.Rectangle; bottleCap: Phaser.GameObjects.Rectangle };
@@ -931,6 +932,7 @@ class TycoonScene extends Phaser.Scene {
     bakeryScene = this;
     this.isBuildingRamp = false;
     this.productionLayoutDrawn = false;
+    this.vipCustomerVisible = false;
     this.machineObjects = [];
     this.constructionButtonObjects = [];
     this.exteriorButtonObjects = [];
@@ -969,7 +971,6 @@ class TycoonScene extends Phaser.Scene {
 
     if (state.rampBuilt) {
       this.drawBuiltRamp();
-      this.drawFloorDecoration();
       this.drawExteriorExtensions(world.accent);
       this.refreshMachines();
       if (state.unlockedWorlds.length > 1) this.drawPortal(world.accent);
@@ -1158,17 +1159,6 @@ class TycoonScene extends Phaser.Scene {
 
   private drawCharacters(): void {
     this.createNpc(760, 360, 0x6c7960, 0x45362c, 'MILA · PARFUMEUSE', false);
-    this.createNpc(680, 565, 0xa85e49, 0x644430, 'CLIENT VIP', true);
-
-    const deliveryMat = this.add.graphics().setDepth(560);
-    deliveryMat.fillStyle(0x6c765b, 0.22);
-    deliveryMat.fillEllipse(680, 601, 67, 22);
-    deliveryMat.lineStyle(1, 0x575e43, 0.65);
-    deliveryMat.strokeEllipse(680, 601, 67, 22);
-    this.add.text(680, 493, 'COMMANDE À LIVRER', {
-      fontFamily: 'Georgia, serif', fontSize: '10px', fontStyle: 'bold',
-      color: '#40392d', backgroundColor: '#e8dec5', padding: { x: 6, y: 4 },
-    }).setOrigin(0.5).setDepth(590);
 
     const display = this.add.container(330, 165).setDepth(2);
     display.add(this.add.rectangle(0, 13, 137, 15, 0x7d6246).setStrokeStyle(2, 0x433b30));
@@ -1183,6 +1173,21 @@ class TycoonScene extends Phaser.Scene {
       display.add(this.add.rectangle(x, -3, 8, 5, 0xe2d4b5).setStrokeStyle(1, 0x453e32));
     }
     display.add(this.add.text(0, 29, 'ÉCHANTILLONS', {fontFamily:'Georgia, serif',fontSize:'9px',fontStyle:'bold',color:'#3f3b30'}).setOrigin(0.5));
+  }
+
+  private drawVipCustomer(): void {
+    if (this.vipCustomerVisible) return;
+    this.vipCustomerVisible = true;
+    this.createNpc(680, 565, 0xa85e49, 0x644430, 'CLIENT VIP', true);
+    const deliveryMat = this.add.graphics().setDepth(560);
+    deliveryMat.fillStyle(0x6c765b, 0.22);
+    deliveryMat.fillEllipse(680, 601, 67, 22);
+    deliveryMat.lineStyle(1, 0x575e43, 0.65);
+    deliveryMat.strokeEllipse(680, 601, 67, 22);
+    this.add.text(680, 493, 'COMMANDE À LIVRER', {
+      fontFamily: 'Georgia, serif', fontSize: '10px', fontStyle: 'bold',
+      color: '#40392d', backgroundColor: '#e8dec5', padding: { x: 6, y: 4 },
+    }).setOrigin(0.5).setDepth(590);
   }
 
   private drawConveyor(belt: number): void {
@@ -1304,6 +1309,7 @@ class TycoonScene extends Phaser.Scene {
 
     for (const machine of MACHINES.filter((item) => item.floor === state.currentFloor)) {
       const owned = worldMachines[machine.id];
+      if (owned === 0) continue;
       const x = machine.x;
       const y = 292;
       const wood = this.add.graphics();
@@ -1404,10 +1410,14 @@ class TycoonScene extends Phaser.Scene {
       machine.floor === state.currentFloor && worldMachines[machine.id] > 0,
     ).length;
     if (activeOnFloor > 0 && !this.productionLayoutDrawn) {
+      this.drawFloorDecoration();
       this.drawConveyor(world.belt);
       this.drawCollector(world.accent);
       this.drawCharacters();
       this.productionLayoutDrawn = true;
+    }
+    if (this.totalMachinesInCurrentWorld() >= 2 && !this.vipCustomerVisible) {
+      this.drawVipCustomer();
     }
     if (this.collectorLabel) {
       this.collectorLabel.setText(format(productionPerSecond(state)) + ' / s');
@@ -1506,7 +1516,7 @@ class TycoonScene extends Phaser.Scene {
       this.buyExteriorBuild(buildPad.cost);
       return;
     }
-    if (Phaser.Math.Distance.Between(playerX, playerY, 680, 565) < 92) {
+    if (this.vipCustomerVisible && Phaser.Math.Distance.Between(playerX, playerY, 680, 565) < 92) {
       completeVipOrder();
       return;
     }
@@ -1733,7 +1743,6 @@ class TycoonScene extends Phaser.Scene {
       save();
       render();
       this.drawBuiltRamp();
-      this.drawFloorDecoration();
       this.refreshMachines();
       setStatus('La rampe est prête. La manufacture se développera à chaque nouvel achat.');
     });
@@ -1745,7 +1754,7 @@ class TycoonScene extends Phaser.Scene {
 
   private exteriorBuildPad(): { x: number; y: number; cost: number; kind: 'walls' | 'extension' } | null {
     const owned = this.totalMachinesInCurrentWorld();
-    if (!state.wallsBuilt) return state.rampBuilt && owned >= 1 ? { x: 925, y: 330, cost: 250, kind: 'walls' } : null;
+    if (!state.wallsBuilt) return state.rampBuilt && owned >= 2 ? { x: 925, y: 330, cost: 250, kind: 'walls' } : null;
     if (state.outsideExpansions < 3 && owned >= state.outsideExpansions + 2) {
       return { x: 925 + (state.outsideExpansions % 2) * 70, y: 330 + Math.floor(state.outsideExpansions / 2) * 84, cost: [750, 1800, 4200][state.outsideExpansions]!, kind: 'extension' };
     }
