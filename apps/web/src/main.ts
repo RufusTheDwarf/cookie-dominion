@@ -212,6 +212,7 @@ app.innerHTML = `
         <div id="coachmark-label" class="eyebrow">GUIDE DE L’ATELIER</div>
         <h2 id="coachmark-title"></h2>
         <p id="coachmark-copy"></p>
+        <small class="coachmark-footnote">Effectue l’action indiquée, utilise E près d’un chantier sur la carte, puis clique sur « Suivant ».</small>
         <div class="coachmark-actions">
           <button id="coachmark-next" class="menu-primary" type="button">SUIVANT</button>
           <button id="coachmark-skip" class="menu-tertiary" type="button">PASSER LE TUTORIEL</button>
@@ -287,8 +288,7 @@ function prepareEmptySaveForStart(saved: GameState): GameState {
   const owned = Object.values(saved.machines)
     .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
   const unused = !saved.rampBuilt && saved.lifetimeCrumbs === 0 && saved.runCrumbsEarned === 0 &&
-    saved.rebirths === 0 && saved.totalRebirths === 0 && saved.essences === 0 &&
-    saved.ordersCompleted === 0 && owned === 0 && !saved.wallsBuilt && saved.outsideExpansions === 0;
+    saved.rebirths === 0 && owned === 0 && !saved.wallsBuilt && saved.outsideExpansions === 0;
   return unused ? { ...saved, crumbs: Math.max(saved.crumbs, STARTING_LAND_COST) } : saved;
 }
 
@@ -509,7 +509,7 @@ function startGame(newGame = false): void {
     return;
   }
   if (!state.rampBuilt) {
-    setStatus('Objectif : approche-toi du panneau de chantier et appuie sur E pour construire la rampe.');
+    setStatus('Objectif : rejoins le panneau TERRAIN · ' + format(STARTING_LAND_COST) + ' et appuie sur E pour acheter la parcelle.');
   } else {
     setStatus('Partie chargée. « Nouvelle partie » permet de recommencer avec un atelier vide.');
   }
@@ -956,8 +956,8 @@ function render(): void {
   $('empire-value').textContent = format(state.lifetimeCrumbs + state.essences * ESSENCE_PRESTIGE_VALUE);
   $('total-rebirth-count').textContent = String(state.totalRebirths);
   $('owner-rank').textContent = 'Maison indépendante · Rang ' + (1 + state.rebirths + state.totalRebirths * 10);
-  $('floor-title').textContent = !state.rampBuilt ? 'CHANTIER — PREMIÈRE RAMPE' : ['REZ-DE-CHAUSSÉE — FORMULATION', 'ÉTAGE 2 — EMBOUTEILLAGE', 'ÉTAGE 3 — EXTRACTION'][state.currentFloor] ?? 'ATELIER';
-  $('scene-eyebrow').textContent = state.rampBuilt ? 'LA MANUFACTURE · VUE LIBRE' : 'LE CHANTIER · PREMIÈRE CONSTRUCTION';
+  $('floor-title').textContent = !state.rampBuilt ? 'JARDIN — TERRAIN À ACHETER' : ['REZ-DE-CHAUSSÉE — FORMULATION', 'ÉTAGE 2 — EMBOUTEILLAGE', 'ÉTAGE 3 — EXTRACTION'][state.currentFloor] ?? 'ATELIER';
+  $('scene-eyebrow').textContent = state.rampBuilt ? 'LA MANUFACTURE · VUE LIBRE' : 'LE JARDIN · PREMIER TERRAIN';
   $('rebirth-cost').textContent = format(rebirthCost(state.rebirths));
   $('rebirth-button').toggleAttribute('disabled', !canRebirth(state));
   $('rebirth-progress').style.width = Math.min(100, state.runCrumbsEarned / rebirthCost(state.rebirths) * 100) + '%';
@@ -1725,7 +1725,7 @@ class TycoonScene extends Phaser.Scene {
     const playerY = this.player.y;
     if (!state.rampBuilt) {
       if (this.isBuildingRamp) {
-        setStatus('La rampe est en cours de construction…');
+        setStatus('Le terrain est en cours d’aménagement…');
         return;
       }
       if (Phaser.Math.Distance.Between(playerX, playerY, 620, 425) < 100) {
