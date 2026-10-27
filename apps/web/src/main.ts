@@ -70,6 +70,12 @@ app.innerHTML = `
         <div class="stat-row"><span>Rebirths</span><strong id="rebirth-count">0</strong></div>
         <div class="stat-row"><span>Cookies cette vie</span><strong id="run-earned">0</strong></div>
         <button class="primary" id="bake-button">FAIRE UN COOKIE <span>+10</span></button>
+        <button id="golden-cookie" class="golden-cookie-button" type="button" disabled>
+          <span class="golden-cookie-icon">★</span>
+          <span class="golden-cookie-copy"><strong>COOKIE DORÉ</strong><small id="golden-cookie-status">Premier bonus dans 25 s</small></span>
+          <span class="golden-cookie-mark">×2</span>
+        </button>
+        <div class="hint">Attrape le cookie doré avant qu'il disparaisse : récompense immédiate et production doublée pendant 20 secondes.</div>
         <div class="hint">Déplace-toi avec WASD ou les flèches. Approche-toi d'une machine, des escaliers ou du portail et appuie sur E.</div>
         <div class="rule"></div>
         <div class="eyebrow">REBIRTH</div><div class="rebirth-progress"><div id="rebirth-progress"></div></div>
@@ -139,6 +145,11 @@ let saveTimer = 0;
 let statusTimer = 0;
 let renderTimer = 0;
 let previousFrame = performance.now();
+let goldenReadyAt = performance.now() + 25_000;
+let goldenDeadline = 0;
+let goldenBoostUntil = 0;
+let goldenCookiesClaimed = 0;
+let goldenUiSecond = -1;
 type MoveDirection = 'up' | 'down' | 'left' | 'right';
 const activeMoveControls = new Set<MoveDirection>();
 let machineUiKey = '';
@@ -292,6 +303,53 @@ window.addEventListener('blur', () => {
   document.querySelectorAll<HTMLButtonElement>('[data-move]').forEach((button) => button.classList.remove('is-pressed'));
 });
 $('interact-button').addEventListener('click', () => bakeryScene?.requestInteract());
+$('golden-cookie').addEventListener('click', claimGoldenCookie);
+
+function renderGoldenCookie(now: number): void {
+  const button = $<HTMLButtonElement>('golden-cookie');
+  const status = $('golden-cookie-status');
+  const second = Math.floor(now / 1000);
+  if (second === goldenUiSecond) return;
+  goldenUiSecond = second;
+
+  if (now < goldenBoostUntil) {
+    button.disabled = true;
+    button.classList.add('is-boosted');
+    button.classList.remove('is-ready');
+    status.textContent = 'BOOST ×2 · ' + Math.ceil((goldenBoostUntil - now) / 1000) + ' s restantes';
+    return;
+  }
+
+  button.classList.remove('is-boosted');
+  const remaining = goldenDeadline - now;
+  if (remaining > 0) {
+    button.disabled = false;
+    button.classList.add('is-ready');
+    status.textContent = 'DISPONIBLE · ' + Math.ceil(remaining / 1000) + ' s pour le prendre';
+    return;
+  }
+
+  button.disabled = true;
+  button.classList.remove('is-ready');
+  status.textContent = 'Prochain bonus dans ' + Math.max(0, Math.ceil((goldenReadyAt - now) / 1000)) + ' s';
+}
+
+function claimGoldenCookie(): void {
+  const now = performance.now();
+  if (goldenDeadline <= now) return;
+  const reward = Math.max(50, productionPerSecond(state) * 10 + manualCookieValue(state) * 10);
+  state = addCrumbs(state, reward);
+  goldenDeadline = 0;
+  goldenBoostUntil = now + 20_000;
+  goldenReadyAt = goldenBoostUntil + 45_000 + Math.random() * 25_000;
+  goldenUiSecond = -1;
+  goldenCookiesClaimed += 1;
+  render();
+  renderGoldenCookie(now);
+  save();
+  bakeryScene?.pulsePlayer();
+  setStatus('Cookie doré récupéré : +' + format(reward) + ' cookies et production ×2 pendant 20 secondes.');
+}
 
 function renderUpgradeCards(): void {
   const signature = (Object.keys(UPGRADES) as UpgradeId[]).map((id) =>
@@ -857,7 +915,18 @@ new Phaser.Game({
 function animationTick(now: number): void {
   const elapsed = Math.min(1, Math.max(0, (now - previousFrame) / 1000));
   previousFrame = now;
-  const production = productionPerSecond(state);
+  if (goldenDeadline === 0 && now >= goldenReadyAt && now >= goldenBoostUntil) {
+    goldenDeadline = now + 12_000;
+    goldenReadyAt = Number.POSITIVE_INFINITY;
+    setStatus('Un cookie doré est apparu ! Réclame-le avant qu’il disparaisse.');
+  } else if (goldenDeadline > 0 && now >= goldenDeadline) {
+    goldenDeadline = 0;
+    goldenReadyAt = now + 45_000 + Math.random() * 25_000;
+    setStatus('Le cookie doré a disparu. Un autre arrivera bientôt.');
+  }
+  renderGoldenCookie(now);
+  const boostMultiplier = now < goldenBoostUntil ? 2 : 1;
+  const production = productionPerSecond(state) * boostMultiplier;
   if (production > 0 && elapsed > 0) {
     state = addCrumbs(state, production * elapsed);
   }
