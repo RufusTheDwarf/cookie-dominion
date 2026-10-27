@@ -836,7 +836,7 @@ class TycoonScene extends Phaser.Scene {
   private productionLayoutDrawn = false;
   private exteriorButtonObjects: Phaser.GameObjects.GameObject[] = [];
   private extensionObjects: Phaser.GameObjects.GameObject[] = [];
-  private playerFaceParts?: { leftEye: Phaser.GameObjects.Ellipse; rightEye: Phaser.GameObjects.Ellipse; nose: Phaser.GameObjects.Ellipse; hairLock: Phaser.GameObjects.Ellipse };
+  private playerFaceParts?: { leftEye: Phaser.GameObjects.Ellipse; rightEye: Phaser.GameObjects.Ellipse; nose: Phaser.GameObjects.Ellipse; hairLock: Phaser.GameObjects.Ellipse; hair: Phaser.GameObjects.Ellipse; hairCurl: Phaser.GameObjects.Ellipse; browLeft: Phaser.GameObjects.Ellipse; browRight: Phaser.GameObjects.Ellipse; cheekLeft: Phaser.GameObjects.Ellipse; cheekRight: Phaser.GameObjects.Ellipse; bottle: Phaser.GameObjects.Ellipse; bottleLabel: Phaser.GameObjects.Rectangle; bottleNeck: Phaser.GameObjects.Rectangle; bottleCap: Phaser.GameObjects.Rectangle };
   private playerLimbs?: { leftLeg: Phaser.GameObjects.Ellipse; rightLeg: Phaser.GameObjects.Ellipse; leftArm: Phaser.GameObjects.Ellipse; rightArm: Phaser.GameObjects.Ellipse };
   private facing: MoveDirection = 'down';
   private walkPhase = 0;
@@ -1020,7 +1020,7 @@ class TycoonScene extends Phaser.Scene {
     const bottleLabel = this.add.rectangle(27, 7, 7, 5, 0xe7d6a8).setStrokeStyle(1, ink);
     const bottleNeck = this.add.rectangle(27, -4, 5, 5, 0xd5bf8d).setStrokeStyle(1, ink);
     const bottleCap = this.add.rectangle(27, -8, 7, 4, 0x6d503b).setStrokeStyle(1, ink);
-    this.playerFaceParts = { leftEye: eyeLeft, rightEye: eyeRight, nose, hairLock };
+    this.playerFaceParts = { leftEye: eyeLeft, rightEye: eyeRight, nose, hairLock, hair, hairCurl, browLeft, browRight, cheekLeft, cheekRight, bottle, bottleLabel, bottleNeck, bottleCap };
     this.playerLimbs = { leftLeg, rightLeg, leftArm, rightArm };
     const player = this.add.container(x, y, [
       shadow, legLeft, legRight, shoeLeft, shoeRight, body, apron, apronBib, apronPocket,
@@ -1484,26 +1484,62 @@ class TycoonScene extends Phaser.Scene {
   private setFacing(direction: MoveDirection): void {
     if (this.facing === direction || !this.playerFaceParts) return;
     this.facing = direction;
-    const { leftEye, rightEye, nose, hairLock } = this.playerFaceParts;
-    const front = direction !== 'up';
-    leftEye.setVisible(front);
-    rightEye.setVisible(front);
-    nose.setVisible(front);
+    const parts = this.playerFaceParts;
+    const faceVisible = direction !== 'up';
+    parts.leftEye.setVisible(faceVisible);
+    parts.rightEye.setVisible(faceVisible);
+    parts.nose.setVisible(faceVisible);
+    parts.browLeft.setVisible(faceVisible);
+    parts.browRight.setVisible(faceVisible);
+    parts.cheekLeft.setVisible(faceVisible);
+    parts.cheekRight.setVisible(faceVisible);
+
+    // Profile poses expose only the near eye; back view hides the whole face.
     if (direction === 'left') {
-      leftEye.setPosition(-10, -29);
-      rightEye.setPosition(-3, -29);
-      nose.setPosition(-13, -24);
-      hairLock.setPosition(-11, -36);
+      parts.leftEye.setPosition(-9, -28);
+      parts.rightEye.setVisible(false);
+      parts.browLeft.setPosition(-9, -32);
+      parts.browRight.setVisible(false);
+      parts.cheekLeft.setPosition(-10, -24);
+      parts.cheekRight.setVisible(false);
+      parts.nose.setPosition(-13, -23);
+      parts.hairLock.setPosition(-12, -35);
+      parts.hair.setPosition(-4, -41);
+      parts.hairCurl.setPosition(-12, -40);
+      parts.bottle.setPosition(-27, 6);
+      parts.bottleLabel.setPosition(-27, 7);
+      parts.bottleNeck.setPosition(-27, -4);
+      parts.bottleCap.setPosition(-27, -8);
     } else if (direction === 'right') {
-      leftEye.setPosition(3, -29);
-      rightEye.setPosition(10, -29);
-      nose.setPosition(13, -24);
-      hairLock.setPosition(11, -36);
+      parts.leftEye.setVisible(false);
+      parts.rightEye.setPosition(9, -28);
+      parts.browLeft.setVisible(false);
+      parts.browRight.setPosition(9, -32);
+      parts.cheekLeft.setVisible(false);
+      parts.cheekRight.setPosition(10, -24);
+      parts.nose.setPosition(13, -23);
+      parts.hairLock.setPosition(12, -35);
+      parts.hair.setPosition(4, -41);
+      parts.hairCurl.setPosition(12, -40);
+      parts.bottle.setPosition(27, 6);
+      parts.bottleLabel.setPosition(27, 7);
+      parts.bottleNeck.setPosition(27, -4);
+      parts.bottleCap.setPosition(27, -8);
     } else {
-      leftEye.setPosition(-6, -29);
-      rightEye.setPosition(6, -29);
-      nose.setPosition(0, -24);
-      hairLock.setPosition(-9, -36);
+      parts.leftEye.setPosition(-6, -28);
+      parts.rightEye.setPosition(6, -28);
+      parts.nose.setPosition(0, -23);
+      parts.browLeft.setPosition(-6, -32);
+      parts.browRight.setPosition(6, -32);
+      parts.cheekLeft.setPosition(-10, -24);
+      parts.cheekRight.setPosition(10, -24);
+      parts.hairLock.setPosition(direction === 'up' ? -8 : -10, direction === 'up' ? -34 : -35);
+      parts.hair.setPosition(0, -42);
+      parts.hairCurl.setPosition(8, -41);
+      parts.bottle.setPosition(27, 6);
+      parts.bottleLabel.setPosition(27, 7);
+      parts.bottleNeck.setPosition(27, -4);
+      parts.bottleCap.setPosition(27, -8);
     }
   }
 
