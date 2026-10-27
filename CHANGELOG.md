@@ -8,6 +8,8 @@
 - Added total ascension after 10 normal rebirths. Total ascension resets normal progression and grants persistent Essences originelles.
 - Defined each essence as 1,000,000 empire-value points and a permanent +75% production bonus.
 - Updated README, roadmap, implementation status and platform documentation.
+- Added scalable VIP perfume orders that require walking to the client and pressing E, with persistent order counts and a first-delivery contract.
+- Added tests for VIP orders, payouts, order scaling and mission rewards.
 - Added tests for total ascension, reset behavior and essence bonuses.
 
 ## 0.1.0 — 2026-10-26
