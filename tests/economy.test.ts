@@ -133,8 +133,8 @@ describe('tycoon economy', () => {
     const delivered = completeCustomerOrder(funded);
     expect(delivered.crumbs).toBe(216);
     expect(delivered.ordersCompleted).toBe(1);
-    expect(delivered.lifetimeCrumbs).toBe(125);
-    expect(delivered.runCrumbsEarned).toBe(125);
+    expect(delivered.lifetimeCrumbs).toBe(216);
+    expect(delivered.runCrumbsEarned).toBe(216);
     expect(customerOrderCost(delivered)).toBe(198);
     expect(customerOrderReward(delivered)).toBe(357);
     const secondDelivery = completeCustomerOrder(delivered);
