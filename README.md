@@ -23,7 +23,7 @@ La structure est désormais celle d'un **clicker tycoon** : le flacon est le poi
 
 ## Structure de l'interface
 
-- **Le parfumeur :** zone de récolte aléatoire, animation de la matière découverte, progression de 0 à 10, carnet botanique, flacon mythique et commandes VIP.
+- **Le parfumeur :** récolte aléatoire, aperçu du dernier ingrédient, inventaire botanique, cinq recettes, ventes manuelles, demandes VIP et flacon mythique.
 - **La manufacture :** grille compacte des dix équipements, quantité possédée, coût du prochain exemplaire et rendement par seconde.
 - **Le bureau :** six onglets dédiés aux recherches, contrats, honneurs, collections, prestige et sauvegardes.
 - **Barre économique :** trésorerie, production par seconde, progression des matières pour la prochaine fragrance et cumul du run.
@@ -37,9 +37,9 @@ L'interface utilise des illustrations SVG originales pour la maison, les flacons
 3. **Livre les commandes VIP** : prépare la recette et la quantité demandées pour obtenir une prime ; les flacons livrés sont consommés.
 4. **Investis dans les producteurs** : commence par la table de formulation, puis achète des équipements plus coûteux qui génèrent des parfums automatiquement.
 5. **Achète des recherches** pour augmenter la production, améliorer la chance de récolte bonus, réduire les coûts, prolonger les bonus rares et augmenter les paiements VIP.
-7. **Réclame les contrats** et complète le registre des honneurs.
-8. **Ouvre de nouvelles collections** en effectuant des rebirths.
-9. **Effectue une ascension totale** pour gagner des Essences originelles persistantes.
+6. **Réclame les contrats** et complète le registre des honneurs.
+7. **Ouvre de nouvelles collections** en effectuant des rebirths.
+8. **Effectue une ascension totale** pour gagner des Essences originelles persistantes.
 
 ## Systèmes implémentés
 
@@ -49,7 +49,6 @@ L'interface utilise des illustrations SVG originales pour la maison, les flacons
 - **Commandes VIP réelles :** demande de recette et quantité, vérification du stock, consommation des flacons, prime de livraison et progression des commandes persistée.
 - **Cinq recherches :** production globale, chance de récolter une matière bonus, réduction du prix des équipements, durée du bonus mythique et paiement des commandes VIP. Chaque recherche possède dix niveaux.
 - **Flacon mythique :** apparaît temporairement, rapporte une récompense immédiate et double la production pendant une durée améliorée par la recherche correspondante.
-- **Commandes VIP :** dépense de préparation, paiement croissant, marge améliorée par la recherche commerciale et progression sauvegardée.
 - **Contrats :** six objectifs réclamables, liés aux équipements, aux ventes cumulées, aux collections et aux commandes.
 - **Honneurs :** distinctions automatiques dérivées des étapes de progression.
 - **Trois collections :** Jardin de Verre, Maison d'Ambre et Palais Astral. Chaque collection garde son propre inventaire et son multiplicateur de revenus.
