@@ -17,7 +17,7 @@
 
 ## Le concept
 
-Tu commences sans parfum fini, avec des matières premières à découvrir. Chaque clic récolte un ingrédient botanique aléatoire : lavande, menthe, rose, bergamote ou une essence plus rare. **Dix matières permettent de composer un parfum.** Les fragrances gagnées servent ensuite à acheter des équipements, développer des recherches et automatiser la production.
+Tu commences sans parfum fini, avec des matières premières à découvrir. Chaque clic récolte un ingrédient botanique aléatoire : lavande, menthe, rose, bergamote ou une essence plus rare. **Compose manuellement des recettes à partir d'herbes précises, puis vends les flacons.** Les contrats VIP demandent désormais une fragrance et une quantité précises ; les flacons livrés sont consommés et donnent une prime.
 
 La structure est désormais celle d'un **clicker tycoon** : le flacon est le point d'entrée principal du jeu, la manufacture rassemble les producteurs et le bureau regroupe les systèmes de progression. La navigation sur une carte 2D et les étages à parcourir ne font plus partie de la boucle centrale.
 
@@ -32,20 +32,21 @@ L'interface utilise des illustrations SVG originales pour la maison, les flacons
 
 ## Boucle de jeu
 
-1. **Récolte des matières** : chaque clic révèle un objet aléatoire. Les neuf premiers clics ne donnent pas directement de parfum.
-2. **Assemble une fragrance** après dix matières récoltées. Les matières sont consommées pour produire un parfum.
-3. **Investis dans les producteurs** : commence par la table de formulation, puis achète des équipements plus coûteux qui génèrent des parfums automatiquement.
-4. **Achète des recherches** pour augmenter la production, améliorer la chance de récolte bonus, réduire les coûts, prolonger les bonus rares et augmenter les paiements VIP.
-5. **Livre des commandes VIP** depuis le panneau dédié ; les coûts et les paiements progressent avec chaque livraison.
-6. **Réclame les contrats** et complète le registre des honneurs.
-7. **Ouvre de nouvelles collections** en effectuant des rebirths.
-8. **Effectue une ascension totale** pour gagner des Essences originelles persistantes.
+1. **Récolte des matières** : chaque clic révèle une herbe ou une essence aléatoire, qui reste en stock.
+2. **Compose une recette** avec les ingrédients requis, puis vends le flacon manuellement à bas prix au début.
+3. **Livre les commandes VIP** : prépare la recette et la quantité demandées pour obtenir une prime ; les flacons livrés sont consommés.
+4. **Investis dans les producteurs** : commence par la table de formulation, puis achète des équipements plus coûteux qui génèrent des parfums automatiquement.
+5. **Achète des recherches** pour augmenter la production, améliorer la chance de récolte bonus, réduire les coûts, prolonger les bonus rares et augmenter les paiements VIP.
+7. **Réclame les contrats** et complète le registre des honneurs.
+8. **Ouvre de nouvelles collections** en effectuant des rebirths.
+9. **Effectue une ascension totale** pour gagner des Essences originelles persistantes.
 
 ## Systèmes implémentés
 
 - **Dix producteurs :** table de formulation, alambic de cuivre, ligne d'embouteillage, atelier de parfumeur, extracteur astral, serre botanique, presse à enfleurage, atelier haute parfumerie, distillateur de cristal et manufacture orbitale.
 - **Production incrémentale :** coûts croissants à chaque achat, revenu passif calculé par seconde et multiplication du rendement selon la collection active.
-- **Récolte botanique :** sept matières à probabilités différentes, dix ingrédients consommés par fragrance et carnet de découvertes sauvegardé.
+- **Récolte botanique :** sept matières à probabilités différentes, cinq recettes à combinaisons explicites, flacons en stock et carnet de découvertes sauvegardé.
+- **Commandes VIP réelles :** demande de recette et quantité, vérification du stock, consommation des flacons, prime de livraison et progression des commandes persistée.
 - **Cinq recherches :** production globale, chance de récolter une matière bonus, réduction du prix des équipements, durée du bonus mythique et paiement des commandes VIP. Chaque recherche possède dix niveaux.
 - **Flacon mythique :** apparaît temporairement, rapporte une récompense immédiate et double la production pendant une durée améliorée par la recherche correspondante.
 - **Commandes VIP :** dépense de préparation, paiement croissant, marge améliorée par la recherche commerciale et progression sauvegardée.
