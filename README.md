@@ -38,6 +38,7 @@ Parfum Empire se déroule dans une maison de parfumerie que le joueur développe
 - Trois pièces reliées par des passages : jardin botanique, laboratoire et boutique.
 - Trois étages persistants avec escalier interactif, palette distincte et catalogue filtré par étage.
 - Navigation clavier et commandes tactiles, avec activation native des boutons au clavier.
+- Effets sonores originaux générés localement, désactivables dans les paramètres, sans fichier audio externe.
 - Sept parcelles botaniques à récolte déterministe.
 - Cinq recettes qui utilisent des combinaisons d'ingrédients précises.
 - Inventaire des matières, découvertes, flacons fabriqués et ventes.

@@ -856,3 +856,7 @@ body.theme-dark{
 
 /* Keyboard users keep native focus and button activation across the interface. */
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--brass);outline-offset:2px}
+
+
+/* Audio preference uses the same switch rhythm as the appearance setting. */
+.theme-toggle input{accent-color:var(--moss);width:18px;height:18px;flex:0 0 auto}

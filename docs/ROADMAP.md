@@ -17,7 +17,7 @@
 ## Prochaine phase
 
 - [ ] Tester les déplacements, la proximité des postes et l'interface tactile sur un vrai navigateur.
-- [ ] Ajouter des animations de marche et d'interaction, ainsi que des effets sonores originaux.
+- [x] Ajouter des animations de marche et d'interaction, ainsi que des effets sonores originaux désactivables.
 - [x] Progression entre étages avec escalier, coûts, prérequis, sélecteur et catalogues séparés.
 - [ ] Développer davantage la géométrie de chaque étage, les portes intérieures et les points d'accès physiques.
 - [x] Donner à chaque machine achetée un emplacement physique, une animation de production et un compteur de quantité.

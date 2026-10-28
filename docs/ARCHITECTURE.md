@@ -39,6 +39,7 @@ Les commandes clients suivent une rotation déterministe de cinq recettes. La pr
 - Flèches ou ZQSD pour marcher.
 - Clic ou toucher le sol pour se déplacer vers une position.
 - E ou bouton Interagir à proximité d'un poste.
+- Les effets sonores utilisent Web Audio avec des oscillateurs et restent facultatifs; aucune ressource audio externe n'est chargée.
 - Les commandes de navigation restent accessibles avec Tab et Enter/Space. Les touches de déplacement ne prennent pas le contrôle lorsqu'un bouton ou un champ reçoit le focus.
 - Commandes directionnelles tactiles sur les petits écrans.
 

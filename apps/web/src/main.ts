@@ -55,6 +55,18 @@ import { createWorkshopScene, type WorkshopScene, type WorkshopStation, type Mov
 
 const SAVE_KEY = 'parfum-empire-save-v1';
 const LEGACY_SAVE_KEY = 'cookie-dominion-save-v1';
+const SOUND_KEY = 'parfum-empire-sound-enabled-v1';
+
+type SoundEffect = 'harvest' | 'craft' | 'sell' | 'order' | 'purchase' | 'unlock' | 'prestige';
+const SOUND_NOTES: Record<SoundEffect, number[]> = {
+  harvest: [660, 880],
+  craft: [392, 494, 659],
+  sell: [740, 988],
+  order: [523, 659, 784, 1046],
+  purchase: [440, 554, 659],
+  unlock: [330, 440, 554, 740],
+  prestige: [392, 494, 587, 784, 988],
+};
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('Missing app root');
 
@@ -69,6 +81,42 @@ let selectedRecipeId: RecipeId = 'green-whisper';
 let workshopScene: WorkshopScene | null = null;
 let nearbyStation: WorkshopStation | null = null;
 let state: GameState;
+let soundEnabled = readSoundPreference();
+let soundContext: AudioContext | null = null;
+
+function readSoundPreference(): boolean {
+  try {
+    return localStorage.getItem(SOUND_KEY) !== 'false';
+  } catch {
+    return false;
+  }
+}
+
+function playSound(effect: SoundEffect): void {
+  if (!soundEnabled || typeof window.AudioContext !== 'function') return;
+  try {
+    soundContext ??= new window.AudioContext();
+    if (soundContext.state === 'suspended') void soundContext.resume().catch(() => undefined);
+    const context = soundContext;
+    const notes = SOUND_NOTES[effect];
+    notes.forEach((frequency, index) => {
+      const start = context.currentTime + index * 0.055;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = effect === 'unlock' || effect === 'prestige' ? 'triangle' : 'sine';
+      oscillator.frequency.setValueAtTime(frequency, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.025, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.14);
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(start);
+      oscillator.stop(start + 0.145);
+    });
+  } catch {
+    // Audio is an optional enhancement; the game remains fully playable without it.
+  }
+}
 
 function normalizeGameState(value: GameState): GameState {
   const unlockedFloors = [...new Set([
@@ -496,6 +544,7 @@ function renderSavePanel(): string {
     <textarea id="save-data-text" rows="7" spellcheck="false" placeholder="Clique sur EXPORTER EN JSON ou colle ici une sauvegarde à importer."></textarea>
     <div class="save-panel-actions"><button id="import-save" class="secondary-button" type="button">IMPORTER LE TEXTE COLLÉ</button><button id="erase-save" class="secondary-button danger-outline" type="button">EFFACER LA PARTIE</button></div>
     <label class="theme-toggle"><span><strong>Mode sombre</strong><small>Réduit la luminosité de l'interface.</small></span><input id="dark-mode-toggle" type="checkbox" ${document.body.classList.contains('theme-dark') ? 'checked' : ''} /></label>
+    <label class="theme-toggle"><span><strong>Effets sonores</strong><small>Notes synthétiques pour les récoltes, ventes et améliorations.</small></span><input id="sound-enabled-toggle" type="checkbox" ${soundEnabled ? 'checked' : ''} /></label>
     <p class="save-warning">Importer remplace la partie actuelle. Vérifie que tu as exporté tes progrès avant de réinitialiser.</p>`;
 }
 
@@ -597,6 +646,7 @@ function interactWithStation(station: WorkshopStation): void {
   if (MATERIALS.some((material) => material.id === station)) {
     const material = station as MaterialId;
     const result = harvestMaterial(state, material);
+    if (result.state !== state) playSound('harvest');
     state = result.state;
     const definition = MATERIALS.find((item) => item.id === material)!;
     renderAll();
@@ -618,6 +668,7 @@ function interactWithStation(station: WorkshopStation): void {
       return;
     }
     state = craftPerfume(state, selectedRecipeId);
+    playSound('craft');
     renderAll();
     setStatus(recipe.name + ' formulé au laboratoire. Le flacon attend au comptoir.');
     saveSoon();
@@ -649,6 +700,7 @@ function interactWithStation(station: WorkshopStation): void {
         return;
       }
       state = unlockFloor(state, targetFloor);
+      playSound('unlock');
     }
     state = enterFloor(state, targetFloor);
     renderAll();
@@ -666,6 +718,7 @@ function interactWithStation(station: WorkshopStation): void {
       return;
     }
     state = fulfillCustomerOrder(state);
+    playSound('order');
     renderAll();
     setStatus('Commande #' + order.orderNumber + ' livrée à ' + order.customer + ' : ' +
       order.quantity + ' × ' + recipe.name + ', prime comprise : +' + format(order.reward) + ' pièces.');
@@ -679,6 +732,7 @@ function interactWithStation(station: WorkshopStation): void {
   }
   const price = perfumeSalePrice(state, selectedRecipeId);
   state = sellPerfume(state, selectedRecipeId);
+  playSound('sell');
   renderAll();
   setStatus(recipe.name + ' vendu au comptoir pour ' + format(price) + ' pièces.');
   saveSoon();
@@ -772,6 +826,7 @@ function buyMachineById(machineId: MachineId): void {
     setStatus('Il te faut encore ' + format(Math.max(0, machineCost(state, machineId) - state.perfumeRevenue)) + ' parfums pour cet équipement.');
     return;
   }
+  playSound('purchase');
   renderAll();
   setStatus(getMachineLabel(machineId) + ' installé : la production automatique augmente.');
   saveSoon();
@@ -791,6 +846,7 @@ function buyUpgradeById(upgradeId: UpgradeId): void {
       : 'Fonds insuffisants : il manque ' + format(Math.max(0, cost - state.perfumeRevenue)) + ' parfums.');
     return;
   }
+  playSound('purchase');
   renderAll();
   setStatus('Recherche appliquée : ' + UPGRADES[upgradeId].name + '.');
   saveSoon();
@@ -824,6 +880,7 @@ function doRebirth(): void {
   );
   if (!accepted) return;
   state = normalizeGameState(performRebirth(state));
+  playSound('prestige');
   renderAll();
   setStatus('Rebirth effectué. La prochaine maison produira 60 % plus vite.');
   save();
@@ -838,6 +895,7 @@ function doTotalRebirth(): void {
   );
   if (!accepted) return;
   state = normalizeGameState(performTotalRebirth(state));
+  playSound('prestige');
   renderAll();
   setStatus('Ascension accomplie. Les Essences originelles renforcent définitivement tes prochaines maisons.');
   save();
@@ -993,6 +1051,16 @@ app.addEventListener('change', (event) => {
   const target = event.target;
   if (target instanceof HTMLInputElement && target.id === 'dark-mode-toggle') {
     document.body.classList.toggle('theme-dark', target.checked);
+  }
+  if (target instanceof HTMLInputElement && target.id === 'sound-enabled-toggle') {
+    soundEnabled = target.checked;
+    try {
+      localStorage.setItem(SOUND_KEY, String(soundEnabled));
+    } catch {
+      // The preference remains active for this tab even without storage.
+    }
+    if (soundEnabled) playSound('unlock');
+    setStatus(soundEnabled ? 'Effets sonores activés.' : 'Effets sonores désactivés.');
   }
 });
 
