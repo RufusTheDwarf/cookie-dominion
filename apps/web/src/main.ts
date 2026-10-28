@@ -190,7 +190,7 @@ app.innerHTML = `
     <footer class="game-footer">
       <span>PARFUM EMPIRE <i>/</i> MAISON DES ESSENCES</span>
       <span>PRODUCTION CONTINUE · SAUVEGARDE AUTOMATIQUE</span>
-      <span id="footer-version">V. 0.5.0 · ATELIER INTERACTIF</span>
+      <span id="footer-version">V. 0.4.0 · ATELIER INTERACTIF</span>
     </footer>
     <input id="import-file" type="file" accept=".json,.txt,application/json,text/plain" hidden />
   </main>
