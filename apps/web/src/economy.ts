@@ -1054,6 +1054,9 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       state.upgrades.production > 0 ||
       state.upgrades.clickPower > 0 ||
       state.upgrades.discount > 0 ||
+      state.upgrades.rareBonus > 0 ||
+      state.upgrades.orders > 0 ||
+      state.outsideExpansions > 0 ||
       state.gatherClicks > 0 ||
       state.perfumesSold > 0 ||
       Object.values(state.ingredients).some((count) => count > 0) ||

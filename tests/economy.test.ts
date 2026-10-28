@@ -78,6 +78,14 @@ describe('tycoon economy', () => {
     expect(staleEmptySave.currentFloor).toBe(0);
     expect(staleEmptySave.unlockedFloors).toEqual([0]);
 
+    const expandedLegacySave = parseSavedState(JSON.stringify({
+      ...initial,
+      rampBuilt: undefined,
+      outsideExpansions: 1,
+    }), 100);
+    expect(expandedLegacySave.outsideExpansions).toBe(1);
+    expect(expandedLegacySave.rampBuilt).toBe(true);
+
     const explicitRampSave = parseSavedState(JSON.stringify({ ...initial, rampBuilt: true }), 100);
     expect(explicitRampSave.rampBuilt).toBe(true);
   });
