@@ -23,6 +23,7 @@
 | Commandes clients | Implémenté | Rotation déterministe de recettes, quantité vérifiée et progression sauvegardée |
 | Réputation de la maison | Implémenté | 25 points par livraison, 10 rangs, prime de commande de 50 à 95 % |
 | Coûts d'exploitation | Implémenté | Entretien des machines, rendement net affiché et calcul cohérent hors ligne |
+| Parcelles bonus | Implémenté | Trois parcelles achetables, invisibles avant achat et reliées à la récolte ciblée |
 | Producteurs | Implémenté | Dix équipements avec coûts croissants et production passive |
 | Recherches | Implémenté | Production, récolte ciblée, remise, extraction spécialisée et finition de luxe |
 | Contrats et honneurs | Implémenté | Objectifs liés aux ventes, équipements et collections |
