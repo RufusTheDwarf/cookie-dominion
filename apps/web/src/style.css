@@ -461,3 +461,206 @@ footer{display:flex;justify-content:space-between;gap:12px;margin-top:14px;paddi
   .coachmark-card h2{font-size:17px}
   .coachmark-card p{font-size:11px}
 }
+
+
+/* Direction artistique — atelier de parfumerie, interface d'atelier éditoriale.
+   Ces règles remplacent les effets papier artificiels et les composants trop décoratifs. */
+:root{
+  color-scheme:light;
+  --paper:#eee8d9;
+  --paper-light:#f7f3e9;
+  --paper-shadow:#d8cfba;
+  --ink:#242d27;
+  --ink-soft:#5e655c;
+  --moss:#304c3b;
+  --moss-deep:#20382c;
+  --rust:#873d3b;
+  --rust-dark:#642b2d;
+  --brass:#a4834b;
+  --line:#343c34;
+  --soft-line:#c7c0ad;
+  --green-pale:#d8dfce;
+  --shadow:none;
+  background:var(--paper);
+  color:var(--ink);
+}
+body{
+  background:#d8d3c5;
+  background-image:none;
+}
+.shell{max-width:1800px;padding:14px 16px 20px}
+.topbar{
+  border:1px solid var(--line);
+  border-top:4px solid var(--moss);
+  border-radius:0;
+  box-shadow:none;
+  background:var(--paper-light);
+  padding:14px 18px;
+}
+.topbar:after{display:none}
+.brand-symbol{filter:none}
+.brand-symbol:before{
+  border-radius:2px 2px 7px 7px;
+  background:#49634c;
+  transform:none;
+}
+.brand-symbol:after{
+  border-radius:0;
+  background:var(--brass);
+}
+.brand-symbol span{
+  border-radius:0;
+  background:#e6d8b8;
+  transform:none;
+}
+.brand-symbol i{background:var(--rust);transform:none}
+.topbar h1{letter-spacing:-.7px;font-size:clamp(22px,2.2vw,31px)}
+.topbar .eyebrow{letter-spacing:1.8px}
+.subtitle{font-style:normal;font-family:inherit;font-size:11px;letter-spacing:.15px}
+.currency-display,.hud-stat{
+  border-radius:0;
+  box-shadow:none;
+}
+.currency-display{
+  background:#e4ddcb;
+  border:1px solid #a8a18e;
+  border-top:2px solid var(--brass);
+}
+.hud-stat{
+  background:transparent;
+  border:0;
+  border-left:1px solid var(--soft-line);
+  padding:7px 10px;
+}
+.hud-stat strong{color:var(--moss-deep)}
+.world-save{border-left:2px solid var(--brass)}
+.pause-menu-button,.utility-drawer summary{
+  border-radius:0;
+  box-shadow:none;
+  font-family:inherit;
+  letter-spacing:.8px;
+}
+.dashboard{
+  gap:12px;
+  grid-template-columns:minmax(225px,.78fr) minmax(420px,1.58fr) minmax(245px,.9fr);
+}
+.panel{
+  border:1px solid #a9a28f;
+  border-top:3px solid var(--moss);
+  border-radius:0;
+  box-shadow:none;
+  background:var(--paper-light);
+  padding:14px;
+}
+.panel h2,.panel h3{letter-spacing:0}
+.panel h2{font-family:Georgia,"Times New Roman",serif;font-weight:600}
+.panel h3{font-family:inherit;font-weight:700}
+.eyebrow{font-family:inherit;letter-spacing:1.35px;font-size:9px}
+.owner-avatar{border-radius:0;background:#d8cfba}
+.owner-avatar .avatar-hair{border-radius:0;transform:none}
+.owner-avatar .avatar-scarf{border-radius:0;background:#526b51;box-shadow:none}
+.manual-production,.customer-order-card,.prestige-card,.mission-card,.machine-card,.upgrade-card,
+.world-button,.nav-button,.map-toolbar,.tutorial-banner,.save-action,.menu-card,.menu-subpanel{
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+.manual-production{
+  background:#e9e2d1;
+  border:1px solid #b7ae98;
+  border-left:3px solid var(--brass);
+}
+.primary{
+  border-radius:0;
+  box-shadow:none;
+  background:var(--moss);
+  border:1px solid var(--moss-deep);
+  font-family:inherit;
+  letter-spacing:.55px;
+}
+.primary:hover:not(:disabled){background:var(--moss-deep);transform:none}
+.customer-order-card{
+  background:#f0e8d5;
+  border:1px solid #b5a47e;
+  border-left:3px solid var(--brass);
+}
+.golden-cookie-button{
+  border-radius:0!important;
+  box-shadow:none!important;
+  border:1px solid #a4834b!important;
+  background:#e9dfc8!important;
+}
+.prestige-card{border-width:1px!important}
+.prestige-pill{border-radius:0!important}
+.mission-card,.machine-card,.upgrade-card{
+  background:#f5f0e4!important;
+  border:1px solid #c9c1ad!important;
+}
+.machine-card:hover:not(:disabled),.upgrade-card:hover:not(:disabled),
+.mission-card.is-ready{border-color:var(--brass)!important}
+.machine-icon,.upgrade-level,.machine-cost,.upgrade-cost{
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+.map-panel{overflow:hidden}
+.game-canvas{
+  border:1px solid #777d6b;
+  background:#a5aa8d;
+  border-radius:0;
+}
+.game-canvas canvas{image-rendering:pixelated}
+.map-toolbar{border:1px solid var(--soft-line);background:#e9e3d4}
+.interact-button,.nav-button,.world-button{
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+.interact-button{background:var(--moss)!important}
+.map-legend{
+  border-top:1px solid var(--soft-line);
+  font-size:10px;
+}
+.world-button.is-active,.nav-button.is-active{
+  border-color:var(--moss)!important;
+  background:#e1e6d8!important;
+}
+.world-dot{border-radius:0!important}
+.progress-bar,.mission-progress,.rebirth-progress{border-radius:0!important}
+.progress-bar i,.mission-progress i,.rebirth-progress i{border-radius:0!important}
+.save-toolbar{background:#e8e1d1}
+.save-action{
+  border:1px solid #a9a18e;
+  background:#f4efe3;
+  font-family:inherit;
+}
+.save-action:hover:not(:disabled){background:#e2dac7}
+.main-menu{
+  background:#e6dfcf!important;
+  backdrop-filter:none!important;
+}
+.menu-card{
+  border:1px solid #8f927d!important;
+  border-top:4px solid var(--moss)!important;
+  background:var(--paper-light)!important;
+  box-shadow:none!important;
+}
+.menu-emblem{filter:none!important}
+.menu-primary,.menu-secondary,.menu-tertiary{border-radius:0!important;box-shadow:none!important}
+.menu-primary{background:var(--moss)!important}
+.theme-dark .panel,.theme-dark .topbar,.theme-dark .menu-card{
+  box-shadow:none!important;
+  border-radius:0!important;
+}
+button:focus-visible,summary:focus-visible{
+  outline:2px solid var(--rust);
+  outline-offset:2px;
+}
+@media(max-width:1050px){
+  .dashboard{grid-template-columns:minmax(0,1fr) minmax(0,1.5fr)}
+}
+@media(max-width:760px){
+  .shell{padding:8px}
+  .topbar{padding:11px;align-items:flex-start;flex-wrap:wrap}
+  .brand{min-width:0}
+  .header-stats{justify-content:flex-start;width:100%}
+  .dashboard{grid-template-columns:minmax(0,1fr)}
+  .panel{padding:12px}
+}
