@@ -802,7 +802,7 @@ function claimGoldenCookie(): void {
   renderGoldenCookie(now);
   save();
   bakeryScene?.pulsePlayer();
-  setStatus('Flacon mythique récupéré : +' + format(reward) + ' parfums et ventes ×2 pendant 20 secondes.');
+  setStatus('Flacon mythique récupéré : +' + format(reward) + ' pièces et ventes ×2 pendant 20 secondes.');
 }
 
 function renderUpgradeCards(): void {
@@ -866,7 +866,7 @@ function buyUpgradeById(upgradeId: UpgradeId): void {
   if (state === previous) {
     setStatus(state.upgrades[upgradeId] >= MAX_UPGRADE_LEVEL
       ? 'Cette amélioration est déjà au niveau maximal.'
-      : 'Pas assez de parfums pour cette amélioration.');
+      : 'Pas assez de pièces pour cette amélioration.');
     return;
   }
   render();
@@ -1118,7 +1118,7 @@ function buyMachineById(machineId: MachineId): void {
     const machine = getMachine(machineId);
     setStatus(machine.floor !== state.currentFloor
       ? 'Passe à l’étage ' + (machine.floor + 1) + ' pour acheter cette machine.'
-      : 'Pas assez de parfums pour cet équipement.');
+      : 'Pas assez de pièces pour cet équipement.');
     return;
   }
   render();
@@ -1411,9 +1411,9 @@ class TycoonScene extends Phaser.Scene {
 
   private drawHerbPatches(): void {
     const locations: Array<{ id: HerbId; x: number; y: number }> = [
-      { id: 'lavender', x: 300, y: 700 },
-      { id: 'mint', x: 500, y: 760 },
-      { id: 'rose', x: 730, y: 760 },
+      { id: 'lavender', x: 300, y: 620 },
+      { id: 'mint', x: 500, y: 670 },
+      { id: 'rose', x: 730, y: 720 },
       { id: 'lavender', x: 1160, y: 350 },
       { id: 'mint', x: 1320, y: 720 },
       { id: 'rose', x: 1530, y: 480 },
@@ -1970,7 +1970,7 @@ class TycoonScene extends Phaser.Scene {
       }
       const opened = unlockFloor(state, nextFloor);
       if (opened === state) {
-        setStatus('Les escaliers coûtent ' + format(floorUnlockCost(nextFloor)) + ' parfums. Il t’en manque ' + format(Math.max(0, floorUnlockCost(nextFloor) - state.crumbs)) + '.');
+        setStatus('Les escaliers coûtent ' + format(floorUnlockCost(nextFloor)) + ' pièces. Il t’en manque ' + format(Math.max(0, floorUnlockCost(nextFloor) - state.crumbs)) + '.');
         return;
       }
       state = opened;
@@ -2282,7 +2282,7 @@ class TycoonScene extends Phaser.Scene {
       render();
       this.spawnOnRestart = { x: 620, y: 425 };
       this.scene.restart();
-      setStatus('Terrain acheté. Tu peux maintenant produire des parfums et installer tes premières machines.');
+      setStatus('Terrain acheté. Récolte les plantes du jardin, compose une recette dans l’herbier et vends ton premier flacon.');
     });
   }
 
@@ -2506,11 +2506,11 @@ function renderTutorial(): void {
   if (!state.rampBuilt) {
     step = 1;
     title = 'Achète ton terrain';
-    copy = 'Tu commences dehors avec ' + format(STARTING_LAND_COST) + ' parfums. Rejoins le panneau TERRAIN · ' + format(STARTING_LAND_COST) + ' et appuie sur E pour acheter ta parcelle.';
+    copy = 'Tu commences dehors avec ' + format(STARTING_LAND_COST) + ' pièces. Rejoins le panneau TERRAIN · ' + format(STARTING_LAND_COST) + ' et appuie sur E pour acheter ta parcelle.';
   } else if (ownedCurrentWorld === 0) {
     step = 2;
     title = 'Finance ta première table';
-    copy = 'Clique cinq fois sur CUEILLIR DES HERBES pour composer ton premier parfum. Répète la récolte jusqu’à pouvoir acheter la Table de formulation dans le catalogue à droite.';
+    copy = 'Récolte les touffes de lavande, de menthe et de rose avec E. Combine les ingrédients dans l’herbier, puis vends chaque flacon pour gagner des pièces.';
   } else if (state.currentFloor === 0 && !state.unlockedFloors.includes(1) && currentFloorMachines < 2) {
     step = 2;
     title = 'Développe le rez-de-chaussée';
