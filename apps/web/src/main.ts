@@ -789,10 +789,14 @@ app.addEventListener('click', (event) => {
   }
   if (target.id === 'copy-save') {
     const raw = exportSave();
-    void navigator.clipboard?.writeText(raw).then(
-      () => setStatus('Sauvegarde copiée dans le presse-papiers.'),
-      () => setStatus('Le texte JSON est prêt dans la zone de sauvegarde : copie-le manuellement.'),
-    );
+    if (!navigator.clipboard?.writeText) {
+      setStatus('Le texte JSON est prêt dans la zone de sauvegarde : copie-le manuellement.');
+    } else {
+      void navigator.clipboard.writeText(raw).then(
+        () => setStatus('Sauvegarde copiée dans le presse-papiers.'),
+        () => setStatus('Le texte JSON est prêt dans la zone de sauvegarde : copie-le manuellement.'),
+      );
+    }
     return;
   }
   if (target.id === 'import-file-button') {
