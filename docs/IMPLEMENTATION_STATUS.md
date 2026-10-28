@@ -7,7 +7,7 @@
 | Atelier 2D | Implémenté | Jardin, laboratoire et boutique dans un monde plus grand que l'écran |
 | Caméra | Implémenté | Suit le joueur et reste dans les limites de la carte |
 | Identité visuelle des mondes | Implémenté | Fond, sols, chemins, séparations et mobilier adaptés à la collection active |
-| Étages accessibles | Implémenté | Escalier, coûts et prérequis, sélection, persistance et catalogue limité à l'étage actif |
+| Étages accessibles | Implémenté | Escaliers montants et descendants, coûts, prérequis, sélection, persistance, catalogues filtrés et arrivée près de l'escalier opposé |
 | Architecture des étages | Implémenté | Lignes de conditionnement au 1er étage, chambres d’extraction au 2e, ouvertures encadrées |
 | Escaliers bidirectionnels | Implémenté | Escalier montant et descendant visibles selon l’étage, règles de navigation testées |
 | Animation du personnage | Implémenté | Orientation, marche, mouvement du corps et geste d'interaction |
@@ -22,7 +22,8 @@
 | Carnet de formulations | Implémenté | Cinq recettes, sélection d'une formule et stock de flacons |
 | Laboratoire | Implémenté | Consomme les ingrédients nécessaires et crée le flacon choisi |
 | Comptoir | Implémenté | Vend le flacon sélectionné ou livre une commande client complète |
-| Commandes clients | Implémenté | Rotation déterministe de recettes, quantité vérifiée et progression sauvegardée |
+| Commandes clients | Implémenté | Rotation déterministe de recettes, quantité vérifiée, progression sauvegardée et prime liée à la réputation |
+| Client dans la boutique | Implémenté | Personnage animé près du comptoir avec bulle synchronisée à la commande active |
 | Réputation de la maison | Implémenté | 25 points par livraison, 10 rangs, prime de commande de 50 à 95 % |
 | Coûts d'exploitation | Implémenté | Entretien des machines, rendement net affiché et calcul cohérent hors ligne |
 | Parcelles bonus | Implémenté | Trois parcelles achetables, invisibles avant achat et reliées à la récolte ciblée |
