@@ -1,5 +1,6 @@
 import {
   addPerfumeRevenue,
+  applyOfflineProgress,
   botanicalExpansionCost,
   canUnlockBotanicalExpansion,
   unlockBotanicalExpansion,
@@ -1183,14 +1184,26 @@ byId<HTMLInputElement>('import-file').addEventListener('change', async (event) =
 });
 
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') save();
+  if (document.visibilityState === 'hidden') {
+    save();
+    return;
+  }
+
+  const revenueBeforeCatchUp = state.perfumeRevenue;
+  state = applyOfflineProgress(state, Date.now());
+  const revenueGained = state.perfumeRevenue - revenueBeforeCatchUp;
+  save();
+  renderAll();
+  if (revenueGained > 0) {
+    setStatus('Pendant ton absence, la manufacture a généré ' + format(revenueGained) + ' pièces nettes.');
+  }
 });
 window.addEventListener('beforeunload', save);
 
 function gameTick(now: number): void {
   const elapsed = Math.min(1, Math.max(0, (now - lastTick) / 1000));
   lastTick = now;
-  if (elapsed > 0) {
+  if (elapsed > 0 && document.visibilityState === 'visible') {
     const cps = netProductionPerSecond(state);
     if (cps > 0) state = addPerfumeRevenue(state, cps * elapsed);
     autoSaveElapsed += elapsed;
