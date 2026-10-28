@@ -100,7 +100,6 @@ export interface GameState {
 export const MAX_OFFLINE_SECONDS = 8 * 60 * 60;
 /** The opening plot is a one-time purchase; an empty new game receives this amount. */
 export const STARTING_LAND_COST = 1_000;
-export const PERFUME_CLICK_VALUE = 1;
 export const INGREDIENTS_PER_PERFUME = 10;
 export const TOTAL_REBIRTH_BASE_LEVEL = 10;
 export const TOTAL_REBIRTH_LEVEL_STEP = 5;
@@ -450,10 +449,6 @@ export function upgradeCost(state: GameState, upgradeId: UpgradeId): number {
   const definition = UPGRADES[upgradeId];
   const level = state.upgrades[upgradeId];
   return Math.ceil(definition.baseCost * definition.growth ** level);
-}
-
-export function manualPerfumeValue(state: Pick<GameState, 'upgrades'>): number {
-  return PERFUME_CLICK_VALUE * (1 + state.upgrades.clickPower);
 }
 
 function chooseMaterial(roll: number): MaterialId {
