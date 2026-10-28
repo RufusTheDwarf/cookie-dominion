@@ -665,3 +665,166 @@ button:focus-visible,summary:focus-visible{
   .dashboard{grid-template-columns:minmax(0,1fr)}
   .panel{padding:12px}
 }
+
+/* Identité visuelle illustrée : emblèmes et équipements dessinés pour Parfum Empire. */
+.brand-symbol{
+  flex:0 0 58px;
+  width:58px;
+  height:68px;
+  display:grid;
+  place-items:center;
+  overflow:visible;
+}
+.brand-symbol::before,.brand-symbol::after,.brand-symbol span,.brand-symbol i{display:none!important}
+.brand-symbol img{
+  display:block;
+  width:60px;
+  height:70px;
+  object-fit:contain;
+  filter:drop-shadow(1px 2px 0 rgba(48,47,39,.15));
+  transform-origin:50% 80%;
+  animation:emblem-rest 7s ease-in-out infinite;
+}
+@keyframes emblem-rest{
+  0%,88%,100%{transform:rotate(0deg)}
+  92%{transform:rotate(-2deg)}
+  96%{transform:rotate(2deg)}
+}
+.rare-flacon-icon{
+  display:grid;
+  place-items:center;
+  flex:0 0 44px;
+  width:44px;
+  height:54px;
+  font-size:0;
+}
+.rare-flacon-icon img{
+  display:block;
+  width:43px;
+  height:53px;
+  object-fit:contain;
+  transition:transform .18s ease;
+}
+.rare-flacon-button:hover:not(:disabled) .rare-flacon-icon img{
+  transform:translateY(-2px) rotate(-3deg);
+}
+.tutorial-illustration{
+  position:relative;
+  display:grid;
+  place-items:center;
+  width:124px;
+  height:132px;
+  margin:0 auto 8px;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+}
+.tutorial-illustration::before{
+  content:"";
+  position:absolute;
+  width:108px;
+  height:108px;
+  border:1px solid #c6b28a;
+  border-radius:50%;
+  background:radial-gradient(circle,#f3ead4 0,#eee4cb 64%,rgba(238,228,203,0) 65%);
+}
+.tutorial-illustration img{
+  position:relative;
+  z-index:1;
+  display:block;
+  width:92px;
+  height:120px;
+  object-fit:contain;
+}
+.tutorial-illustration span,.tutorial-illustration i,.tutorial-illustration b{display:none!important}
+.menu-emblem{
+  display:grid!important;
+  place-items:center;
+  width:108px!important;
+  height:116px!important;
+  margin:0 auto 12px!important;
+  padding:0!important;
+  border:0!important;
+  background:transparent!important;
+}
+.menu-emblem::before{
+  content:"";
+  position:absolute;
+  width:104px;
+  height:104px;
+  border:1px solid #b9a77f;
+  border-radius:50%;
+  background:radial-gradient(circle,#f6efdf 0,#efe5cd 65%,rgba(239,229,205,0) 66%);
+}
+.menu-emblem img{
+  position:relative;
+  z-index:1;
+  display:block;
+  width:90px;
+  height:108px;
+  object-fit:contain;
+  filter:drop-shadow(1px 3px 0 rgba(48,47,39,.14));
+}
+.menu-emblem span,.menu-emblem i,.menu-emblem b{display:none!important}
+.menu-card{
+  position:relative;
+  overflow:hidden;
+}
+.menu-card::before{
+  content:"";
+  position:absolute;
+  inset:10px;
+  border:1px solid rgba(178,138,77,.35);
+  pointer-events:none;
+}
+.menu-card>*{position:relative}
+.menu-card .eyebrow{color:var(--moss-deep)}
+.menu-card h1{
+  font-family:Georgia,"Times New Roman",serif!important;
+  letter-spacing:1px!important;
+}
+.menu-card h1 span{color:var(--rust)!important}
+.menu-subtitle{
+  max-width:420px;
+  margin-left:auto!important;
+  margin-right:auto!important;
+  line-height:1.7!important;
+}
+.menu-primary,.menu-secondary,.menu-tertiary{
+  min-height:42px;
+  letter-spacing:1px;
+  transition:background .16s ease,border-color .16s ease,transform .16s ease;
+}
+.menu-primary:hover:not(:disabled),.menu-secondary:hover:not(:disabled){
+  transform:translateY(-1px);
+}
+.machine-card,.upgrade-card{
+  transition:background .14s ease,border-color .14s ease,transform .14s ease;
+}
+.machine-card:hover:not(:disabled),.upgrade-card:hover:not(:disabled){
+  transform:translateX(2px);
+}
+.game-canvas{isolation:isolate}
+.game-canvas canvas{position:relative;z-index:1}
+.map-legend .legend-parfum{
+  width:10px;
+  height:10px;
+  background:#a66b4c;
+  border:1px solid #62422f;
+}
+.map-legend .legend-player{
+  width:10px;
+  height:10px;
+  background:#53694c;
+  border:1px solid #2e402e;
+}
+@media(prefers-reduced-motion:reduce){
+  .brand-symbol img{animation:none}
+  .rare-flacon-icon img,.machine-card,.upgrade-card,.menu-primary,.menu-secondary,.menu-tertiary{transition:none}
+}
+@media(max-width:760px){
+  .brand-symbol{flex-basis:49px;width:49px;height:61px}
+  .brand-symbol img{width:53px;height:63px}
+  .menu-emblem{margin-bottom:7px!important}
+}
+
