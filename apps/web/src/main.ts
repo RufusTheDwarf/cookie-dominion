@@ -32,6 +32,8 @@ import {
   MISSION_DEFINITIONS,
   machineCost,
   missionProgress,
+  netProductionPerSecond,
+  operatingCostsPerSecond,
   parseImportedSave,
   parseSavedState,
   performRebirth,
@@ -160,7 +162,7 @@ app.innerHTML = `
           <strong id="header-money">0</strong>
           <small>pièces disponibles</small>
         </div>
-        <div class="header-stat"><span>PRODUCTION</span><strong id="header-cps">0</strong><small>par seconde</small></div>
+        <div class="header-stat"><span>PRODUCTION NETTE</span><strong id="header-cps">0</strong><small>après entretien / s</small></div>
         <div class="header-stat"><span>MATIÈRES</span><strong id="header-click">0</strong><small>ingrédients en stock</small></div>
         <div class="header-stat"><span>VIE DU RUN</span><strong id="header-run">0</strong><small>produits cumulés</small></div>
         <button id="open-settings" class="icon-button" type="button" title="Paramètres et sauvegarde" aria-label="Paramètres et sauvegarde">☷</button>
@@ -229,7 +231,7 @@ app.innerHTML = `
       <section class="column production-column">
         <div class="section-heading">
           <div><span class="eyebrow">02 · AUTOMATISATION</span><h1>La manufacture</h1><p class="heading-note">Chaque équipement produit en continu, même sans clic.</p></div>
-          <div class="production-totals"><strong id="factory-cps">0</strong><small>PAR SECONDE</small></div>
+          <div class="production-totals"><strong id="factory-cps">0</strong><small>RENDEMENT NET / S</small></div>
         </div>
         <div class="manufacture-banner">
           <div class="banner-stamp"><img src="/assets/perfume-emblem.svg" alt="" /></div>
@@ -369,7 +371,9 @@ function renderHarvestView(): void {
 
 function renderStats(): void {
   const world = getWorld(state.currentWorld);
-  const cps = productionPerSecond(state);
+  const grossCps = productionPerSecond(state);
+  const upkeepCps = operatingCostsPerSecond(state);
+  const cps = netProductionPerSecond(state);
   byId('header-money').textContent = format(state.perfumeRevenue);
   byId('header-money').title = formatExact(state.perfumeRevenue) + ' pièces';
   byId('header-cps').textContent = format(cps);
@@ -385,8 +389,8 @@ function renderStats(): void {
   byId('factory-status').textContent = currentWorldMachineTotal() === 0
     ? 'La première ligne attend son équipement.'
     : currentWorldMachineTotal() + ' équipement(s) en service dans cette collection.';
-  byId('factory-detail').textContent = cps > 0
-    ? format(cps) + ' pièces sont générées chaque seconde.'
+  byId('factory-detail').textContent = grossCps > 0
+    ? 'Brut : ' + format(grossCps) + ' / s. Entretien : ' + format(upkeepCps, 3) + ' / s. Net : ' + format(cps, 3) + ' / s.'
     : 'Vends tes premiers flacons ou investis dans une machine pour lancer les revenus automatiques.';
   byId('machine-count').textContent = format(currentWorldMachineTotal(), 0) + ' INSTALLÉ' + (currentWorldMachineTotal() > 1 ? 'S' : '');
 }
@@ -399,18 +403,21 @@ function renderMachines(): void {
     const owned = current[machine.id];
     const cost = machineCost(state, machine.id);
     const canAfford = state.perfumeRevenue >= cost;
+    const world = getWorld(state.currentWorld);
     const perSecond = (machine.payout / machine.cycleSeconds) *
-      getWorld(state.currentWorld).incomeMultiplier *
+      world.incomeMultiplier *
       (1 + state.upgrades.production * 0.2) *
       (1.6 ** state.rebirths) *
       essenceMultiplier(state);
+    const upkeepPerSecond = machine.cost * world.costMultiplier / 600;
     return `
       <article class="building-row ${owned > 0 ? 'is-owned' : ''} ${canAfford ? 'can-buy' : 'is-expensive'}">
         <div class="building-portrait"><img src="${machineIcon(machine.id)}" alt="" loading="lazy" /></div>
         <div class="building-info">
           <div class="building-title-line"><h3>${machine.name}</h3><span class="building-tier">${tierName(machine.floor)}</span></div>
           <p>${machine.description}</p>
-          <div class="building-output"><span>PRODUCTION</span><strong>${format(perSecond)} / s</strong></div>
+          <div class="building-output"><span>PRODUCTION NETTE</span><strong>${format(perSecond - upkeepPerSecond)} / s</strong></div>
+          <div class="building-output"><span>ENTRETIEN</span><strong>${format(upkeepPerSecond, 3)} / s</strong></div>
           <div class="building-price-line"><span>PROCHAIN COÛT</span><strong>${format(cost)}</strong></div>
         </div>
         <div class="building-buy-side">
@@ -1088,7 +1095,7 @@ function gameTick(now: number): void {
   const elapsed = Math.min(1, Math.max(0, (now - lastTick) / 1000));
   lastTick = now;
   if (elapsed > 0) {
-    const cps = productionPerSecond(state);
+    const cps = netProductionPerSecond(state);
     if (cps > 0) state = addPerfumeRevenue(state, cps * elapsed);
     autoSaveElapsed += elapsed;
     if (autoSaveElapsed >= 10) {
