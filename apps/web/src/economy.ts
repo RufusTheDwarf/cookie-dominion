@@ -603,68 +603,6 @@ export function productionPerSecond(
   return base * world.incomeMultiplier * REBIRTH_MULTIPLIER ** state.rebirths * productionUpgrade * essenceMultiplier(state);
 }
 
-const INTRODUCTORY_ORDER_SEQUENCE: RecipeId[] = [
-  'green-whisper',
-  'soft-rose',
-  'citrus-dawn',
-  'green-whisper',
-  'soft-rose',
-  'citrus-dawn',
-];
-const ADVANCED_ORDER_SEQUENCE: RecipeId[] = [
-  'royal-bouquet',
-  'amber-velvet',
-  'green-whisper',
-  'soft-rose',
-  'citrus-dawn',
-];
-
-/** The next VIP request is derived from completed orders, so it needs no separate save field. */
-export function currentCustomerOrder(state: Pick<GameState, 'ordersCompleted'>): CustomerOrderRequest {
-  const completed = Math.max(0, Math.floor(state.ordersCompleted));
-  if (completed < INTRODUCTORY_ORDER_SEQUENCE.length) {
-    return {
-      recipeId: INTRODUCTORY_ORDER_SEQUENCE[completed]!,
-      quantity: completed < 3 ? 1 : 2,
-    };
-  }
-
-  const advancedIndex = (completed - INTRODUCTORY_ORDER_SEQUENCE.length) % ADVANCED_ORDER_SEQUENCE.length;
-  const quantity = 1 + Math.floor((completed - INTRODUCTORY_ORDER_SEQUENCE.length) / ADVANCED_ORDER_SEQUENCE.length);
-  return { recipeId: ADVANCED_ORDER_SEQUENCE[advancedIndex]!, quantity };
-}
-
-/** VIP orders pay a premium over selling the requested bottles individually. */
-export function customerOrderReward(state: GameState): number {
-  const order = currentCustomerOrder(state);
-  const baseReward = Math.ceil(
-    perfumeSalePrice(state, order.recipeId) * order.quantity * CUSTOMER_ORDER_REWARD_MULTIPLIER,
-  );
-  return Math.ceil(baseReward * (1 + state.upgrades.orders * 0.1));
-}
-
-export function canCompleteCustomerOrder(state: GameState): boolean {
-  const order = currentCustomerOrder(state);
-  return state.perfumeStock[order.recipeId] >= order.quantity;
-}
-
-export function completeCustomerOrder(state: GameState): GameState {
-  if (!canCompleteCustomerOrder(state)) return state;
-  const order = currentCustomerOrder(state);
-  const reward = customerOrderReward(state);
-  const perfumeStock = {
-    ...state.perfumeStock,
-    [order.recipeId]: state.perfumeStock[order.recipeId] - order.quantity,
-  };
-  const delivered: GameState = {
-    ...state,
-    perfumeStock,
-    perfumesSold: state.perfumesSold + order.quantity,
-    ordersCompleted: state.ordersCompleted + 1,
-  };
-  return addPerfumeRevenue(delivered, reward);
-}
-
 export function addPerfumeRevenue(state: GameState, amount: number): GameState {
   if (!Number.isFinite(amount) || amount < 0) return state;
   return {
