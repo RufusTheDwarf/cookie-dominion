@@ -43,6 +43,7 @@ Parfum Empire se déroule dans une maison de parfumerie que le joueur développe
 - Cinq recettes qui utilisent des combinaisons d'ingrédients précises.
 - Inventaire des matières, découvertes, flacons fabriqués et ventes.
 - Commandes clients déterministes, quantités requises, réputation de la maison avec dix rangs et prime de livraison croissante jusqu'à 95 %.
+- Client animé près du comptoir, dont la bulle reflète la commande active et son état de préparation.
 - Rendement net après entretien, y compris dans la production hors ligne.
 - Dix équipements de production, cinq recherches évolutives, entretien calculé par machine et rendement net après coûts.
 - Contrats, honneurs, trois collections, rebirth et ascension totale.

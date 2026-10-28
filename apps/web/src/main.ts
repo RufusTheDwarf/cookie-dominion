@@ -880,11 +880,21 @@ function interactWithStation(station: WorkshopStation): void {
 }
 
 
+function currentCustomerVisual() {
+  const order = getActiveCustomerOrder(state);
+  return {
+    name: order.customer,
+    orderNumber: order.orderNumber,
+    quantity: order.quantity,
+    ready: canFulfillCustomerOrder(state),
+  };
+}
+
 function renderAll(): void {
   workshopScene?.setEnvironment(getWorld(state.currentWorld), state.currentFloor, MACHINES.map((machine) => ({
     id: machine.id, short: machine.short, name: machine.name, floor: machine.floor,
     count: state.machines[state.currentWorld][machine.id],
-  })), state.outsideExpansions);
+  })), state.outsideExpansions, currentCustomerVisual());
   renderStats();
   renderFloorNavigation();
   renderHarvestView();
@@ -1285,7 +1295,7 @@ workshopScene = createWorkshopScene(byId<HTMLCanvasElement>('workshop-canvas'), 
 workshopScene.setEnvironment(getWorld(state.currentWorld), state.currentFloor, MACHINES.map((machine) => ({
   id: machine.id, short: machine.short, name: machine.name, floor: machine.floor,
   count: state.machines[state.currentWorld][machine.id],
-})), state.outsideExpansions);
+})), state.outsideExpansions, currentCustomerVisual());
 renderFloorNavigation();
 save();
 if (saveRecoveryMessage) setStatus(saveRecoveryMessage);

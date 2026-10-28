@@ -20,10 +20,23 @@ export interface WorkshopMachineVisual {
   count: number;
 }
 
+export interface WorkshopCustomerVisual {
+  name: string;
+  orderNumber: number;
+  quantity: number;
+  ready: boolean;
+}
+
 export interface WorkshopScene {
   move(direction: MoveDirection): void;
   interact(): void;
-  setEnvironment(theme: WorkshopTheme, floor: number, machines: WorkshopMachineVisual[], botanicalExpansions?: number): void;
+  setEnvironment(
+    theme: WorkshopTheme,
+    floor: number,
+    machines: WorkshopMachineVisual[],
+    botanicalExpansions?: number,
+    customerOrder?: WorkshopCustomerVisual,
+  ): void;
   destroy(): void;
 }
 
@@ -151,6 +164,7 @@ export function createWorkshopScene(
   let currentFloor = 0;
   let unlockedBotanicalExpansions = 0;
   let placedMachines: WorkshopMachineVisual[] = [];
+  let customerOrder: WorkshopCustomerVisual | null = null;
   let destroyed = false;
   let lastReported: WorkshopStation | null = null;
   let elapsedWorld = 0;
@@ -674,6 +688,66 @@ export function createWorkshopScene(
     });
   }
 
+  function drawCustomer(): void {
+    if (!customerOrder || currentFloor !== 0) return;
+    const c = context!;
+    const x = 1360;
+    const y = 443 + Math.sin(elapsedWorld * 2.1) * 1.2;
+    c.save();
+    c.translate(x, y);
+
+    c.fillStyle = 'rgba(35,39,31,.20)';
+    c.beginPath();
+    c.ellipse(0, 17, 15, 6, 0, 0, Math.PI * 2);
+    c.fill();
+
+    c.strokeStyle = '#49392d';
+    c.lineWidth = 4;
+    c.lineCap = 'round';
+    c.beginPath();
+    c.moveTo(-5, 8); c.lineTo(-6, 17);
+    c.moveTo(5, 8); c.lineTo(6, 17);
+    c.stroke();
+
+    roundedRect(-13, -8, 26, 24, 6, colorHex(theme.accent), colorHex(theme.belt));
+    c.fillStyle = '#e9d8b7';
+    c.fillRect(-3, -7, 6, 15);
+
+    c.fillStyle = '#b78a62';
+    c.beginPath();
+    c.arc(0, -20, 10, 0, Math.PI * 2);
+    c.fill();
+    c.fillStyle = '#49372c';
+    c.beginPath();
+    c.arc(0, -22, 10, Math.PI, Math.PI * 2);
+    c.fill();
+    c.fillRect(-10, -23, 4, 8);
+    c.fillRect(6, -23, 4, 8);
+    c.fillStyle = '#382d25';
+    c.beginPath(); c.arc(-3, -20, 1.1, 0, Math.PI * 2); c.fill();
+    c.beginPath(); c.arc(3, -20, 1.1, 0, Math.PI * 2); c.fill();
+    c.strokeStyle = '#7b5140';
+    c.lineWidth = 1;
+    c.beginPath(); c.moveTo(-2, -15); c.quadraticCurveTo(0, -13, 2, -15); c.stroke();
+
+    roundedRect(-63, -105, 126, 45, 7, 'rgba(248,243,230,.97)', colorHex(theme.belt));
+    c.fillStyle = colorHex(theme.accent);
+    c.textAlign = 'center';
+    c.font = 'bold 7px system-ui';
+    c.fillText('CLIENT · COMMANDE #' + customerOrder.orderNumber, 0, -92);
+    c.font = 'bold 9px system-ui';
+    c.fillText(customerOrder.name, 0, -79, 114);
+    c.font = 'bold 7px system-ui';
+    c.fillStyle = customerOrder.ready ? '#3d6846' : '#80663e';
+    c.fillText(
+      customerOrder.ready ? 'PRÊTE À LIVRER' : customerOrder.quantity + ' FLACON(S) À PRÉPARER',
+      0,
+      -66,
+      114,
+    );
+    c.restore();
+  }
+
   function draw(): void {
     const c = context!;
     c.setTransform(canvas.width / VIEW_WIDTH, 0, 0, canvas.height / VIEW_HEIGHT, 0, 0);
@@ -694,6 +768,7 @@ export function createWorkshopScene(
       isStationAvailable(station.id),
     ).forEach(drawMachine);
     drawPlacedMachines();
+    drawCustomer();
 
     for (const particle of particles) {
       c.globalAlpha = Math.max(0, particle.life / particle.maxLife);
@@ -854,7 +929,7 @@ export function createWorkshopScene(
       onNearbyChange(nearby);
     },
     interact(): void { if (nearby) triggerInteraction(nearby); },
-    setEnvironment(nextTheme: WorkshopTheme, floor: number, nextMachines: WorkshopMachineVisual[], botanicalExpansions = 0): void {
+    setEnvironment(nextTheme: WorkshopTheme, floor: number, nextMachines: WorkshopMachineVisual[], botanicalExpansions = 0, nextCustomerOrder?: WorkshopCustomerVisual): void {
       theme = {
         background: nextTheme.background,
         floorColor: nextTheme.floorColor,
@@ -866,6 +941,7 @@ export function createWorkshopScene(
         ? Math.max(0, Math.min(3, botanicalExpansions))
         : 0;
       placedMachines = nextMachines.map((machine) => ({ ...machine }));
+      customerOrder = nextCustomerOrder ? { ...nextCustomerOrder } : null;
       draw();
     },
     destroy(): void {
