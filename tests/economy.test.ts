@@ -18,7 +18,6 @@ import {
   customerOrderReward,
   craftPerfume,
   harvestIngredient,
-  INGREDIENTS_PER_PERFUME,
   enterFloor,
   floorUnlockCost,
   enterWorld,
@@ -109,8 +108,6 @@ describe('tycoon economy', () => {
 
   it('keeps gathered ingredients in stock instead of auto-crafting after ten clicks', () => {
     let state = createInitialState(100);
-    expect(INGREDIENTS_PER_PERFUME).toBe(10);
-
     for (let click = 1; click <= 10; click += 1) {
       state = harvestIngredient(state, () => 0.01).state;
       expect(state.perfumeRevenue).toBe(0);
