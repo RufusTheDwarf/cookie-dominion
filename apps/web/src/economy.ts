@@ -156,6 +156,9 @@ export const REBIRTH_COST_GROWTH = 1.65;
 export const REBIRTH_MULTIPLIER = 1.6;
 export const MACHINE_COST_GROWTH = 1.35;
 export const MAX_UPGRADE_LEVEL = 10;
+export const MAX_BOTANICAL_EXPANSIONS = 3;
+export const BOTANICAL_EXPANSION_BASE_COST = 2_500;
+export const BOTANICAL_EXPANSION_COST_GROWTH = 10;
 
 export const MATERIALS: MaterialDefinition[] = [
   { id: 'lavender', name: 'Lavande', shortName: 'LAVANDE', rarity: 'Commune', color: '#798e64', asset: '/assets/material-lavender.svg' },
@@ -471,6 +474,34 @@ export function createInitialState(now = Date.now()): GameState {
  * Purchase the starting outdoor plot. The serialized rampBuilt field is retained
  * for save compatibility; it now means the starter plot/workshop entrance exists.
  */
+/** Next garden expansion costs 2,500, then 25,000, then 250,000 coins. */
+export function botanicalExpansionCost(
+  state: Pick<GameState, 'outsideExpansions'>,
+): number {
+  const level = Math.max(0, Math.min(MAX_BOTANICAL_EXPANSIONS, Math.floor(state.outsideExpansions)));
+  if (level >= MAX_BOTANICAL_EXPANSIONS) return Number.POSITIVE_INFINITY;
+  return Math.ceil(BOTANICAL_EXPANSION_BASE_COST * BOTANICAL_EXPANSION_COST_GROWTH ** level);
+}
+
+export function canUnlockBotanicalExpansion(
+  state: Pick<GameState, 'outsideExpansions' | 'perfumeRevenue'>,
+): boolean {
+  return Number.isInteger(state.outsideExpansions) &&
+    state.outsideExpansions >= 0 &&
+    state.outsideExpansions < MAX_BOTANICAL_EXPANSIONS &&
+    state.perfumeRevenue >= botanicalExpansionCost(state);
+}
+
+/** Purchase a new physical garden bed without touching the stock or lifetime totals. */
+export function unlockBotanicalExpansion(state: GameState): GameState {
+  if (!canUnlockBotanicalExpansion(state)) return state;
+  return {
+    ...state,
+    perfumeRevenue: state.perfumeRevenue - botanicalExpansionCost(state),
+    outsideExpansions: state.outsideExpansions + 1,
+  };
+}
+
 export function buyStartingLand(state: GameState): GameState {
   if (state.rampBuilt || state.perfumeRevenue < STARTING_LAND_COST) return state;
   return { ...state, perfumeRevenue: state.perfumeRevenue - STARTING_LAND_COST, rampBuilt: true };

@@ -4,6 +4,10 @@ import {
   applyOfflineProgress,
   buyStartingLand,
   buyMachine,
+  botanicalExpansionCost,
+  canUnlockBotanicalExpansion,
+  unlockBotanicalExpansion,
+  MAX_BOTANICAL_EXPANSIONS,
   buyUpgrade,
   canClaimMission,
   canCraftPerfume,
@@ -88,6 +92,30 @@ describe('tycoon economy', () => {
     expect(legacy.rampBuilt).toBe(false);
     expect(legacy.machines['glass-garden']['copper-still']).toBe(0);
     expect(legacy.unlockedFloors).toEqual([0]);
+  });
+
+  it('unlocks extra garden plots with rising deterministic costs', () => {
+    const initial = createInitialState(100);
+    expect(initial.outsideExpansions).toBe(0);
+    expect(botanicalExpansionCost(initial)).toBe(2_500);
+    expect(canUnlockBotanicalExpansion(initial)).toBe(false);
+    expect(unlockBotanicalExpansion(initial)).toBe(initial);
+
+    const first = unlockBotanicalExpansion({ ...initial, perfumeRevenue: 2_500 });
+    expect(first.outsideExpansions).toBe(1);
+    expect(first.perfumeRevenue).toBe(0);
+    expect(botanicalExpansionCost(first)).toBe(25_000);
+
+    const second = unlockBotanicalExpansion({ ...first, perfumeRevenue: 25_000 });
+    expect(second.outsideExpansions).toBe(2);
+    expect(second.perfumeRevenue).toBe(0);
+    expect(botanicalExpansionCost(second)).toBe(250_000);
+
+    const third = unlockBotanicalExpansion({ ...second, perfumeRevenue: 250_000 });
+    expect(third.outsideExpansions).toBe(MAX_BOTANICAL_EXPANSIONS);
+    expect(third.perfumeRevenue).toBe(0);
+    expect(canUnlockBotanicalExpansion({ ...third, perfumeRevenue: 1_000_000 })).toBe(false);
+    expect(unlockBotanicalExpansion(third)).toBe(third);
   });
 
   it('requires 1,000 perfumes to purchase the starting outdoor plot', () => {
