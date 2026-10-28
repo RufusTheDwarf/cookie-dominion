@@ -1,10 +1,19 @@
 # Changelog
 
+## 0.4.0 — 2026-10-28
+
+- Replaced immediate perfume-per-click rewards with randomized botanical gathering: ten material units are consumed to formulate one perfume.
+- Added seven surprise materials with different drop probabilities, a discovery journal, saved partial batches and a bonus-drop chance from botanical research.
+- Rebalanced the opening economy, early producer prices, VIP orders and starter contract rewards to slow the first minutes of progression.
+- Locked the wide desktop layout to the viewport height with no page or panel scrolling; compacted the producer list into a five-row, two-column grid.
+- Disabled Tab navigation and Enter/Space button activation for pointer-only game controls to prevent keyboard repeat from automating harvests or purchases.
+- Added tests for ten-click crafting, rare material drops, bonus material research and persistence of partial botanical batches.
+
 ## 0.3.0 — 2026-10-28
 
 - Replaced the walkable Phaser map as the main gameplay loop with an incremental clicker layout: central perfume bottle, producer catalogue and tabbed management desk.
 - Added ten production tiers, including the botanical greenhouse, enfleurage press, luxury atelier, crystal distiller and orbital manufactory.
-- Expanded the research tree to five upgrades: production, manual formulation, equipment discounts, rare-flacon duration and VIP order margin.
+- Expanded the research tree to five upgrades: production, botanical bonus drops, equipment discounts, rare-flacon duration and VIP order margin.
 - Added twelve progression honours, an integrated world-collection selector and one-click VIP order delivery.
 - Added original SVG illustrations for the central bottle, rare flacon and all ten production machines.
 - Added animated manual-formulation rewards and rare-flacon boosts that correctly multiply passive production.
