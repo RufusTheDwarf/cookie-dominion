@@ -797,7 +797,7 @@ function renderMissionCards(): void {
       const progress = missionProgress(state, mission);
       return `
         <article class="mission-card ${claimed ? 'is-claimed' : ready ? 'is-ready' : ''}">
-          <div class="mission-topline"><strong>${mission.name}</strong><span>${claimed ? 'TERMINÉ' : '+' + format(mission.reward) + ' 🍪'}</span></div>
+          <div class="mission-topline"><strong>${mission.name}</strong><span>${claimed ? 'TERMINÉ' : '+' + format(mission.reward) + ' parfums'}</span></div>
           <p>${mission.description}</p>
           <div class="mission-progress"><i id="mission-bar-${mission.id}" style="width:${Math.min(100, progress / mission.target * 100)}%"></i></div>
           <div class="mission-bottomline"><small id="mission-count-${mission.id}">${format(progress)} / ${format(mission.target)}</small>
@@ -1868,52 +1868,63 @@ class TycoonScene extends Phaser.Scene {
     ground.fillStyle(world.background, 1);
     ground.fillRect(0, 0, MAP_WIDTH, MAP_HEIGHT);
 
-    // Soft grass patches and hand-placed tufts avoid the feeling of an enclosed tiled room.
-    for (let index = 0; index < 260; index += 1) {
-      const x = 18 + ((index * 173) % (MAP_WIDTH - 36));
-      const y = 18 + ((index * 97) % (MAP_HEIGHT - 36));
-      ground.fillStyle(index % 3 === 0 ? 0xb7bd8e : index % 3 === 1 ? 0x748968 : 0x96a67e, 0.17);
-      ground.fillEllipse(x, y, 18 + (index % 5) * 7, 7 + (index % 3) * 3);
-      if (index % 2 === 0) {
-        ground.lineStyle(1, 0x52694b, 0.28);
-        ground.lineBetween(x, y + 5, x + (index % 2 ? 5 : -5), y - 4);
+    // Petites touffes irrégulières et herbes dessinées à la main : pas de motif répétitif.
+    const grassTones = [0x526b45, 0x6d8055, 0x9aa16f, 0xb0ae7b];
+    for (let index = 0; index < 150; index += 1) {
+      const x = 22 + ((index * 137 + (index % 7) * 31) % (MAP_WIDTH - 44));
+      const y = 20 + ((index * 89 + (index % 5) * 17) % (MAP_HEIGHT - 40));
+      const tone = grassTones[index % grassTones.length]!;
+      ground.lineStyle(index % 4 === 0 ? 2 : 1, tone, 0.38);
+      ground.lineBetween(x, y + 5, x - 3 - (index % 4), y - 3);
+      ground.lineBetween(x + 2, y + 5, x + 4 + (index % 3), y - 1);
+      if (index % 5 === 0) {
+        ground.fillStyle(0xd0c69a, 0.42);
+        ground.fillCircle(x + 8, y + 2, 2);
       }
     }
 
     if (state.rampBuilt) {
       const plot = this.add.graphics().setDepth(1);
-      plot.fillStyle(world.floorColor, 0.82);
-      plot.fillRoundedRect(135, 180, 900, 420, 22);
-      plot.lineStyle(4, 0x62533d, 0.8);
-      plot.strokeRoundedRect(135, 180, 900, 420, 22);
-      plot.lineStyle(1, 0x7b6a4e, 0.3);
-      for (let y = 214; y < 590; y += 34) plot.lineBetween(151, y, 1019, y);
-      for (let x = 171; x < 1017; x += 78) plot.lineBetween(x, 195, x, 585);
-      plot.fillStyle(0x637b58, 1);
-      plot.fillRoundedRect(147, 205, 24, 66, 5);
-      plot.fillRoundedRect(999, 500, 24, 66, 5);
-      plot.fillStyle(0x91a57b, 1);
-      for (const y of [217, 239, 261, 512, 534, 556]) {
-        plot.fillEllipse(159, y, 13, 8);
-        plot.fillEllipse(1011, y, 13, 8);
+      plot.fillStyle(world.floorColor, 0.96);
+      plot.fillRect(135, 180, 900, 420);
+      plot.lineStyle(3, 0x62533d, 0.85);
+      plot.strokeRect(135, 180, 900, 420);
+      // Joints de dalles espacés et non un quadrillage décoratif.
+      plot.lineStyle(1, 0x7b6a4e, 0.34);
+      for (let y = 250; y < 590; y += 68) plot.lineBetween(137, y, 1033, y);
+      for (let x = 285; x < 1017; x += 146) plot.lineBetween(x, 182, x, 598);
+      plot.fillStyle(0x344c37, 1);
+      plot.fillRect(145, 203, 9, 68);
+      plot.fillRect(1016, 500, 9, 68);
+      plot.fillStyle(0x82936a, 1);
+      for (const y of [218, 240, 262, 512, 534, 556]) {
+        plot.fillEllipse(159, y, 10, 6);
+        plot.fillEllipse(1011, y, 10, 6);
       }
     }
 
-    // A continuous dirt path leads from the edge of the garden past the build site.
+    // Un chemin de terre traversant le jardin, avec un bord de gravier discret.
     const path = ground;
     const pathPoints = [
       [0, 650, 240, 600], [240, 600, 430, 510], [430, 510, 620, 425],
       [620, 425, 900, 435], [900, 435, 1130, 525], [1130, 525, 1390, 600],
       [1390, 600, 1790, 610],
     ];
-    path.lineStyle(88, 0x796c51, 0.32);
+    path.lineStyle(82, 0x8c8061, 0.58);
     for (const [x1, y1, x2, y2] of pathPoints) path.lineBetween(x1!, y1!, x2!, y2!);
-    path.lineStyle(72, 0xc3b48b, 0.95);
+    path.lineStyle(64, 0xc0b18a, 0.98);
     for (const [x1, y1, x2, y2] of pathPoints) path.lineBetween(x1!, y1!, x2!, y2!);
-    path.lineStyle(48, 0xa8946d, 0.95);
+    path.lineStyle(43, 0xa79570, 0.98);
     for (const [x1, y1, x2, y2] of pathPoints) path.lineBetween(x1!, y1!, x2!, y2!);
+    // Quelques pierres irrégulières, posées le long du chemin.
+    for (let index = 0; index < 95; index += 1) {
+      const x = 35 + ((index * 83) % 1730);
+      const y = 610 + Math.sin(index * 0.43) * 74 + Math.cos(index * 0.17) * 24;
+      path.fillStyle(index % 2 ? 0x756b52 : 0xd1c39c, 0.62);
+      path.fillEllipse(x, y, 3 + index % 4, 2 + index % 3);
+    }
 
-    // Trees are scenery only; the whole meadow remains walkable.
+    // Arbres moins symétriques : branches visibles et feuillage en plusieurs masses.
     const trees = [
       [70, 170], [115, 285], [90, 800], [180, 1010], [350, 90],
       [655, 76], [1135, 95], [1340, 150], [1580, 120], [1710, 285],
@@ -1924,41 +1935,56 @@ class TycoonScene extends Phaser.Scene {
     for (let index = 0; index < trees.length; index += 1) {
       const [x, y] = trees[index]!;
       const tree = this.add.graphics().setDepth(y! + 24);
-      tree.fillStyle(0x3a4b34, 0.18);
-      tree.fillEllipse(x!, y! + 24, 78, 20);
-      tree.fillStyle(0x77543a, 1);
-      tree.fillRect(x! - 6, y! - 4, 12, 43);
-      tree.fillStyle(index % 2 === 0 ? 0x536e49 : 0x647d53, 1);
-      tree.fillEllipse(x!, y! - 19, 61, 47);
-      tree.fillEllipse(x! - 17, y! - 7, 36, 32);
-      tree.fillEllipse(x! + 18, y! - 9, 36, 32);
-      tree.fillStyle(0x9eae7d, 0.72);
-      tree.fillEllipse(x! - 14, y! - 29, 23, 17);
-      tree.lineStyle(2, 0x3e5237, 0.8);
-      tree.strokeEllipse(x!, y! - 19, 61, 47);
-    }
-
-    const flowers = ground;
-    const flowerPatches = [[290, 210], [505, 680], [775, 130], [1110, 690], [1460, 375], [1650, 930]];
-    for (let index = 0; index < flowerPatches.length; index += 1) {
-      const [x, y] = flowerPatches[index]!;
-      for (let petal = 0; petal < 5; petal += 1) {
-        flowers.fillStyle([0xd6bd86, 0xc88d79, 0xded8b5][(index + petal) % 3]!, 0.9);
-        flowers.fillCircle(x! + Math.cos(petal * 1.256) * 7, y! + Math.sin(petal * 1.256) * 7, 4);
+      const variation = index % 3;
+      tree.fillStyle(0x384734, 0.2);
+      tree.fillEllipse(x! + 5, y! + 26, 72, 17);
+      tree.fillStyle(0x715038, 1);
+      tree.fillRect(x! - 5, y! - 2, 10, 43);
+      tree.lineStyle(4, 0x715038, 1);
+      tree.lineBetween(x!, y! + 8, x! - 15, y! - 8);
+      tree.lineBetween(x!, y! + 2, x! + 16, y! - 13);
+      const leaves = variation === 0
+        ? [[-20, -20, 38, 31], [5, -29, 42, 35], [24, -12, 31, 27], [-4, -7, 36, 29]]
+        : variation === 1
+          ? [[-24, -15, 35, 31], [0, -30, 39, 33], [23, -20, 34, 29], [9, -5, 35, 27]]
+          : [[-17, -27, 34, 29], [11, -28, 40, 34], [-2, -7, 39, 30], [24, -9, 28, 24]];
+      for (let leaf = 0; leaf < leaves.length; leaf += 1) {
+        const [dx, dy, width, height] = leaves[leaf]!;
+        tree.fillStyle(variation === 1 ? [0x506848, 0x637b50, 0x72845a, 0x435d3d][leaf]! : [0x435b3c, 0x60764b, 0x74845a, 0x536b43][leaf]!, 1);
+        tree.fillEllipse(x! + dx!, y! + dy!, width!, height!);
       }
-      flowers.fillStyle(0x566b45, 1);
-      flowers.fillCircle(x!, y!, 3);
+      tree.fillStyle(0xa4ae76, 0.5);
+      tree.fillEllipse(x! - 12, y! - 30, 13, 8);
+      tree.fillEllipse(x! + 12, y! - 21, 10, 7);
     }
 
-    // Rasterize the hand-drawn outdoor scenery once; Phaser then draws a single image
-    // instead of replaying hundreds of Graphics commands on every frame.
+    // Herbes aromatiques et fleurs ponctuelles : elles rappellent la matière première du jeu.
+    const herbBeds = [
+      [290, 210], [505, 680], [775, 130], [1110, 690], [1460, 375], [1650, 930],
+    ];
+    for (let index = 0; index < herbBeds.length; index += 1) {
+      const [x, y] = herbBeds[index]!;
+      const stem = this.add.graphics().setDepth(y! + 1);
+      stem.lineStyle(2, 0x4d6742, 0.9);
+      stem.lineBetween(x!, y! + 13, x!, y! - 8);
+      for (let leaf = 0; leaf < 4; leaf += 1) {
+        stem.fillStyle(leaf % 2 ? 0x7b9060 : 0x9aa276, 1);
+        stem.fillEllipse(x! + (leaf % 2 ? 7 : -7), y! - 4 + leaf * 4, 12, 6);
+      }
+      for (let petal = 0; petal < 5; petal += 1) {
+        ground.fillStyle([0xc8ad76, 0xb77a69, 0xd8cfa8][(index + petal) % 3]!, 0.92);
+        ground.fillCircle(x! + Math.cos(petal * 1.256) * 6, y! + Math.sin(petal * 1.256) * 6, 3);
+      }
+      ground.fillStyle(0x4b603d, 1);
+      ground.fillCircle(x!, y!, 2);
+    }
+
     if (!this.textures.exists(groundTextureKey)) {
       ground.generateTexture(groundTextureKey, MAP_WIDTH, MAP_HEIGHT);
     }
     ground.destroy();
     this.add.image(0, 0, groundTextureKey).setOrigin(0, 0).setDepth(0);
   }
-
   private drawBuiltRamp(): void {
     const ramp = this.add.graphics().setDepth(1);
     ramp.fillStyle(0x51412f, 0.2);
