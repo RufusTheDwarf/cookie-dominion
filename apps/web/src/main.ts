@@ -45,7 +45,7 @@ import {
 } from './economy';
 import './style.css';
 import { createWorkshopScene, type WorkshopScene, type WorkshopStation, type MoveDirection } from './workshop-scene';
-import { createWorkshopScene, type WorkshopScene, type WorkshopStation, type MoveDirection } from './workshop-scene';
+
 
 const SAVE_KEY = 'parfum-empire-save-v1';
 const LEGACY_SAVE_KEY = 'cookie-dominion-save-v1';
@@ -373,7 +373,7 @@ function renderUpgrades(): string {
           <div class="upgrade-action"><span>NV. ${level}/${MAX_UPGRADE_LEVEL}</span><button type="button" data-buy-upgrade="${id}" ${canAfford ? '' : 'disabled'}>${maxed ? 'MAX' : format(cost)}</button></div>
         </article>`;
     }).join('')}</div>
-    <div class="research-note"><span>NOTE DU PARFUMEUR</span><p>Le rendement se cumule : automatisation, gestes de formulation, négociation VIP et durée des flacons mythiques se renforcent mutuellement.</p></div>`;
+    <div class="research-note"><span>NOTE DU PARFUMEUR</span><p>Le rendement se cumule : automatisation, récoltes ciblées, précision d’extraction et finition des flacons se renforcent mutuellement.</p></div>`;
 }
 
 function renderContracts(): string {
@@ -623,20 +623,6 @@ function renderAll(): void {
 
 function saveSoon(): void {
   autoSaveElapsed = Math.max(autoSaveElapsed, 8);
-}
-
-function floatReward(amount: number, event?: MouseEvent, noun = 'parfums'): void {
-  const stage = byId('clicker-stage');
-  const rect = stage.getBoundingClientRect();
-  const floating = document.createElement('span');
-  floating.className = 'floating-reward';
-  floating.textContent = '+' + format(amount) + ' ' + noun;
-  const x = event ? event.clientX - rect.left : rect.width * 0.56;
-  const y = event ? event.clientY - rect.top : rect.height * 0.48;
-  floating.style.left = Math.max(18, Math.min(rect.width - 80, x)) + 'px';
-  floating.style.top = Math.max(15, Math.min(rect.height - 35, y)) + 'px';
-  stage.appendChild(floating);
-  window.setTimeout(() => floating.remove(), 950);
 }
 
 function floatText(label: string, event?: MouseEvent): void {
