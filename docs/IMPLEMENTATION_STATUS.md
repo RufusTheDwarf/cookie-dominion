@@ -15,6 +15,7 @@
 | Machines visibles | Implémenté | Laboratoire, comptoir et producteurs achetés dessinés comme des objets physiques |
 | Producteurs matérialisés | Implémenté | Emplacement par étage, animation subtile et badge de quantité installée |
 | Déplacement | Implémenté | Flèches, ZQSD, clic ou toucher pour marcher |
+| Collisions | Implémenté | Obstacles autour des parcelles, postes et machines achetées; glissement latéral et arrêt d’un déplacement bloqué |
 | Commandes tactiles | Implémenté | Pavé directionnel et bouton Interagir sur petits écrans |
 | Accessibilité clavier | Implémenté | Tab, focus visible, activation native des boutons sans déplacer le personnage par accident |
 | Effets sonores | Implémenté | Notes synthétiques d'action via Web Audio, paramètre persistant et désactivation possible |
