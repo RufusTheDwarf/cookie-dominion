@@ -138,7 +138,7 @@ img{max-width:100%;display:block}
 .order-values{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-bottom:10px}
 .order-values>span{display:flex;flex-direction:column;gap:5px;min-width:0;padding:7px 6px;background:#e7dbc0;border:1px solid #d0c09a}
 .order-values small{font-size:7px;font-weight:900;letter-spacing:.65px;color:#766747}
-.order-values strong{font-family:Georgia,"Times New Roman",serif;font-size:12px;overflow-wrap:anywhere}
+.order-values strong{font-family:Georgia,"Times New Roman",serif;font-size:11px;line-height:1.25;overflow-wrap:anywhere}
 .secondary-button{min-height:37px;padding:9px 10px;background:transparent;color:var(--moss-dark);border-color:#9ca18a;font-size:9px}
 .secondary-button:hover:not(:disabled){background:#e4e8da;border-color:var(--moss)}
 .secondary-button span{font-size:16px}
