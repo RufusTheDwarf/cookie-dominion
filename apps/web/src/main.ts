@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import {
-  addCrumbs,
+  addPerfumeRevenue,
   buyMachine,
   buyStartingLand,
   buyUpgrade,
@@ -25,7 +25,7 @@ import {
   MAX_UPGRADE_LEVEL,
   MISSION_DEFINITIONS,
   machineCost,
-  manualCookieValue,
+  manualPerfumeValue,
   missionProgress,
   parseImportedSave,
   parseSavedState,
@@ -48,7 +48,7 @@ import {
 } from './economy';
 import './style.css';
 
-const SAVE_KEY = 'cookie-dominion-save-v1';
+const SAVE_KEY = 'parfum-empire-save-v1';
 const MAP_WIDTH = 1800;
 const MAP_HEIGHT = 1200;
 const DARK_MODE_KEY = 'parfum-empire-dark-mode-v1';
@@ -63,7 +63,7 @@ app.innerHTML = `
       <div class="brand"><div class="brand-symbol"><span></span><i></i></div><div class="brand-copy"><div class="eyebrow">MAISON DES ESSENCES · TYCOON</div><h1>PARFUM<span> EMPIRE</span></h1><p class="subtitle">Compose. Produis. Deviens une légende du parfum.</p></div></div>
       <button id="open-menu-button" class="pause-menu-button" type="button" aria-label="Ouvrir le menu">MENU</button>
       <div class="header-stats">
-        <div class="currency-display"><span>VENTES</span><strong id="crumb-total">0</strong><small>PARFUMS</small></div>
+        <div class="currency-display"><span>VENTES</span><strong id="parfum-total">0</strong><small>PARFUMS</small></div>
         <div class="hud-stat" id="header-production"><span>PRODUCTION</span><strong id="production">0 <small>/ s</small></strong></div>
         <div class="hud-stat" id="header-multiplier"><span>MULTIPLICATEUR</span><strong id="multiplier">x1</strong></div>
         <div class="hud-stat" id="header-rebirths"><span>REBIRTHS</span><strong id="rebirth-count">0</strong></div>
@@ -98,7 +98,7 @@ app.innerHTML = `
         </div>
         <div id="manual-production" class="manual-production">
           <div class="manual-label"><span>CRÉATION MANUELLE</span><strong>+<b id="manual-value">10</b> parfums</strong></div>
-          <button class="primary" id="bake-button"><span class="spray-icon">✦</span><span>CRÉER UN PARFUM</span><span class="button-value">+10</span></button>
+          <button class="primary" id="formulate-button"><span class="spray-icon">✦</span><span>CRÉER UN PARFUM</span><span class="button-value">+10</span></button>
           <small>Chaque flacon vendu finance la prochaine machine.</small>
         </div>
         <section id="customer-order-panel" class="customer-order-card" hidden>
@@ -111,10 +111,10 @@ app.innerHTML = `
           </div>
           <small>Le prix et la récompense augmentent à chaque livraison.</small>
         </section>
-        <button id="golden-cookie" class="golden-cookie-button" type="button" disabled hidden>
-          <span class="golden-cookie-icon">✦</span>
-          <span class="golden-cookie-copy"><strong>FLACON MYTHIQUE</strong><small id="golden-cookie-status">Premier parfum rare dans 25 s</small></span>
-          <span class="golden-cookie-mark">×2</span>
+        <button id="rare-flacon" class="rare-flacon-button" type="button" disabled hidden>
+          <span class="rare-flacon-icon">✦</span>
+          <span class="rare-flacon-copy"><strong>FLACON MYTHIQUE</strong><small id="rare-flacon-status">Premier parfum rare dans 25 s</small></span>
+          <span class="rare-flacon-mark">×2</span>
         </button>
         <div id="rebirth-divider" class="rule" hidden></div>
         <section id="rebirth-panel" class="prestige-card basic-prestige" hidden>
@@ -159,7 +159,7 @@ app.innerHTML = `
           </div>
           <button id="interact-button" class="interact-button" type="button"><strong>E</strong><span>INTERAGIR</span></button>
         </div>
-        <div class="map-legend"><span><i class="legend-cookie"></i> Flacons en transit</span><span><i class="legend-player"></i> Toi</span><span id="map-hint">WASD / clic · E pour agir</span></div>
+        <div class="map-legend"><span><i class="legend-parfum"></i> Flacons en transit</span><span><i class="legend-player"></i> Toi</span><span id="map-hint">WASD / clic · E pour agir</span></div>
         <div class="nav-block" id="floor-navigation" hidden>
           <div class="nav-heading"><span class="eyebrow">ÉTAGES</span><span class="muted">Escaliers sur la carte ou accès rapide</span></div>
           <div class="nav-buttons">
@@ -251,7 +251,7 @@ app.innerHTML = `
 
 let state: GameState;
 try {
-  state = prepareEmptySaveForStart(parseSavedState(localStorage.getItem(SAVE_KEY)));
+  state = prepareEmptySaveForStart(parseSavedState(localStorage.getItem(SAVE_KEY) ?? localStorage.getItem('cookie-dominion-save-v1')));
 } catch {
   state = prepareEmptySaveForStart(parseSavedState(null));
 }
@@ -274,7 +274,7 @@ let machineUiKey = '';
 let worldUiKey = '';
 let upgradeUiKey = '';
 let missionUiKey = '';
-let bakeryScene: TycoonScene | undefined;
+let atelierScene: TycoonScene | undefined;
 
 const $ = <T extends HTMLElement>(id: string): T => {
   const element = document.getElementById(id);
@@ -287,9 +287,9 @@ const format = (value: number) =>
 function prepareEmptySaveForStart(saved: GameState): GameState {
   const owned = Object.values(saved.machines)
     .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
-  const unused = !saved.rampBuilt && saved.lifetimeCrumbs === 0 && saved.runCrumbsEarned === 0 &&
+  const unused = !saved.rampBuilt && saved.lifetimePerfumeRevenue === 0 && saved.runPerfumeRevenue === 0 &&
     saved.rebirths === 0 && owned === 0 && !saved.wallsBuilt && saved.outsideExpansions === 0;
-  return unused ? { ...saved, crumbs: Math.max(saved.crumbs, STARTING_LAND_COST) } : saved;
+  return unused ? { ...saved, perfumeRevenue: Math.max(saved.perfumeRevenue, STARTING_LAND_COST) } : saved;
 }
 
 type UiCoachmark = {
@@ -343,14 +343,14 @@ const UI_COACHMARKS: UiCoachmark[] = [
     target: '#upgrade-section',
     title: 'Améliorations permanentes',
     copy: 'Ces recherches augmentent le rendement, renforcent la création manuelle ou réduisent le prix des équipements. Vérifie le coût avant chaque achat.',
-    available: () => currentWorldMachineCount() >= 2 || (currentWorldMachineCount() >= 1 && state.lifetimeCrumbs >= 250),
+    available: () => currentWorldMachineCount() >= 2 || (currentWorldMachineCount() >= 1 && state.lifetimePerfumeRevenue >= 250),
   },
   {
     id: 'save-tools',
     target: '#utility-drawer',
     title: 'Sauvegarder et transporter ta partie',
     copy: 'Les données sont enregistrées dans ce navigateur. Utilise « Exporter data » pour garder une copie, ou importe un JSON pour reprendre une autre sauvegarde.',
-    available: () => state.rampBuilt && (currentWorldMachineCount() >= 2 || state.lifetimeCrumbs >= 250),
+    available: () => state.rampBuilt && (currentWorldMachineCount() >= 2 || state.lifetimePerfumeRevenue >= 250),
   },
   {
     id: 'floor-navigation',
@@ -371,7 +371,7 @@ const UI_COACHMARKS: UiCoachmark[] = [
     target: '#rebirth-panel',
     title: 'Le rebirth',
     copy: 'Le rebirth réinitialise une partie de ta production en échange d’un multiplicateur durable. Lis les conditions et le coût avant de le déclencher.',
-    available: () => state.rebirths > 0 || state.lifetimeCrumbs >= 1_000,
+    available: () => state.rebirths > 0 || state.lifetimePerfumeRevenue >= 1_000,
   },
 ];
 
@@ -478,7 +478,7 @@ function startGame(newGame = false): void {
   if (newGame) {
     const ownedCount = Object.values(state.machines)
       .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
-    const hasProgress = state.lifetimeCrumbs > 0 || state.rebirths > 0 ||
+    const hasProgress = state.lifetimePerfumeRevenue > 0 || state.rebirths > 0 ||
       state.totalRebirths > 0 || state.essences > 0 || ownedCount > 0 ||
       state.ordersCompleted > 0 || state.wallsBuilt || state.outsideExpansions > 0;
     if (hasProgress && !window.confirm('Créer une nouvelle partie ? La progression actuelle sera remplacée. Exporte d’abord ta sauvegarde si tu souhaites la conserver.')) return;
@@ -494,13 +494,13 @@ function startGame(newGame = false): void {
     persistCompletedCoachmarks();
     try { localStorage.removeItem(INTRO_TUTORIAL_KEY); } catch { /* Optional tutorial preference. */ }
     render();
-    bakeryScene?.loadWorld();
+    atelierScene?.loadWorld();
     save();
   }
 
   $('main-menu').classList.add('is-hidden');
   const showIntro = !introTutorialSeen && !state.rampBuilt &&
-    state.lifetimeCrumbs === 0 && state.rebirths === 0;
+    state.lifetimePerfumeRevenue === 0 && state.rebirths === 0;
   $('tutorial-intro').hidden = !showIntro;
   gameIsPaused = showIntro;
   render();
@@ -523,7 +523,7 @@ function showMenuPanel(panel: 'settings' | 'import' | null): void {
 function hasSavedProgress(): boolean {
   const owned = Object.values(state.machines)
     .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
-  return state.rampBuilt || state.lifetimeCrumbs > 0 || state.rebirths > 0 ||
+  return state.rampBuilt || state.lifetimePerfumeRevenue > 0 || state.rebirths > 0 ||
     state.totalRebirths > 0 || state.essences > 0 || owned > 0 ||
     state.ordersCompleted > 0 || state.wallsBuilt || state.outsideExpansions > 0;
 }
@@ -626,7 +626,7 @@ function loadSaveText(raw: string): boolean {
   upgradeUiKey = '';
   missionUiKey = '';
   render();
-  bakeryScene?.loadWorld();
+  atelierScene?.loadWorld();
   save();
   $<HTMLTextAreaElement>('save-data-text').value = '';
   setStatus('Sauvegarde chargée. La partie actuelle a été remplacée.');
@@ -654,7 +654,7 @@ function eraseSave(): void {
   }
   $<HTMLTextAreaElement>('save-data-text').value = '';
   render();
-  bakeryScene?.loadWorld();
+  atelierScene?.loadWorld();
   save();
   setStatus('Partie effacée : nouvelle usine créée.');
 }
@@ -714,12 +714,12 @@ window.addEventListener('blur', () => {
   activeMoveControls.clear();
   document.querySelectorAll<HTMLButtonElement>('[data-move]').forEach((button) => button.classList.remove('is-pressed'));
 });
-$('interact-button').addEventListener('click', () => bakeryScene?.requestInteract());
-$('golden-cookie').addEventListener('click', claimGoldenCookie);
+$('interact-button').addEventListener('click', () => atelierScene?.requestInteract());
+$('rare-flacon').addEventListener('click', claimRareFlacon);
 
-function renderGoldenCookie(now: number): void {
-  const button = $<HTMLButtonElement>('golden-cookie');
-  const status = $('golden-cookie-status');
+function renderRareFlacon(now: number): void {
+  const button = $<HTMLButtonElement>('rare-flacon');
+  const status = $('rare-flacon-status');
   const second = Math.floor(now / 1000);
   if (second === goldenUiSecond) return;
   goldenUiSecond = second;
@@ -743,29 +743,29 @@ function renderGoldenCookie(now: number): void {
 
   button.disabled = true;
   button.classList.remove('is-ready');
-  status.textContent = 'Prochain bonus dans ' + Math.max(0, Math.ceil((goldenReadyAt - now) / 1000)) + ' s · récupérés : ' + state.goldenCookiesClaimed;
+  status.textContent = 'Prochain bonus dans ' + Math.max(0, Math.ceil((goldenReadyAt - now) / 1000)) + ' s · récupérés : ' + state.rareFlaconsClaimed;
 }
 
-function claimGoldenCookie(): void {
+function claimRareFlacon(): void {
   const now = performance.now();
   if (goldenDeadline <= now) return;
-  const reward = Math.max(50, productionPerSecond(state) * 10 + manualCookieValue(state) * 10);
-  state = addCrumbs(state, reward);
-  state = { ...state, goldenCookiesClaimed: state.goldenCookiesClaimed + 1 };
+  const reward = Math.max(50, productionPerSecond(state) * 10 + manualPerfumeValue(state) * 10);
+  state = addPerfumeRevenue(state, reward);
+  state = { ...state, rareFlaconsClaimed: state.rareFlaconsClaimed + 1 };
   goldenDeadline = 0;
   goldenBoostUntil = now + 20_000;
   goldenReadyAt = goldenBoostUntil + 45_000 + Math.random() * 25_000;
   goldenUiSecond = -1;
   render();
-  renderGoldenCookie(now);
+  renderRareFlacon(now);
   save();
-  bakeryScene?.pulsePlayer();
+  atelierScene?.pulsePlayer();
   setStatus('Flacon mythique récupéré : +' + format(reward) + ' parfums et ventes ×2 pendant 20 secondes.');
 }
 
 function renderUpgradeCards(): void {
   const signature = (Object.keys(UPGRADES) as UpgradeId[]).map((id) =>
-    [id, state.upgrades[id], upgradeCost(state, id), state.crumbs >= upgradeCost(state, id) ? 1 : 0].join(':'),
+    [id, state.upgrades[id], upgradeCost(state, id), state.perfumeRevenue >= upgradeCost(state, id) ? 1 : 0].join(':'),
   ).join('|');
   if (signature === upgradeUiKey) return;
   upgradeUiKey = signature;
@@ -775,7 +775,7 @@ function renderUpgradeCards(): void {
     const maxed = level >= MAX_UPGRADE_LEVEL;
     const cost = upgradeCost(state, id);
     return `
-      <button class="upgrade-card ${maxed ? 'is-maxed' : ''}" data-upgrade="${id}" ${maxed || state.crumbs < cost ? 'disabled' : ''}>
+      <button class="upgrade-card ${maxed ? 'is-maxed' : ''}" data-upgrade="${id}" ${maxed || state.perfumeRevenue < cost ? 'disabled' : ''}>
         <span class="upgrade-level">${String(level).padStart(2, '0')}<small>/${MAX_UPGRADE_LEVEL}</small></span>
         <span class="upgrade-copy"><strong>${upgrade.name}</strong><small>${upgrade.effect}</small><small>${upgrade.description}</small></span>
         <span class="upgrade-cost">${maxed ? 'MAX' : format(cost)}</span>
@@ -855,7 +855,7 @@ function renderMachineCards(): void {
       machine.id,
       state.machines[state.currentWorld][machine.id],
       machineCost(state, machine.id),
-      state.crumbs >= machineCost(state, machine.id) ? 1 : 0,
+      state.perfumeRevenue >= machineCost(state, machine.id) ? 1 : 0,
     ].join(':')),
   ].join('|');
   if (signature === machineUiKey) return;
@@ -864,7 +864,7 @@ function renderMachineCards(): void {
     const owned = state.machines[state.currentWorld][machine.id];
     const cost = machineCost(state, machine.id);
     const inaccessible = machine.floor !== state.currentFloor;
-    const canAfford = state.crumbs >= cost;
+    const canAfford = state.perfumeRevenue >= cost;
     return `
       <button class="machine-card ${inaccessible ? 'is-locked' : ''}" data-machine="${machine.id}" ${inaccessible || !canAfford ? 'disabled' : ''}>
         <span class="machine-icon">${machine.short}</span>
@@ -903,9 +903,9 @@ function render(): void {
   const machineCount = Object.values(state.machines[state.currentWorld])
     .reduce((sum, count) => sum + count, 0);
   const stage = !state.rampBuilt ? 0
-    : state.rebirths > 0 || state.lifetimeCrumbs >= 1000 ? 4
+    : state.rebirths > 0 || state.lifetimePerfumeRevenue >= 1000 ? 4
       : machineCount === 0 ? 1
-        : machineCount < 2 && state.lifetimeCrumbs < 250 ? 2 : 3;
+        : machineCount < 2 && state.lifetimePerfumeRevenue < 250 ? 2 : 3;
   document.documentElement.classList.toggle('workshop-unbuilt', !state.rampBuilt);
   document.documentElement.classList.remove('progression-stage-0', 'progression-stage-1', 'progression-stage-2', 'progression-stage-3', 'progression-stage-4');
   document.documentElement.classList.add('progression-stage-' + stage);
@@ -921,8 +921,8 @@ function render(): void {
   $('world-save').hidden = stage < 3;
   $('utility-drawer').hidden = stage < 3;
 
-  $('customer-order-panel').hidden = !(machineCount >= 2 || (machineCount >= 1 && state.lifetimeCrumbs >= 250));
-  $('golden-cookie').hidden = stage < 3;
+  $('customer-order-panel').hidden = !(machineCount >= 2 || (machineCount >= 1 && state.lifetimePerfumeRevenue >= 250));
+  $('rare-flacon').hidden = stage < 3;
   $('rebirth-panel').hidden = stage < 4;
   $('rebirth-divider').hidden = stage < 4;
   $('total-rebirth-panel').hidden = state.rebirths < 8 && state.totalRebirths === 0;
@@ -934,36 +934,36 @@ function render(): void {
   $('floor-navigation').hidden = state.unlockedFloors.length < 2;
   $('world-navigation').hidden = state.unlockedWorlds.length < 2;
   $('map-toolbar').hidden = stage === 0;
-  $('bake-button').toggleAttribute('disabled', !state.rampBuilt);
+  $('formulate-button').toggleAttribute('disabled', !state.rampBuilt);
 
-  $('crumb-total').textContent = format(state.crumbs);
+  $('parfum-total').textContent = format(state.perfumeRevenue);
   $('production').textContent = format(productionPerSecond(state)) + ' / s';
   $('multiplier').textContent = 'x' + format(rebirthMultiplier(state) * world.incomeMultiplier);
   $('rebirth-count').textContent = String(state.rebirths);
-  $('run-earned').textContent = format(state.runCrumbsEarned);
-  $('manual-value').textContent = format(manualCookieValue(state));
+  $('run-earned').textContent = format(state.runPerfumeRevenue);
+  $('manual-value').textContent = format(manualPerfumeValue(state));
   $('orders-completed').textContent = format(state.ordersCompleted);
   $('customer-order-cost').textContent = format(customerOrderCost(state)) + ' parfums';
   $('customer-order-reward').textContent = '+' + format(customerOrderReward(state)) + ' parfums';
   $('customer-order-status').textContent = canCompleteCustomerOrder(state)
     ? 'Commande prête : rejoins le client sur la carte et appuie sur E pour livrer.'
-    : 'Il manque ' + format(customerOrderCost(state) - state.crumbs) + ' parfums pour préparer cette commande.';
-  const bakeValue = $('bake-button').querySelector('.button-value');
-  if (bakeValue) bakeValue.textContent = '+' + format(manualCookieValue(state));
+    : 'Il manque ' + format(customerOrderCost(state) - state.perfumeRevenue) + ' parfums pour préparer cette commande.';
+  const formulateValue = $('formulate-button').querySelector('.button-value');
+  if (formulateValue) formulateValue.textContent = '+' + format(manualPerfumeValue(state));
   $('world-name').textContent = world.name;
   $('world-tagline').textContent = world.tagline.toUpperCase();
   $('essence-total').textContent = format(state.essences);
-  $('empire-value').textContent = format(state.lifetimeCrumbs + state.essences * ESSENCE_PRESTIGE_VALUE);
+  $('empire-value').textContent = format(state.lifetimePerfumeRevenue + state.essences * ESSENCE_PRESTIGE_VALUE);
   $('total-rebirth-count').textContent = String(state.totalRebirths);
   $('owner-rank').textContent = 'Maison indépendante · Rang ' + (1 + state.rebirths + state.totalRebirths * 10);
   $('floor-title').textContent = !state.rampBuilt ? 'JARDIN — TERRAIN À ACHETER' : ['REZ-DE-CHAUSSÉE — FORMULATION', 'ÉTAGE 2 — EMBOUTEILLAGE', 'ÉTAGE 3 — EXTRACTION'][state.currentFloor] ?? 'ATELIER';
   $('scene-eyebrow').textContent = state.rampBuilt ? 'LA MANUFACTURE · VUE LIBRE' : 'LE JARDIN · PREMIER TERRAIN';
   $('rebirth-cost').textContent = format(rebirthCost(state.rebirths));
   $('rebirth-button').toggleAttribute('disabled', !canRebirth(state));
-  $('rebirth-progress').style.width = Math.min(100, state.runCrumbsEarned / rebirthCost(state.rebirths) * 100) + '%';
+  $('rebirth-progress').style.width = Math.min(100, state.runPerfumeRevenue / rebirthCost(state.rebirths) * 100) + '%';
   $('rebirth-info').textContent = canRebirth(state)
     ? 'Prêt à recommencer : tes machines seront réinitialisées, mais tes recherches et ton bonus resteront.'
-    : 'Encore ' + format(Math.max(0, rebirthCost(state.rebirths) - state.runCrumbsEarned)) + ' parfums gagnés avant le rebirth.';
+    : 'Encore ' + format(Math.max(0, rebirthCost(state.rebirths) - state.runPerfumeRevenue)) + ' parfums gagnés avant le rebirth.';
   const totalRequired = totalRebirthRequiredLevel(state);
   $('total-rebirth-level').textContent = 'REBIRTHS ' + format(state.rebirths) + ' / ' + format(totalRequired);
   $('essence-multiplier').textContent = 'RENDEMENT ×' + format(essenceMultiplier(state));
@@ -973,7 +973,7 @@ function render(): void {
     ? 'Atteins ' + totalRequired + ' rebirths normaux. Progression : ' + state.rebirths + ' / ' + totalRequired + '. Une Essence vaut 1 000 000 points de valeur d’empire et ajoute +75 % de rendement.'
     : canTotalRebirth(state)
       ? 'Ascension prête : tout sera effacé sauf tes Essences originelles et ton nombre d’ascensions. Tu recevras ' + (1 + state.totalRebirths) + ' essence(s).'
-      : 'Chaque essence vaut 1 000 000 points de valeur d’empire et ajoute +75 % de rendement. Gagne encore ' + format(Math.max(0, rebirthCost(state.rebirths) - state.runCrumbsEarned)) + ' parfums avant l’ascension totale.';
+      : 'Chaque essence vaut 1 000 000 points de valeur d’empire et ajoute +75 % de rendement. Gagne encore ' + format(Math.max(0, rebirthCost(state.rebirths) - state.runPerfumeRevenue)) + ' parfums avant l’ascension totale.';
   document.querySelectorAll<HTMLButtonElement>('[data-floor]').forEach((button) => {
     const floor = Number(button.dataset.floor);
     const unlocked = state.unlockedFloors.includes(floor);
@@ -991,11 +991,11 @@ function render(): void {
   renderCoachmark();
 }
 
-function bake(): void {
+function formulate(): void {
   if (gameIsPaused || !state.rampBuilt) return;
-  state = addCrumbs(state, manualCookieValue(state));
+  state = addPerfumeRevenue(state, manualPerfumeValue(state));
   render();
-  bakeryScene?.pulsePlayer();
+  atelierScene?.pulsePlayer();
   saveSoon();
 }
 
@@ -1006,12 +1006,12 @@ function completeVipOrder(): void {
   const payout = customerOrderReward(state);
   state = completeCustomerOrder(state);
   if (state === previous) {
-    setStatus('Le client attend sa commande. Il te manque ' + format(Math.max(0, materialCost - state.crumbs)) + ' parfums pour la préparer.');
+    setStatus('Le client attend sa commande. Il te manque ' + format(Math.max(0, materialCost - state.perfumeRevenue)) + ' parfums pour la préparer.');
     return;
   }
   render();
   save();
-  bakeryScene?.pulsePlayer();
+  atelierScene?.pulsePlayer();
   setStatus('Commande VIP livrée ! +' + format(payout) + ' parfums. La prochaine commande est disponible quand tu reviens voir le client.');
 }
 
@@ -1031,7 +1031,7 @@ function buyMachineById(machineId: MachineId): void {
   }
   render();
   setStatus(getMachine(machineId).name + ' installée. La ligne de production démarre.');
-  bakeryScene?.refreshMachines();
+  atelierScene?.refreshMachines();
   save();
 }
 
@@ -1044,7 +1044,7 @@ function changeWorld(worldId: WorldId): void {
   }
   state = next;
   render();
-  bakeryScene?.loadWorld();
+  atelierScene?.loadWorld();
   setStatus('Bienvenue dans ' + getWorld(worldId).name + ' !');
   save();
 }
@@ -1057,7 +1057,7 @@ function changeFloor(floor: number): void {
   }
   state = next;
   render();
-  bakeryScene?.loadFloor();
+  atelierScene?.loadFloor();
   save();
 }
 
@@ -1069,7 +1069,7 @@ function doRebirth(): void {
   }
   state = next;
   render();
-  bakeryScene?.loadWorld();
+  atelierScene?.loadWorld();
   setStatus('Rebirth normal ! Tes recherches restent acquises et tes ventes gagnent en puissance.');
   save();
 }
@@ -1092,12 +1092,12 @@ function doTotalRebirth(): void {
   missionUiKey = '';
   activeMoveControls.clear();
   render();
-  bakeryScene?.loadWorld();
+  atelierScene?.loadWorld();
   save();
   setStatus('Ascension totale réussie. Nouvelle maison, nouvelles essences, nouveau départ.');
 }
 
-$('bake-button').addEventListener('click', bake);
+$('formulate-button').addEventListener('click', formulate);
 $('rebirth-button').addEventListener('click', doRebirth);
 $('total-rebirth-button').addEventListener('click', doTotalRebirth);
 document.querySelectorAll<HTMLButtonElement>('[data-floor]').forEach((button) => {
@@ -1114,7 +1114,7 @@ window.addEventListener('keydown', (event) => {
   if (gameIsPaused) return;
   if (event.code === 'Space' && !(event.target instanceof HTMLInputElement) && !(event.target instanceof HTMLButtonElement)) {
     event.preventDefault();
-    bake();
+    formulate();
   }
 });
 window.addEventListener('beforeunload', save);
@@ -1149,7 +1149,7 @@ class TycoonScene extends Phaser.Scene {
   }
 
   create(): void {
-    bakeryScene = this;
+    atelierScene = this;
     this.isBuildingRamp = false;
     this.productionLayoutDrawn = false;
     this.mentorAreaDrawn = false;
@@ -1563,7 +1563,7 @@ class TycoonScene extends Phaser.Scene {
         return object;
       };
 
-      if (machine.id === 'hand-mixer') {
+      if (machine.id === 'formulation-table') {
         addEllipse(x, y - 12, 47, 28, fill);
         addEllipse(x, y - 13, 37, 18, owned ? 0x9ba083 : 0xd8cbb0, ink);
         addEllipse(x + 2, y - 14, 20, 8, owned ? 0x777d5d : 0xc8b99a, ink);
@@ -1573,14 +1573,14 @@ class TycoonScene extends Phaser.Scene {
         addRect(x - 27, y - 18, 4, 5, 0xc4a674);
         addEllipse(x + 27, y - 7, 9, 15, 0x80927d);
         addRect(x + 27, y - 19, 4, 5, 0xc4a674);
-      } else if (machine.id === 'brick-oven') {
+      } else if (machine.id === 'copper-still') {
         addEllipse(x, y - 10, 40, 47, blueprint ? 0xc7b69a : 0xb28058);
         addEllipse(x, y - 11, 27, 30, blueprint ? 0xd8cbb0 : 0x8e6345);
         addRect(x, y - 40, 12, 13, 0xc0a574);
         addRect(x, y - 48, 18, 5, 0x6d5039);
         addRect(x, y + 6, 22, 11, 0xddd0ad);
         addRect(x + 27, y - 2, 9, 22, 0x899681);
-      } else if (machine.id === 'conveyor-oven') {
+      } else if (machine.id === 'bottling-line') {
         for (let index = 0; index < 3; index += 1) {
           const bx = x - 25 + index * 25;
           addEllipse(bx, y - 10, 14, 24, index === 1 && owned ? 0x9b7154 : fill);
@@ -1589,7 +1589,7 @@ class TycoonScene extends Phaser.Scene {
           addRect(bx, y - 8, 7, 5, 0xe0d2af);
         }
         addRect(x, y - 40, 64, 5, detail);
-      } else if (machine.id === 'frosting-lab') {
+      } else if (machine.id === 'perfumer-studio') {
         addRect(x, y - 4, 60, 30, fill);
         addEllipse(x - 17, y - 20, 19, 28, 0x839482);
         addRect(x - 17, y - 39, 7, 10, 0xc4ab7c);
@@ -1642,7 +1642,7 @@ class TycoonScene extends Phaser.Scene {
       this.drawCharacters();
       this.mentorAreaDrawn = true;
     }
-    if ((ownedInWorld >= 2 || (ownedInWorld >= 1 && state.lifetimeCrumbs >= 250)) && !this.vipCustomerVisible) {
+    if ((ownedInWorld >= 2 || (ownedInWorld >= 1 && state.lifetimePerfumeRevenue >= 250)) && !this.vipCustomerVisible) {
       this.drawVipCustomer();
     }
     if (this.collectorLabel) {
@@ -1680,13 +1680,13 @@ class TycoonScene extends Phaser.Scene {
       const count = Math.min(2, state.machines[state.currentWorld][machine.id]);
       for (let index = 0; index < count; index += 1) {
         this.time.delayedCall(index * 105, () => {
-          if (this.scene.isActive() && this.packets.size < 24) this.spawnCookiePacket(machine, index, count, world.accent);
+          if (this.scene.isActive() && this.packets.size < 24) this.spawnParfumPacket(machine, index, count, world.accent);
         });
       }
     }
   }
 
-  private spawnCookiePacket(machine: (typeof MACHINES)[number], index: number, count: number, accent: number): void {
+  private spawnParfumPacket(machine: (typeof MACHINES)[number], index: number, count: number, accent: number): void {
     const laneOffset = (index - (count - 1) / 2) * 12;
     const sourceX = machine.x + (index - (count - 1) / 2) * 13;
     const targetY = 475 + laneOffset;
@@ -1729,7 +1729,7 @@ class TycoonScene extends Phaser.Scene {
         return;
       }
       if (Phaser.Math.Distance.Between(playerX, playerY, 620, 425) < 100) {
-        if (state.crumbs < STARTING_LAND_COST) {
+        if (state.perfumeRevenue < STARTING_LAND_COST) {
           setStatus('Le terrain coûte ' + format(STARTING_LAND_COST) + ' parfums. Ton solde doit atteindre ce montant.');
           return;
         }
@@ -1765,7 +1765,7 @@ class TycoonScene extends Phaser.Scene {
       }
       const opened = unlockFloor(state, nextFloor);
       if (opened === state) {
-        setStatus('Les escaliers coûtent ' + format(floorUnlockCost(nextFloor)) + ' parfums. Il t’en manque ' + format(Math.max(0, floorUnlockCost(nextFloor) - state.crumbs)) + '.');
+        setStatus('Les escaliers coûtent ' + format(floorUnlockCost(nextFloor)) + ' parfums. Il t’en manque ' + format(Math.max(0, floorUnlockCost(nextFloor) - state.perfumeRevenue)) + '.');
         return;
       }
       state = opened;
@@ -1786,7 +1786,7 @@ class TycoonScene extends Phaser.Scene {
       else {
         const nextLocked = WORLDS.find((world) => !state.unlockedWorlds.includes(world.id));
         if (nextLocked) setStatus('Rebirth ' + nextLocked.unlockRebirths + ' requis pour ' + nextLocked.name + '.');
-        else changeWorld('cookie-valley');
+        else changeWorld('glass-garden');
       }
       return;
     }
@@ -2186,11 +2186,11 @@ class TycoonScene extends Phaser.Scene {
   private buyExteriorBuild(cost: number): void {
     const build = this.exteriorBuildPad();
     if (!build) return;
-    if (state.crumbs < cost) {
-      setStatus('Il manque ' + format(cost - state.crumbs) + ' parfums pour cet achat.');
+    if (state.perfumeRevenue < cost) {
+      setStatus('Il manque ' + format(cost - state.perfumeRevenue) + ' parfums pour cet achat.');
       return;
     }
-    state.crumbs -= cost;
+    state.perfumeRevenue -= cost;
     if (build.kind === 'walls') state.wallsBuilt = true;
     else state.outsideExpansions += 1;
     render();
@@ -2258,11 +2258,11 @@ function animationTick(now: number): void {
     goldenReadyAt = now + 45_000 + Math.random() * 25_000;
     setStatus('Le flacon mythique a disparu. Un autre arrivera bientôt.');
   }
-  renderGoldenCookie(now);
+  renderRareFlacon(now);
   const boostMultiplier = now < goldenBoostUntil ? 2 : 1;
   const production = productionPerSecond(state) * boostMultiplier;
   if (production > 0 && elapsed > 0) {
-    state = addCrumbs(state, production * elapsed);
+    state = addPerfumeRevenue(state, production * elapsed);
   }
   saveTimer += elapsed;
   renderTimer += elapsed;
