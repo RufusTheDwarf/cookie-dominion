@@ -121,6 +121,7 @@ img{max-width:100%;display:block}
 .rare-event-copy strong{font-family:Georgia,"Times New Roman",serif;font-size:13px}
 .rare-event-copy small{font-size:9px;line-height:1.4;color:var(--ink-soft)}
 .rare-event-badge{flex:0 0 33px;width:33px;height:33px;display:grid;place-items:center;border:1px solid #c5ad79;background:#f6ebd0;color:#946b32;font-family:Georgia,"Times New Roman",serif;font-size:14px;font-weight:800}
+.boost-status[hidden]{display:none}
 .boost-status{position:relative;display:flex;align-items:center;gap:9px;flex-wrap:wrap;margin:-4px 0 13px;padding:9px 10px;border:1px solid #b69b61;background:#f1e2bd}
 .boost-status[hidden]{display:none}
 .boost-symbol{font-size:19px;color:#a77834}
