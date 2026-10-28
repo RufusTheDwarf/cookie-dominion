@@ -8,8 +8,10 @@ import {
   canRebirth,
   canTotalRebirth,
   canCompleteCustomerOrder,
+  canCraftPerfume,
   claimMission,
   collectHerb,
+  craftPerfume,
   createInitialState,
   completeCustomerOrder,
   customerOrderCost,
@@ -19,7 +21,9 @@ import {
   exportSaveFile,
   enterWorld,
   ESSENCE_PRESTIGE_VALUE,
-  HERB_CLICKS_PER_PERFUME,
+  HERB_DEFINITIONS,
+  HERB_REGROW_SECONDS,
+  PERFUME_RECIPES,
   essenceMultiplier,
   getMachine,
   getWorld,
@@ -43,7 +47,9 @@ import {
   UPGRADES,
   WORLDS,
   type GameState,
+  type HerbId,
   type MachineId,
+  type RecipeId,
   type MissionId,
   type UpgradeId,
   type WorldId,
@@ -69,7 +75,7 @@ app.innerHTML = `
       <div class="brand"><div class="brand-symbol"><span></span><i></i></div><div class="brand-copy"><div class="eyebrow">MAISON DES ESSENCES · TYCOON</div><h1>PARFUM<span> EMPIRE</span></h1><p class="subtitle">Compose. Produis. Deviens une légende du parfum.</p></div></div>
       <button id="open-menu-button" class="pause-menu-button" type="button" aria-label="Ouvrir le menu">MENU</button>
       <div class="header-stats">
-        <div class="currency-display"><span>VENTES</span><strong id="crumb-total">0</strong><small>PARFUMS</small></div>
+        <div class="currency-display"><span>CAISSE</span><strong id="crumb-total">0</strong><small>PIÈCES</small></div>
         <div class="hud-stat" id="header-production"><span>PRODUCTION</span><strong id="production">0 <small>/ s</small></strong></div>
         <div class="hud-stat" id="header-multiplier"><span>MULTIPLICATEUR</span><strong id="multiplier">x1</strong></div>
         <div class="hud-stat" id="header-rebirths"><span>REBIRTHS</span><strong id="rebirth-count">0</strong></div>
@@ -103,10 +109,36 @@ app.innerHTML = `
           <div><div class="eyebrow">TON ATELIER</div><h2>JEUNE PARFUMEUR</h2><small id="owner-rank">Maison indépendante · Rang 1</small></div>
         </div>
         <div id="manual-production" class="manual-production">
-          <div class="manual-label"><span>RÉCOLTE D’HERBES</span><strong><b id="manual-value">1</b> parfum / recette</strong></div>
-          <button class="primary" id="bake-button"><span class="spray-icon">✦</span><span>CUEILLIR DES HERBES</span><span class="button-value">0/5</span></button>
-          <small>Chaque clic récolte une herbe. Il en faut cinq pour composer un parfum ; les améliorations augmentent le rendement d’une recette.</small>
+          <div class="manual-label"><span>RÉCOLTE SUR LE TERRAIN</span><strong><b id="manual-value">0</b> herbes en stock</strong></div>
+          <button class="primary" id="bake-button"><span class="spray-icon">✦</span><span>TROUVER DES HERBES</span><span class="button-value">E</span></button>
+          <small>Déplace-toi jusqu’aux touffes visibles dans le jardin et appuie sur E pour récolter. Ensuite, combine les herbes et vends les flacons.</small>
         </div>
+        <section id="herb-workshop-panel" class="herb-workshop-panel" hidden>
+          <div class="herb-workshop-heading"><span class="eyebrow">HERBIER & FORMULATION</span><strong>TES INGRÉDIENTS</strong></div>
+          <div class="herb-inventory-grid">
+            <div class="herb-inventory-item"><span class="herb-chip lavender-chip">✿</span><span>Lavande</span><strong data-herb-count="lavender">0</strong></div>
+            <div class="herb-inventory-item"><span class="herb-chip mint-chip">❧</span><span>Menthe</span><strong data-herb-count="mint">0</strong></div>
+            <div class="herb-inventory-item"><span class="herb-chip rose-chip">✿</span><span>Rose</span><strong data-herb-count="rose">0</strong></div>
+          </div>
+          <div class="recipe-list">
+            <article class="recipe-card">
+              <div class="recipe-card-title"><strong>Brise verte</strong><span class="recipe-stock">Stock : <b data-perfume-stock="green-whisper">0</b></span></div>
+              <small>1 lavande + 1 menthe · Fraîche et végétale</small>
+              <div class="recipe-actions"><button type="button" data-craft-recipe="green-whisper">COMPOSER</button><button type="button" data-sell-recipe="green-whisper">VENDRE · 2</button></div>
+            </article>
+            <article class="recipe-card">
+              <div class="recipe-card-title"><strong>Rose tendre</strong><span class="recipe-stock">Stock : <b data-perfume-stock="soft-rose">0</b></span></div>
+              <small>1 lavande + 1 rose · Florale et douce</small>
+              <div class="recipe-actions"><button type="button" data-craft-recipe="soft-rose">COMPOSER</button><button type="button" data-sell-recipe="soft-rose">VENDRE · 3</button></div>
+            </article>
+            <article class="recipe-card">
+              <div class="recipe-card-title"><strong>Bouquet royal</strong><span class="recipe-stock">Stock : <b data-perfume-stock="royal-bouquet">0</b></span></div>
+              <small>1 lavande + 1 menthe + 1 rose · Mélange complet</small>
+              <div class="recipe-actions"><button type="button" data-craft-recipe="royal-bouquet">COMPOSER</button><button type="button" data-sell-recipe="royal-bouquet">VENDRE · 5</button></div>
+            </article>
+          </div>
+          <small class="herb-workshop-note">Les premières ventes rapportent peu. Récolte les trois plantes pour débloquer toutes les recettes.</small>
+        </section>
         <section id="customer-order-panel" class="customer-order-card" hidden>
           <div class="order-heading"><span class="eyebrow">CLIENT VIP</span><span class="order-count">LIVRAISONS <strong id="orders-completed">0</strong></span></div>
           <h2>Commande spéciale</h2>
@@ -204,10 +236,10 @@ app.innerHTML = `
         <p>Tu arrives dans un jardin encore sauvage. Tu as 1 000 parfums pour acheter ton premier terrain : ensuite, tu pourras créer des parfums et bâtir ta manufacture.</p>
         <div class="tutorial-instructions">
           <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>ou les flèches pour te déplacer dehors</span></div>
-          <div><kbd>E</kbd><span>près d'un panneau pour construire ou interagir</span></div>
-          <div><span class="tutorial-step-number">1</span><span>Rejoins le panneau « TERRAIN · 1 000 » et appuie sur E.</span></div>
-          <div><span class="tutorial-step-number">2</span><span>Récolte cinq herbes pour composer un parfum, puis achète ta première table dans le catalogue.</span></div>
-          <div><span class="tutorial-step-number">3</span><span>Les personnages, les contrats et les autres systèmes arriveront avec ta progression.</span></div>
+          <div><kbd>E</kbd><span>près d’une touffe pour récolter, ou d’un panneau pour interagir</span></div>
+          <div><span class="tutorial-step-number">1</span><span>Achète le terrain avec tes 1 000 pièces de départ.</span></div>
+          <div><span class="tutorial-step-number">2</span><span>Récolte lavande, menthe et rose dans le jardin avec E.</span></div>
+          <div><span class="tutorial-step-number">3</span><span>Compose une recette dans l’herbier, puis vends le flacon à bas prix pour gagner tes premières pièces.</span></div>
         </div>
         <button id="tutorial-start-button" class="menu-primary" type="button">ENTRER DANS LE JARDIN</button>
       </section>
@@ -327,7 +359,7 @@ const UI_COACHMARKS: UiCoachmark[] = [
     id: 'manual-production',
     target: '#manual-production',
     title: 'Créer tes premiers parfums',
-    copy: 'Chaque clic récolte une herbe. Au cinquième clic, tu obtiens un parfum ; les améliorations augmentent ensuite le nombre de parfums par recette.',
+    copy: 'Récolte les plantes sur la carte avec E, puis utilise les recettes de l’herbier. Les premiers flacons se vendent à bas prix : chaque pièce finance ton premier équipement.',
     available: () => state.rampBuilt,
   },
   {
@@ -928,6 +960,7 @@ function render(): void {
   $('utility-drawer').hidden = stage < 3;
 
   $('customer-order-panel').hidden = !(machineCount >= 2 || (machineCount >= 1 && state.lifetimeCrumbs >= 250));
+  $('herb-workshop-panel').hidden = !state.rampBuilt;
   $('golden-cookie').hidden = stage < 3;
   $('rebirth-panel').hidden = stage < 4;
   $('rebirth-divider').hidden = stage < 4;
@@ -947,7 +980,7 @@ function render(): void {
   $('multiplier').textContent = 'x' + format(rebirthMultiplier(state) * world.incomeMultiplier);
   $('rebirth-count').textContent = String(state.rebirths);
   $('run-earned').textContent = format(state.runCrumbsEarned);
-  $('manual-value').textContent = format(manualCookieValue(state));
+  $('manual-value').textContent = format(Object.values(state.herbInventory).reduce((sum, count) => sum + count, 0));
   $('orders-completed').textContent = format(state.ordersCompleted);
   $('customer-order-cost').textContent = format(customerOrderCost(state)) + ' parfums';
   $('customer-order-reward').textContent = '+' + format(customerOrderReward(state)) + ' parfums';
@@ -955,7 +988,7 @@ function render(): void {
     ? 'Commande prête : rejoins le client sur la carte et appuie sur E pour livrer.'
     : 'Il manque ' + format(customerOrderCost(state) - state.crumbs) + ' parfums pour préparer cette commande.';
   const bakeValue = $('bake-button').querySelector('.button-value');
-  if (bakeValue) bakeValue.textContent = state.herbClicks + '/' + HERB_CLICKS_PER_PERFUME;
+  if (bakeValue) bakeValue.textContent = 'E';
   $('world-name').textContent = world.name;
   $('world-tagline').textContent = world.tagline.toUpperCase();
   $('essence-total').textContent = format(state.essences);
@@ -989,6 +1022,7 @@ function render(): void {
     if (floor === 1) button.textContent = '02 · Atelier haut';
     if (floor === 2) button.textContent = '03 · Laboratoire';
   });
+  renderHerbWorkshop();
   renderUpgradeCards();
   renderMissionCards();
   renderMachineCards();
@@ -999,18 +1033,59 @@ function render(): void {
 
 function bake(): void {
   if (gameIsPaused || !state.rampBuilt) return;
-  const result = collectHerb(state);
-  state = result.state;
-  render();
-  bakeryScene?.pulsePlayer();
-  saveSoon();
-  if (result.perfumeMade > 0) {
-    setStatus('Recette terminée : +' + format(result.perfumeMade) + ' parfum(s). Tu peux réutiliser les cinq herbes.');
-  } else {
-    setStatus('Herbe récoltée : ' + result.herbClicks + '/' + HERB_CLICKS_PER_PERFUME + '. Encore ' +
-      (HERB_CLICKS_PER_PERFUME - result.herbClicks) + ' clic(s) avant de composer un parfum.');
+  setStatus('Les herbes se récoltent directement dans le jardin : approche-toi d’une touffe et appuie sur E.');
+}
+
+function renderHerbWorkshop(): void {
+  for (const herbId of Object.keys(HERB_DEFINITIONS) as HerbId[]) {
+    const count = document.querySelector<HTMLElement>('[data-herb-count="' + herbId + '"]');
+    if (count) count.textContent = format(state.herbInventory[herbId]);
+  }
+  for (const recipeId of Object.keys(PERFUME_RECIPES) as RecipeId[]) {
+    const recipe = PERFUME_RECIPES[recipeId];
+    const stock = document.querySelector<HTMLElement>('[data-perfume-stock="' + recipeId + '"]');
+    if (stock) stock.textContent = format(state.perfumeInventory[recipeId]);
+    const craftButton = document.querySelector<HTMLButtonElement>('[data-craft-recipe="' + recipeId + '"]');
+    const sellButton = document.querySelector<HTMLButtonElement>('[data-sell-recipe="' + recipeId + '"]');
+    if (craftButton) craftButton.disabled = !state.rampBuilt || !canCraftPerfume(state, recipeId);
+    if (sellButton) sellButton.disabled = state.perfumeInventory[recipeId] <= 0;
+    if (sellButton) sellButton.textContent = 'VENDRE · ' + format(Math.ceil(recipe.salePrice * getWorld(state.currentWorld).incomeMultiplier * rebirthMultiplier(state) * essenceMultiplier(state)));
   }
 }
+
+function craftPerfumeByRecipe(recipeId: RecipeId): void {
+  const next = craftPerfume(state, recipeId);
+  if (next === state) {
+    setStatus('Ingrédients insuffisants. Récolte les plantes indiquées sur la recette.');
+    return;
+  }
+  state = next;
+  render();
+  save();
+  const recipe = PERFUME_RECIPES[recipeId];
+  setStatus(recipe.name + ' composé. Flacons en stock : ' + state.perfumeInventory[recipeId] + '. Vends-le pour gagner des pièces.');
+}
+
+function sellPerfumeByRecipe(recipeId: RecipeId): void {
+  const previous = state;
+  const previousCash = state.crumbs;
+  state = sellPerfume(state, recipeId);
+  if (state === previous) {
+    setStatus('Tu n’as aucun flacon de cette recette à vendre. Compose-en un d’abord.');
+    return;
+  }
+  const earned = state.crumbs - previousCash;
+  render();
+  save();
+  setStatus(PERFUME_RECIPES[recipeId].name + ' vendu pour ' + format(earned) + ' pièces. Les premiers parfums valent peu : développe ta maison pour progresser.');
+}
+
+document.querySelectorAll<HTMLButtonElement>('[data-craft-recipe]').forEach((button) => {
+  button.addEventListener('click', () => craftPerfumeByRecipe(button.dataset.craftRecipe as RecipeId));
+});
+document.querySelectorAll<HTMLButtonElement>('[data-sell-recipe]').forEach((button) => {
+  button.addEventListener('click', () => sellPerfumeByRecipe(button.dataset.sellRecipe as RecipeId));
+});
 
 function completeVipOrder(): void {
   if (!state.rampBuilt) return;
@@ -1149,6 +1224,7 @@ class TycoonScene extends Phaser.Scene {
   private spawnOnRestart?: { x: number; y: number };
   private exteriorButtonObjects: Phaser.GameObjects.GameObject[] = [];
   private extensionObjects: Phaser.GameObjects.GameObject[] = [];
+  private herbPatches: Array<{ id: HerbId; x: number; y: number; container: Phaser.GameObjects.Container; available: boolean }> = [];
   private playerFaceParts?: { leftEye: Phaser.GameObjects.Ellipse; rightEye: Phaser.GameObjects.Ellipse; nose: Phaser.GameObjects.Ellipse; hairLock: Phaser.GameObjects.Ellipse; hair: Phaser.GameObjects.Ellipse; hairCurl: Phaser.GameObjects.Ellipse; browLeft: Phaser.GameObjects.Ellipse; browRight: Phaser.GameObjects.Ellipse; cheekLeft: Phaser.GameObjects.Ellipse; cheekRight: Phaser.GameObjects.Ellipse; bottle: Phaser.GameObjects.Ellipse; bottleLabel: Phaser.GameObjects.Rectangle; bottleNeck: Phaser.GameObjects.Rectangle; bottleCap: Phaser.GameObjects.Rectangle };
   private playerLimbs?: { leftLeg: Phaser.GameObjects.Ellipse; rightLeg: Phaser.GameObjects.Ellipse; leftArm: Phaser.GameObjects.Ellipse; rightArm: Phaser.GameObjects.Ellipse };
   private facing: MoveDirection = 'down';
@@ -1171,6 +1247,7 @@ class TycoonScene extends Phaser.Scene {
     this.constructionButtonObjects = [];
     this.exteriorButtonObjects = [];
     this.extensionObjects = [];
+    this.herbPatches = [];
     this.packets = new Set<Phaser.GameObjects.Container>();
     this.collectorLabel = undefined;
     const world = getWorld(state.currentWorld);
@@ -1191,6 +1268,7 @@ class TycoonScene extends Phaser.Scene {
         this.drawExteriorExtensions(world.accent);
       }
       this.refreshMachines();
+      if (state.currentFloor === 0) this.drawHerbPatches();
       if (state.unlockedWorlds.length > 1 && state.currentFloor === 0) this.drawPortal(world.accent);
       if (state.currentFloor === 2 || (state.currentFloor < 2 && state.unlockedFloors.includes(state.currentFloor + 1))) {
         this.drawStairs(world.accent);
@@ -1316,6 +1394,57 @@ class TycoonScene extends Phaser.Scene {
     const crossingEastWall = Math.max(this.player.x, x) >= ROOM_BOUNDS.right - 18 &&
       Math.min(this.player.x, x) <= ROOM_BOUNDS.right + 18;
     return insideDoorway && crossingEastWall;
+  }
+
+  private nearbyHerbPatch(): { id: HerbId; x: number; y: number; container: Phaser.GameObjects.Container; available: boolean } | undefined {
+    if (!state.rampBuilt || state.currentFloor !== 0) return undefined;
+    return this.herbPatches
+      .filter((patch) => patch.available)
+      .map((patch) => ({ patch, distance: Phaser.Math.Distance.Between(this.player.x, this.player.y, patch.x, patch.y) }))
+      .filter((item) => item.distance < 78)
+      .sort((a, b) => a.distance - b.distance)[0]?.patch;
+  }
+
+  private drawHerbPatches(): void {
+    const locations: Array<{ id: HerbId; x: number; y: number }> = [
+      { id: 'lavender', x: 300, y: 700 },
+      { id: 'mint', x: 500, y: 760 },
+      { id: 'rose', x: 730, y: 760 },
+      { id: 'lavender', x: 1160, y: 350 },
+      { id: 'mint', x: 1320, y: 720 },
+      { id: 'rose', x: 1530, y: 480 },
+    ];
+    for (const location of locations) {
+      const definition = HERB_DEFINITIONS[location.id];
+      const root = this.add.container(location.x, location.y).setDepth(location.y + 8);
+      root.add(this.add.ellipse(0, 12, 47, 13, 0x3b4a32, 0.2));
+      const leaves = this.add.graphics();
+      leaves.lineStyle(2, 0x486444, 1);
+      leaves.lineBetween(0, 9, 0, -18);
+      leaves.lineBetween(0, -3, -12, -12);
+      leaves.lineBetween(0, 2, 13, -8);
+      leaves.fillStyle(0x64885a, 1);
+      leaves.fillEllipse(-9, -12, 16, 7);
+      leaves.fillEllipse(10, -8, 16, 7);
+      leaves.fillEllipse(-3, -19, 11, 16);
+      root.add(leaves);
+      for (let petal = 0; petal < 5; petal += 1) {
+        const angle = petal * Math.PI * 2 / 5;
+        const flowerColor = location.id === 'lavender' ? 0xb7a0d8 : location.id === 'rose' ? 0xd98591 : 0x9acb82;
+        root.add(this.add.ellipse(Math.cos(angle) * 7, -24 + Math.sin(angle) * 7, 8, 10, flowerColor)
+          .setStrokeStyle(1, 0x51473a));
+      }
+      root.add(this.add.ellipse(0, -24, 5, 5, 0xe7d49b).setStrokeStyle(1, 0x51473a));
+      root.add(this.add.text(0, 20, definition.name.toUpperCase(), {
+        fontFamily: 'Georgia, serif', fontSize: '9px', fontStyle: 'bold',
+        color: '#2f3c2c', backgroundColor: '#f0e6cc', padding: { x: 4, y: 2 },
+      }).setOrigin(0.5));
+      root.add(this.add.text(0, 36, 'E · CUEILLIR', {
+        fontFamily: 'Georgia, serif', fontSize: '8px', fontStyle: 'bold',
+        color: '#f5ecd5', backgroundColor: '#46573f', padding: { x: 4, y: 2 },
+      }).setOrigin(0.5));
+      this.herbPatches.push({ ...location, container: root, available: true });
+    }
   }
 
   private createPlayer(x: number, y: number, accent: number): Phaser.GameObjects.Container {
@@ -1793,6 +1922,21 @@ class TycoonScene extends Phaser.Scene {
       }
       return;
     }
+    const herbPatch = this.nearbyHerbPatch();
+    if (herbPatch) {
+      state = collectHerb(state, herbPatch.id);
+      herbPatch.available = false;
+      herbPatch.container.setVisible(false);
+      this.time.delayedCall(HERB_REGROW_SECONDS * 1000, () => {
+        if (!this.scene.isActive()) return;
+        herbPatch.available = true;
+        herbPatch.container.setVisible(true);
+      });
+      render();
+      save();
+      setStatus('Récolte : +1 ' + HERB_DEFINITIONS[herbPatch.id].name + '. Utilise-la dans l’herbier.');
+      return;
+    }
     const buildPad = this.exteriorBuildPad();
     if (buildPad && Phaser.Math.Distance.Between(playerX, playerY, buildPad.x, buildPad.y) < 94) {
       this.buyExteriorBuild(buildPad.cost);
@@ -2211,6 +2355,12 @@ class TycoonScene extends Phaser.Scene {
     if (build && Phaser.Math.Distance.Between(this.player.x, this.player.y, build.x, build.y) < 96) {
       hint.textContent = build.kind === 'walls' ? 'E · CONSTRUIRE LES MURS' : 'E · CONSTRUIRE L’EXTENSION';
       if (action) action.textContent = 'ACHETER';
+      return;
+    }
+    const nearbyHerb = this.nearbyHerbPatch();
+    if (nearbyHerb) {
+      hint.textContent = 'E · RÉCOLTER ' + HERB_DEFINITIONS[nearbyHerb.id].name.toUpperCase();
+      if (action) action.textContent = 'RÉCOLTER';
       return;
     }
     if (state.currentFloor === 2 && Phaser.Math.Distance.Between(this.player.x, this.player.y, STAIRS_X, STAIRS_Y) < 105) {
