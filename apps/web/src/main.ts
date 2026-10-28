@@ -4,6 +4,7 @@ import {
   buyUpgrade,
   canClaimMission,
   canCompleteCustomerOrder,
+  canCraftPerfume,
   canRebirth,
   canTotalRebirth,
   claimMission,
@@ -11,12 +12,15 @@ import {
   createInitialState,
   customerOrderCost,
   customerOrderReward,
+  craftPerfume,
   enterWorld,
   ESSENCE_PRESTIGE_VALUE,
   essenceMultiplier,
   exportSaveFile,
   getWorld,
   harvestIngredient,
+  perfumeSalePrice,
+  PERFUME_RECIPES,
   INGREDIENTS_PER_PERFUME,
   MATERIALS,
   MACHINES,
@@ -37,6 +41,7 @@ import {
   type GameState,
   type MachineId,
   type MissionId,
+  type RecipeId,
   type UpgradeId,
   type WorldId,
 } from './economy';
@@ -92,10 +97,10 @@ app.innerHTML = `
         <div class="headline-money">
           <span>TRÉSORERIE</span>
           <strong id="header-money">0</strong>
-          <small>parfums disponibles</small>
+          <small>pièces disponibles</small>
         </div>
         <div class="header-stat"><span>PRODUCTION</span><strong id="header-cps">0</strong><small>par seconde</small></div>
-        <div class="header-stat"><span>RÉCOLTE</span><strong id="header-click">0/10</strong><small>notes pour un flacon</small></div>
+        <div class="header-stat"><span>MATIÈRES</span><strong id="header-click">0</strong><small>ingrédients en stock</small></div>
         <div class="header-stat"><span>VIE DU RUN</span><strong id="header-run">0</strong><small>produits cumulés</small></div>
         <button id="open-settings" class="icon-button" type="button" title="Paramètres et sauvegarde" aria-label="Paramètres et sauvegarde">☷</button>
       </div>
@@ -126,20 +131,25 @@ app.innerHTML = `
               <img src="/assets/material-unknown.svg" alt="Matière inconnue" draggable="false" />
             </button>
             <div class="crafted-flacon-pop" id="crafted-flacon-pop" aria-hidden="true"><img src="/assets/bottle-product.svg" alt="" /></div>
-            <span class="stage-caption">10 MATIÈRES = 1 FRAGRANCE</span>
+            <span class="stage-caption">RÉCOLTE · COMBINAISONS · VENTES</span>
           </div>
           <div class="harvest-summary" aria-live="polite">
             <span class="last-drop-icon"><img id="harvest-last-icon" src="/assets/material-unknown.svg" alt="" /></span>
             <span class="last-drop-copy"><small>DERNIÈRE DÉCOUVERTE</small><strong id="harvest-last-name">Objet inconnu</strong><em id="harvest-last-rarity">La nature réserve une surprise.</em></span>
-            <span class="harvest-counter"><strong id="harvest-progress">0/10</strong><small>notes</small></span>
+            <span class="harvest-counter"><strong id="harvest-progress">0</strong><small>en stock</small></span>
           </div>
           <div class="harvest-progress-track"><i id="harvest-progress-bar"></i></div>
           <div class="click-instructions">
             <strong>Récolte des matières premières</strong>
-            <span>Chaque clic révèle un objet. Dix matières sont assemblées en une fragrance.</span>
+            <span>Chaque clic donne une matière. Combine les ingrédients dans une recette, puis vends le flacon.</span>
           </div>
           <div class="material-codex-heading"><span>CARNET BOTANIQUE</span><span id="material-discovered-count">0 découvertes</span></div>
           <div id="material-inventory" class="material-inventory"></div>
+          <section class="recipe-workshop" aria-labelledby="recipe-workshop-title">
+            <div class="recipe-workshop-heading"><div><span class="eyebrow">FORMULATION ARTISANALE</span><h2 id="recipe-workshop-title">Combinaisons & ventes</h2></div><span id="perfume-stock-count">0 flacon</span></div>
+            <p class="recipe-workshop-intro">Les premiers parfums valent peu. Récolte les matières, compose une recette et vends les flacons pour financer la manufacture.</p>
+            <div id="recipe-list" class="recipe-list"></div>
+          </section>
           <div class="click-card-footer">
             <span>RÉCOLTES EFFECTUÉES</span><strong id="session-clicks">0</strong>
           </div>
@@ -293,8 +303,9 @@ function renderHarvestView(): void {
   byId('harvest-last-rarity').textContent = latest
     ? latest.rarity + ' · nouvelle trouvaille'
     : 'Le prochain clic révélera une matière.';
-  byId('harvest-progress').textContent = state.harvestProgress + '/' + INGREDIENTS_PER_PERFUME;
-  byId('harvest-progress-bar').style.width = (state.harvestProgress / INGREDIENTS_PER_PERFUME * 100) + '%';
+  const ingredientTotal = Object.values(state.ingredients).reduce((sum, count) => sum + count, 0);
+  byId('harvest-progress').textContent = format(ingredientTotal, 0);
+  byId('harvest-progress-bar').style.width = Math.min(100, ingredientTotal / 20 * 100) + '%';
 
   const mainButton = byId<HTMLButtonElement>('perfume-clicker');
   const mainImage = mainButton.querySelector<HTMLImageElement>('img');
@@ -302,19 +313,20 @@ function renderHarvestView(): void {
     mainImage.src = source;
     mainImage.alt = latest ? latest.name : 'Matière botanique inconnue';
   }
-  mainButton.setAttribute('aria-label', 'Récolter une matière botanique aléatoire');
+  mainButton.setAttribute('aria-label', 'Récolter une matière botanique aléatoire. Les ingrédients restent en stock jusqu’à la composition manuelle.');
 
   const discoveries = MATERIALS.reduce((sum, material) => sum + state.materialDiscoveries[material.id], 0);
   byId('material-discovered-count').textContent = format(discoveries, 0) + ' trouvaille' + (discoveries === 1 ? '' : 's');
   byId('material-inventory').innerHTML = MATERIALS.map((material) => {
-    const count = state.materialDiscoveries[material.id];
-    const known = count > 0;
+    const discoveries = state.materialDiscoveries[material.id];
+    const stock = state.ingredients[material.id];
+    const known = discoveries > 0;
     const latestClass = material.id === state.lastHarvestedMaterial ? ' is-latest' : '';
     return `
-      <div class="material-chip ${known ? 'is-known' : 'is-unknown'}${latestClass}" title="${known ? material.name + ' · ' + material.rarity : 'Matière encore inconnue'}">
+      <div class="material-chip ${known ? 'is-known' : 'is-unknown'}${latestClass}" title="${known ? material.name + ' · en stock : ' + stock + ' · découvertes : ' + discoveries : 'Matière encore inconnue'}">
         <img src="${known ? material.asset : unknownAsset}" alt="" />
         <span>${known ? material.shortName : '???'}</span>
-        <strong>${format(count, 0)}</strong>
+        <strong>${format(stock, 0)}</strong>
       </div>`;
   }).join('');
 }
@@ -323,9 +335,9 @@ function renderStats(): void {
   const world = getWorld(state.currentWorld);
   const cps = productionPerSecond(state);
   byId('header-money').textContent = format(state.perfumeRevenue);
-  byId('header-money').title = formatExact(state.perfumeRevenue) + ' parfums';
+  byId('header-money').title = formatExact(state.perfumeRevenue) + ' pièces';
   byId('header-cps').textContent = format(cps);
-  byId('header-click').textContent = state.harvestProgress + '/' + INGREDIENTS_PER_PERFUME;
+  byId('header-click').textContent = format(Object.values(state.ingredients).reduce((sum, count) => sum + count, 0), 0);
   byId('header-run').textContent = format(state.runPerfumeRevenue);
   byId('factory-cps').textContent = format(cps);
   byId('session-clicks').textContent = format(state.gatherClicks, 0);
@@ -342,8 +354,8 @@ function renderStats(): void {
     ? 'La première ligne attend son équipement.'
     : currentWorldMachineTotal() + ' équipement(s) en service dans cette collection.';
   byId('factory-detail').textContent = cps > 0
-    ? format(cps) + ' parfums sont produits chaque seconde.'
-    : 'Investis dans une machine pour lancer tes revenus automatiques.';
+    ? format(cps) + ' pièces sont générées chaque seconde.'
+    : 'Vends tes premiers flacons ou investis dans une machine pour lancer les revenus automatiques.';
   byId('machine-count').textContent = format(currentWorldMachineTotal(), 0) + ' INSTALLÉ' + (currentWorldMachineTotal() > 1 ? 'S' : '');
   byId('complete-order').toggleAttribute('disabled', !canCompleteCustomerOrder(state));
   byId('complete-order').title = canCompleteCustomerOrder(state)
@@ -585,6 +597,7 @@ function renderRareFlacon(now: number): void {
 function renderAll(): void {
   renderStats();
   renderHarvestView();
+  renderRecipeWorkshop();
   renderMachines();
   renderStore();
 }
@@ -624,20 +637,13 @@ function floatText(label: string, event?: MouseEvent): void {
 function formulate(event?: MouseEvent): void {
   const result = harvestIngredient(state);
   state = result.state;
-  const lastId = result.materials[result.materials.length - 1] ?? 'lavender';
-  const material = MATERIALS.find((item) => item.id === lastId)!;
-  if (result.perfumesCreated > 0) {
-    floatReward(result.perfumesCreated, event, result.perfumesCreated === 1 ? 'parfum' : 'parfums');
-    const pop = byId('crafted-flacon-pop');
-    pop.classList.remove('is-visible');
-    void pop.offsetWidth;
-    pop.classList.add('is-visible');
-    window.setTimeout(() => pop.classList.remove('is-visible'), 760);
-    setStatus('Fragrance assemblée ! +' + format(result.perfumesCreated) + ' parfum(s). La prochaine formule repart de zéro.');
-  } else {
-    floatText('+' + material.name, event);
-    setStatus('Découverte : ' + material.name + ' · ' + material.rarity + '. ' + state.harvestProgress + '/' + INGREDIENTS_PER_PERFUME + ' matières avant la prochaine fragrance.');
-  }
+  const discovered = result.materials
+    .map((id) => MATERIALS.find((item) => item.id === id)!)
+    .filter(Boolean);
+  discovered.forEach((material, index) => floatText('+' + material.name, event && index === 0 ? event : undefined));
+  const ingredientTotal = Object.values(state.ingredients).reduce((sum, count) => sum + count, 0);
+  const names = discovered.map((material) => material.name).join(' et ');
+  setStatus('Récolte : ' + names + '. Tu as ' + ingredientTotal + ' matière(s) en stock. Choisis une combinaison, compose le flacon, puis vends-le.');
   const clicker = byId('perfume-clicker');
   clicker.classList.remove('is-clicking');
   void clicker.offsetWidth;
@@ -645,7 +651,60 @@ function formulate(event?: MouseEvent): void {
   window.setTimeout(() => clicker.classList.remove('is-clicking'), 220);
   renderStats();
   renderHarvestView();
-  renderMachines();
+  renderRecipeWorkshop();
+  saveSoon();
+}
+
+function renderRecipeWorkshop(): void {
+  const totalStock = Object.values(state.perfumeStock).reduce((sum, count) => sum + count, 0);
+  byId('perfume-stock-count').textContent = format(totalStock, 0) + ' flacon' + (totalStock === 1 ? '' : 's');
+  byId('recipe-list').innerHTML = PERFUME_RECIPES.map((recipe) => {
+    const stock = state.perfumeStock[recipe.id];
+    const ingredients = Object.entries(recipe.ingredients).map(([id, amount]) => {
+      const material = MATERIALS.find((item) => item.id === id)!;
+      return '<span class="recipe-ingredient" title="' + material.name + ' × ' + amount + '"><img src="' + material.asset + '" alt="" /><small>×' + amount + '</small></span>';
+    }).join('');
+    const canCraft = canCraftPerfume(state, recipe.id);
+    const price = perfumeSalePrice(state, recipe.id);
+    return `
+      <article class="recipe-row ${stock > 0 ? 'has-stock' : ''}">
+        <div class="recipe-bottle"><img src="/assets/bottle-product.svg" alt="" /></div>
+        <div class="recipe-info"><h3>${recipe.name}</h3><p>${recipe.description}</p><div class="recipe-ingredients">${ingredients}</div><small>VENTE · ${format(price)} pièce${price === 1 ? '' : 's'} · STOCK ${format(stock, 0)}</small></div>
+        <div class="recipe-actions"><button type="button" data-craft-recipe="${recipe.id}" ${canCraft ? '' : 'disabled'}>COMPOSER</button><button type="button" data-sell-recipe="${recipe.id}" ${stock > 0 ? '' : 'disabled'}>VENDRE +${format(price)}</button></div>
+      </article>`;
+  }).join('');
+}
+
+function craftRecipeById(recipeId: RecipeId): void {
+  const next = craftPerfume(state, recipeId);
+  if (next === state) {
+    setStatus('Il manque des matières pour cette recette. Récolte les ingrédients illustrés sur la carte.');
+    return;
+  }
+  state = next;
+  const recipe = PERFUME_RECIPES.find((item) => item.id === recipeId)!;
+  const pop = byId('crafted-flacon-pop');
+  pop.classList.remove('is-visible');
+  void pop.offsetWidth;
+  pop.classList.add('is-visible');
+  window.setTimeout(() => pop.classList.remove('is-visible'), 760);
+  renderAll();
+  setStatus(recipe.name + ' composé. Flacons en stock : ' + state.perfumeStock[recipeId] + '. Vends-le pour gagner des pièces.');
+  saveSoon();
+}
+
+function sellRecipeById(recipeId: RecipeId, event?: MouseEvent): void {
+  const stockBefore = state.perfumeStock[recipeId];
+  if (stockBefore <= 0) {
+    setStatus('Aucun flacon de cette recette en stock. Compose-en un avant de le vendre.');
+    return;
+  }
+  const price = perfumeSalePrice(state, recipeId);
+  state = sellPerfume(state, recipeId);
+  renderAll();
+  floatReward(price, event, 'pièces');
+  const recipe = PERFUME_RECIPES.find((item) => item.id === recipeId)!;
+  setStatus(recipe.name + ' vendu pour ' + format(price) + ' pièces. Les premières ventes rapportent peu : diversifie tes recettes et développe ta manufacture.');
   saveSoon();
 }
 
@@ -826,6 +885,14 @@ app.addEventListener('click', (event) => {
 
   if (target.id === 'perfume-clicker') {
     formulate(event instanceof MouseEvent ? event : undefined);
+    return;
+  }
+  if (target.dataset.craftRecipe) {
+    craftRecipeById(target.dataset.craftRecipe as RecipeId);
+    return;
+  }
+  if (target.dataset.sellRecipe) {
+    sellRecipeById(target.dataset.sellRecipe as RecipeId, event instanceof MouseEvent ? event : undefined);
     return;
   }
   if (target.id === 'rare-flacon') {
