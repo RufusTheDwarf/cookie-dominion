@@ -1,12 +1,14 @@
 export type WorldId = 'glass-garden' | 'amber-house' | 'astral-palace';
-export type MachineId = 'formulation-table' | 'copper-still' | 'bottling-line' | 'perfumer-studio' | 'astral-extractor';
-export type UpgradeId = 'production' | 'clickPower' | 'discount';
+export type MachineId = 'formulation-table' | 'copper-still' | 'bottling-line' | 'perfumer-studio' | 'astral-extractor' | 'botanical-garden' | 'enfleurage-press' | 'luxury-atelier' | 'crystal-distiller' | 'orbital-manufactory';
+export type UpgradeId = 'production' | 'clickPower' | 'discount' | 'rareBonus' | 'orders';
 export type MissionId = 'first-machine' | 'industrialist' | 'lifetime-perfumer' | 'world-explorer' | 'galactic-empire' | 'first-order';
 
 export interface UpgradeLevels {
   production: number;
   clickPower: number;
   discount: number;
+  rareBonus: number;
+  orders: number;
 }
 
 export interface MissionDefinition {
@@ -106,6 +108,20 @@ export const UPGRADES: Record<UpgradeId, { name: string; description: string; ba
     baseCost: 500,
     growth: 2,
     effect: '−5 % prix des machines / niveau',
+  },
+  rareBonus: {
+    name: 'Vaporisateur de précision',
+    description: 'Prolonge le bonus de production du flacon mythique.',
+    baseCost: 900,
+    growth: 2.15,
+    effect: '+3 s de bonus rare / niveau',
+  },
+  orders: {
+    name: 'Accords commerciaux',
+    description: 'Augmente la marge des commandes VIP.',
+    baseCost: 750,
+    growth: 1.95,
+    effect: '+10 % de paiement VIP / niveau',
   },
 };
 
@@ -215,19 +231,68 @@ export const MACHINES: MachineDefinition[] = [
     payout: 2200,
     cycleSeconds: 7,
   },
+  {
+    id: 'botanical-garden',
+    name: 'Serre botanique',
+    short: 'BOT',
+    description: 'Cultive les matières premières fraîches',
+    floor: 1,
+    x: 680,
+    cost: 125_000,
+    payout: 5_200,
+    cycleSeconds: 7.5,
+  },
+  {
+    id: 'enfleurage-press',
+    name: 'Presse à enfleurage',
+    short: 'ENF',
+    description: 'Capture les notes florales les plus délicates',
+    floor: 1,
+    x: 800,
+    cost: 900_000,
+    payout: 42_000,
+    cycleSeconds: 8,
+  },
+  {
+    id: 'luxury-atelier',
+    name: 'Atelier haute parfumerie',
+    short: 'LUX',
+    description: 'Compose des collections de prestige',
+    floor: 1,
+    x: 900,
+    cost: 8_000_000,
+    payout: 390_000,
+    cycleSeconds: 9,
+  },
+  {
+    id: 'crystal-distiller',
+    name: 'Distillateur de cristal',
+    short: 'CRYS',
+    description: 'Concentre les essences à très haut rendement',
+    floor: 2,
+    x: 1000,
+    cost: 75_000_000,
+    payout: 4_500_000,
+    cycleSeconds: 10,
+  },
+  {
+    id: 'orbital-manufactory',
+    name: 'Manufacture orbitale',
+    short: 'ORBIT',
+    description: 'Produit des fragrances hors normes à grande échelle',
+    floor: 2,
+    x: 1100,
+    cost: 700_000_000,
+    payout: 48_000_000,
+    cycleSeconds: 12,
+  },
 ];
 
 const WORLD_IDS = WORLDS.map((world) => world.id);
 const MACHINE_IDS = MACHINES.map((machine) => machine.id);
 
 function emptyWorldMachines(): WorldMachines {
-  return {
-    'formulation-table': 0,
-    'copper-still': 0,
-    'bottling-line': 0,
-    'perfumer-studio': 0,
-    'astral-extractor': 0,
-  };
+  return Object.fromEntries(MACHINES.map((machine) => [machine.id, 0])) as WorldMachines;
 }
 
 export function createEmptyMachineSave(): MachineSave {
@@ -249,7 +314,7 @@ export function createInitialState(now = Date.now()): GameState {
     currentFloor: 0,
     unlockedFloors: [0],
     unlockedWorlds: ['glass-garden'],
-    upgrades: { production: 0, clickPower: 0, discount: 0 },
+    upgrades: { production: 0, clickPower: 0, discount: 0, rareBonus: 0, orders: 0 },
     claimedMissions: [],
     rareFlaconsClaimed: 0,
     ordersCompleted: 0,
@@ -386,8 +451,9 @@ export function customerOrderCost(state: Pick<GameState, 'ordersCompleted'>): nu
   return Math.ceil(CUSTOMER_ORDER_BASE_COST * CUSTOMER_ORDER_COST_GROWTH ** state.ordersCompleted);
 }
 
-export function customerOrderReward(state: Pick<GameState, 'ordersCompleted'>): number {
-  return Math.ceil(customerOrderCost(state) * CUSTOMER_ORDER_REWARD_MULTIPLIER);
+export function customerOrderReward(state: Pick<GameState, 'ordersCompleted' | 'upgrades'>): number {
+  const rewardMultiplier = CUSTOMER_ORDER_REWARD_MULTIPLIER * (1 + state.upgrades.orders * 0.1);
+  return Math.ceil(customerOrderCost(state) * rewardMultiplier);
 }
 
 export function canCompleteCustomerOrder(state: GameState): boolean {
@@ -416,8 +482,6 @@ export function addPerfumeRevenue(state: GameState, amount: number): GameState {
 }
 
 export function buyMachine(state: GameState, machineId: MachineId): GameState {
-  const machine = getMachine(machineId);
-  if (machine.floor !== state.currentFloor) return state;
   const cost = machineCost(state, machineId);
   if (state.perfumeRevenue < cost) return state;
   return {
@@ -633,6 +697,8 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
         production: parseUpgradeLevel(value.upgrades, 'production'),
         clickPower: parseUpgradeLevel(value.upgrades, 'clickPower'),
         discount: parseUpgradeLevel(value.upgrades, 'discount'),
+        rareBonus: parseUpgradeLevel(value.upgrades, 'rareBonus'),
+        orders: parseUpgradeLevel(value.upgrades, 'orders'),
       },
       claimedMissions: Array.isArray(value.claimedMissions)
         ? value.claimedMissions.filter((id): id is MissionId => typeof id === 'string' && MISSION_IDS.includes(id as MissionId))
