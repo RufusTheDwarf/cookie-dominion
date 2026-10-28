@@ -739,10 +739,9 @@ export function createWorkshopScene(
       isBotanicalPlotUnlocked(item.id) && Math.hypot(item.x - x, item.y - y) < 58,
     );
     if (station) {
-      const offset = station.id === 'counter' || station.id === 'laboratory'
-        ? -72
-        : station.id === 'stairs' || station.id === 'rose-plot-2' ? -64 : 64;
-      destination = { x: station.x + offset, y: station.y + 48 };
+      const offset = station.id === 'counter' || station.id === 'laboratory' ||
+        station.id === 'stairs' || station.id === 'rose-plot-2' ? -54 : 54;
+      destination = { x: station.x + offset, y: station.y + 20 };
     } else {
       destination = { x, y };
     }
