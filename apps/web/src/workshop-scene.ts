@@ -720,8 +720,8 @@ export function createWorkshopScene(
   }
 
   const keydown = (event: KeyboardEvent): void => {
-    if (event.target instanceof HTMLElement &&
-      (event.target.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON'].includes(event.target.tagName))) return;
+    if (event.target instanceof Element &&
+        event.target.closest('button, a, input, textarea, select, [contenteditable="true"], [role="button"]')) return;
     const key = event.key.toLowerCase();
     if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'w', 'a', 's', 'd', 'z', 'q'].includes(key)) {
       keys.add(key);
