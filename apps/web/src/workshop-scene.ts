@@ -24,6 +24,7 @@ export interface WorkshopCustomerVisual {
   name: string;
   orderNumber: number;
   quantity: number;
+  stock: number;
   ready: boolean;
 }
 
@@ -758,7 +759,7 @@ export function createWorkshopScene(
     c.font = 'bold 7px system-ui';
     c.fillStyle = customerOrder.ready ? '#3d6846' : '#80663e';
     c.fillText(
-      customerOrder.ready ? 'PRÊTE À LIVRER' : customerOrder.quantity + ' FLACON(S) À PRÉPARER',
+      customerOrder.ready ? 'PRÊTE À LIVRER' : 'STOCK ' + customerOrder.stock + '/' + customerOrder.quantity,
       0,
       -66,
       114,

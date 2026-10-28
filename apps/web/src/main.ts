@@ -886,6 +886,7 @@ function currentCustomerVisual() {
     name: order.customer,
     orderNumber: order.orderNumber,
     quantity: order.quantity,
+    stock: state.perfumeStock[order.recipeId],
     ready: canFulfillCustomerOrder(state),
   };
 }
