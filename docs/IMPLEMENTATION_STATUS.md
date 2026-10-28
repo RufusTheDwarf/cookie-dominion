@@ -22,6 +22,7 @@
 | Comptoir | Implémenté | Vend le flacon sélectionné ou livre une commande client complète |
 | Commandes clients | Implémenté | Rotation déterministe de recettes, quantité vérifiée et progression sauvegardée |
 | Réputation de la maison | Implémenté | 25 points par livraison, 10 rangs, prime de commande de 50 à 95 % |
+| Coûts d'exploitation | Implémenté | Entretien des machines, rendement net affiché et calcul cohérent hors ligne |
 | Producteurs | Implémenté | Dix équipements avec coûts croissants et production passive |
 | Recherches | Implémenté | Production, récolte ciblée, remise, extraction spécialisée et finition de luxe |
 | Contrats et honneurs | Implémenté | Objectifs liés aux ventes, équipements et collections |
@@ -37,9 +38,9 @@ Les champs historiques liés à d'anciennes mécaniques peuvent rester dans le f
 
 ## Vérifications
 
-- TypeScript, tests unitaires et build Vite : validés par la CI sur le commit ecd5d60551ac74af3e426a6d95eaea0891f152eb. Chaque nouveau commit doit repasser ces contrôles.
+- TypeScript, tests unitaires et build Vite : vérifier le statut GitHub Actions du commit candidat avant toute fusion.
 - Inspection visuelle dans un navigateur réel : à effectuer sur ordinateur et téléphone.
-- Équilibrage sur une session longue, notamment la montée de quantité des commandes et la prime maximale de réputation : à effectuer.
+- Équilibrage sur une session longue, notamment la montée de quantité des commandes, la prime maximale de réputation et l'entretien : à effectuer.
 
 ## Limites
 
