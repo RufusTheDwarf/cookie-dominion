@@ -446,6 +446,34 @@ function renderBotanicalExpansion(): void {
     '</section>';
 }
 
+function renderPreservingFocus(
+  container: HTMLElement,
+  markup: string,
+  actionAttributes: string[] = [],
+): void {
+  const activeElement = document.activeElement;
+  const focusedButton = activeElement instanceof HTMLElement && container.contains(activeElement)
+    ? activeElement.closest<HTMLButtonElement>('button')
+    : null;
+  const focusedId = focusedButton?.id ?? '';
+  const focusAttribute = focusedButton
+    ? actionAttributes.find((attribute) => focusedButton.hasAttribute(attribute))
+    : undefined;
+  const focusValue = focusAttribute ? focusedButton?.getAttribute(focusAttribute) : null;
+
+  container.innerHTML = markup;
+
+  let replacement: HTMLElement | undefined;
+  if (focusedId) {
+    replacement = Array.from(container.querySelectorAll<HTMLElement>('[id]'))
+      .find((element) => element.id === focusedId);
+  } else if (focusAttribute && focusValue !== null) {
+    replacement = Array.from(container.querySelectorAll<HTMLElement>('[' + focusAttribute + ']'))
+      .find((element) => element.getAttribute(focusAttribute) === focusValue);
+  }
+  replacement?.focus({ preventScroll: true });
+}
+
 function renderStats(): void {
   const world = getWorld(state.currentWorld);
   const grossCps = productionPerSecond(state);
@@ -476,7 +504,7 @@ function renderMachines(): void {
   const list = byId('machine-list');
   const current = state.machines[state.currentWorld];
   const catalog = MACHINES.filter((machine) => machine.floor === state.currentFloor);
-  list.innerHTML = catalog.map((machine) => {
+  const markup = catalog.map((machine) => {
     const owned = current[machine.id];
     const cost = machineCost(state, machine.id);
     const canAfford = state.perfumeRevenue >= cost;
@@ -505,7 +533,7 @@ function renderMachines(): void {
         </div>
       </article>`;
   }).join('');
-
+  renderPreservingFocus(list, markup, ['data-buy-machine']);
 }
 
 function renderUpgrades(): string {
@@ -679,7 +707,9 @@ function renderStore(): void {
     prestige: renderPrestige,
     save: renderSavePanel,
   };
-  content.innerHTML = panels[activeTab]();
+  renderPreservingFocus(content, panels[activeTab](), [
+    'data-buy-upgrade', 'data-claim-mission', 'data-enter-world',
+  ]);
   document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach((button) => {
     const selected = button.dataset.tab === activeTab;
     button.classList.toggle('is-active', selected);
