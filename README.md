@@ -2,12 +2,11 @@
 
 # PARFUM EMPIRE
 
-### Compose des fragrances. Automatise ta manufacture. Deviens une légende.
+### Compose des fragrances. Automatise ta manufacture. Construis une maison de légende.
 
-**Un tycoon 2D dans le navigateur, avec déplacements libres, machines, mondes à débloquer et deux niveaux de prestige.**
+**Un jeu de gestion incrémental dans le navigateur : clics, production passive, recherches, contrats et prestige.**
 
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?logo=typescript&logoColor=white)
-![Phaser 3](https://img.shields.io/badge/Phaser-3.90-8A2BE2)
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?logo=vite&logoColor=white)
 ![Tests](https://img.shields.io/badge/tests-Vitest-6E9F18)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -18,69 +17,60 @@
 
 ## Le concept
 
-Pars d'un atelier vide et construis une maison de parfumerie. Formule tes premières fragrances, installe des alambics, remplis des flacons à la chaîne et développe tes ventes. Les revenus financent de nouveaux équipements, des recherches et l'accès à des mondes plus rares.
+Tu commences avec un seul flacon et une petite réserve. Chaque création manuelle rapporte des parfums ; tes revenus servent à acheter des équipements, développer des recherches et automatiser la production. Ensuite, tu fais grandir ta maison, livres des commandes VIP et débloques des collections plus rares.
 
-Le jeu reprend les mécaniques de progression rapides des tycoons Roblox, avec une identité visuelle et un univers originaux autour de la parfumerie.
+La structure est désormais celle d'un **clicker tycoon** : le flacon est le point d'entrée principal du jeu, la manufacture rassemble les producteurs et le bureau regroupe les systèmes de progression. La navigation sur une carte 2D et les étages à parcourir ne font plus partie de la boucle centrale.
 
-## La boucle de jeu
+## Structure de l'interface
 
-1. **Crée tes premiers parfums** manuellement pour lancer la trésorerie.
-2. **Achète des équipements** qui fabriquent et vendent automatiquement des fragrances.
-3. **Améliore ta maison** pour augmenter les revenus, renforcer les créations manuelles et réduire le coût des machines.
-4. **Livre les commandes VIP** : rejoins le client sur la carte, appuie sur `E`, paie les matières premières et empoche un paiement qui augmente à chaque livraison.
-5. **Récupère les contrats** dès qu'ils sont terminés pour obtenir des parfums supplémentaires.
-6. **Explore les étages et les mondes** pour ouvrir des lignes plus puissantes.
-7. **Effectue un rebirth normal**, puis vise l'**ascension totale** pour repartir avec une monnaie de prestige plus précieuse.
+- **Le parfumeur :** grand flacon cliquable, revenus par action, flacon mythique temporaire et commandes VIP.
+- **La manufacture :** catalogue vertical de 10 types d'équipements, quantité possédée, coût du prochain exemplaire et rendement par seconde.
+- **Le bureau :** six onglets dédiés aux recherches, contrats, honneurs, collections, prestige et sauvegardes.
+- **Barre économique :** trésorerie, production par seconde, valeur de création manuelle et progression du run.
 
-## Ce qui est déjà dans le prototype
+L'interface utilise des illustrations SVG originales pour la maison, les flacons et les dix types d'équipement. Le style visuel associe papier ivoire, vert profond, cuivre et laiton, avec une mise en page adaptée aux écrans étroits.
 
-- **Déplacement en 2D** au clavier, avec les flèches, WASD, les commandes tactiles ou un clic sur le terrain.
-- **Personnages redessinés** : ton parfumeur, Mila la parfumeuse et un client VIP, dans un style géométrique coloré.
-- **Trois étages** : formulation, embouteillage et extraction.
-- **Trois mondes** : Jardin de Verre, Maison d’Ambre et Palais Astral.
-- **Cinq équipements** : table de formulation, alambic de cuivre, ligne d’embouteillage, atelier de parfumeur et extracteur astral.
-- **Production animée** : flacons visibles sur le convoyeur et équipement qui s’active à l’achat.
-- **Recherche** : rendement des machines, puissance des créations manuelles et réduction des coûts, jusqu’au niveau 10.
-- **Commandes VIP** : marche jusqu’au client dans l’atelier et appuie sur `E` pour livrer. Les coûts de préparation et les paiements augmentent à chaque commande, et le compteur est sauvegardé.
-- **Contrats** : six objectifs de progression avec barre d’avancement et récompense réclamable, dont un contrat pour la première livraison VIP.
-- **Flacon mythique** : événement à durée limitée, récompense immédiate et production doublée pendant 20 secondes.
-- **Sauvegarde locale** : sauvegarde automatique, export JSON, import depuis le texte ou un fichier et effacement avec confirmation.
+## Boucle de jeu
 
-## Les deux niveaux de prestige
+1. **Formule des parfums** en cliquant sur le flacon central.
+2. **Investis dans les producteurs** : le rendement passif continue à générer des parfums.
+3. **Débloque de nouveaux équipements** à mesure que tu accumules assez de trésorerie.
+4. **Achète des recherches** pour augmenter la production, renforcer les clics, réduire les coûts, prolonger les bonus rares et améliorer les paiements VIP.
+5. **Livre des commandes VIP** depuis le panneau dédié ; les coûts et les paiements progressent avec chaque livraison.
+6. **Réclame les contrats** et complète le registre des honneurs.
+7. **Ouvre de nouvelles collections** en effectuant des rebirths.
+8. **Effectue une ascension totale** pour gagner des Essences originelles persistantes.
+
+## Systèmes implémentés
+
+- **Dix producteurs :** table de formulation, alambic de cuivre, ligne d'embouteillage, atelier de parfumeur, extracteur astral, serre botanique, presse à enfleurage, atelier haute parfumerie, distillateur de cristal et manufacture orbitale.
+- **Production incrémentale :** coûts croissants à chaque achat, revenu passif calculé par seconde et multiplication du rendement selon la collection active.
+- **Cinq recherches :** production globale, force de création manuelle, réduction du prix des équipements, durée du bonus mythique et paiement des commandes VIP. Chaque recherche possède dix niveaux.
+- **Flacon mythique :** apparaît temporairement, rapporte une récompense immédiate et double la production pendant une durée améliorée par la recherche correspondante.
+- **Commandes VIP :** dépense de préparation, paiement croissant, marge améliorée par la recherche commerciale et progression sauvegardée.
+- **Contrats :** six objectifs réclamables, liés aux équipements, aux ventes cumulées, aux collections et aux commandes.
+- **Honneurs :** distinctions automatiques dérivées des étapes de progression.
+- **Trois collections :** Jardin de Verre, Maison d'Ambre et Palais Astral. Chaque collection garde son propre inventaire et son multiplicateur de revenus.
+- **Rebirth normal :** remet à zéro le stock et les équipements, multiplie durablement le rendement par 1,6 et ouvre des collections supplémentaires.
+- **Ascension totale :** exige le seuil de rebirths du palier courant et réinitialise la progression normale contre des Essences originelles.
+- **Sauvegardes :** LocalStorage, export JSON, import depuis un fichier ou du texte, migration des anciennes données et effacement confirmé.
+- **Progression hors ligne :** les sauvegardes accumulent au maximum huit heures de production passive.
+
+## Prestige
 
 ### Rebirth normal
 
-Le rebirth normal remet à zéro les parfums du run et les machines. Il augmente définitivement le multiplicateur de revenus et permet de conserver les recherches acquises.
+Un rebirth normal remet à zéro le stock du run et les producteurs. Les recherches, les ventes cumulées et les honneurs dérivés de la progression sont conservés. Le multiplicateur de production augmente de 60 % par rebirth.
 
 ### Ascension totale
 
-L'ascension totale se débloque après **10 rebirths normaux**. Elle demande ensuite de terminer le run en cours. Elle efface les parfums, les machines, les mondes débloqués, les recherches et les contrats.
+L'ascension totale devient disponible après 10 rebirths normaux, puis le seuil augmente de cinq après chaque ascension. Elle remet à zéro la progression normale, octroie des Essences originelles persistantes et augmente le rendement permanent de 75 % par essence. Chaque essence contribue aussi à hauteur de 1 000 000 points de valeur d'empire.
 
-En échange, tu gagnes des **Essences originelles**. C'est une monnaie de prestige distincte :
-
-- Chaque essence ajoute **75 % de rendement permanent**.
-- Chaque essence représente **1 000 000 points de valeur d'empire**.
-- La première ascension donne une essence ; les ascensions suivantes en donnent davantage.
-- Le niveau requis augmente de cinq rebirths normaux à chaque ascension totale.
-
-L'ascension est irréversible pour la progression normale. Le jeu demande une confirmation avant de la lancer.
-
-## Commandes
-
-| Action | Contrôle |
-|---|---|
-| Se déplacer | `WASD` ou flèches |
-| Touches mobiles | D-pad à l’écran |
-| Se déplacer vers un point | Cliquer sur le terrain |
-| Créer un parfum manuellement | Bouton **CRÉER UN PARFUM** ou barre d’espace |
-| Acheter une machine proche | `E` ou **INTERAGIR** |
-| Utiliser les escaliers | S’approcher puis `E`, ou bouton d’étage |
-| Livrer une commande VIP | Rejoins le client près du bas de la carte, puis appuie sur `E` |
-| Entrer dans un monde débloqué | Portail ou bouton du monde |
+L'ascension est irréversible pour la progression normale. Une confirmation est demandée avant l'action.
 
 ## Lancer le jeu
 
-**Prérequis :** Node.js 22+ et npm 10+.
+Prérequis : Node.js 22+ et npm 10+.
 
 ```bash
 git clone https://github.com/RufusTheDwarf/parfum-empire.git
@@ -89,9 +79,9 @@ npm install
 npm run dev
 ```
 
-Ouvre l'adresse locale indiquée par Vite dans ton navigateur.
+Ouvre l'adresse locale indiquée par Vite. Dans GitHub Codespaces, ouvre le dépôt puis lance les mêmes commandes dans le terminal.
 
-Pour lancer les vérifications avant de proposer un changement :
+Vérifications disponibles :
 
 ```bash
 npm run typecheck
@@ -99,29 +89,23 @@ npm test
 npm run build
 ```
 
-Le dépôt contient également une configuration GitHub Codespaces. Ouvre **Code → Codespaces**, crée un Codespace sur `main`, puis lance `npm run dev` dans son terminal.
+## Architecture
 
-## Sauvegardes et compatibilité
-
-La partie est stockée dans le navigateur, sans compte ni synchronisation cloud. Utilise l'export JSON pour conserver une copie ou déplacer ta progression.
-
-Les anciennes sauvegardes sont chargées avec des valeurs par défaut pour les nouveaux champs de prestige. Les données de la version précédente sont réutilisées comme montant initial de parfums.
-
-## Stack technique
-
-| Couche | Technologie |
+| Fichier | Rôle |
 |---|---|
-| Jeu 2D | [Phaser 3](https://phaser.io/) |
-| Langage | [TypeScript](https://www.typescriptlang.org/) |
-| Développement et build | [Vite](https://vite.dev/) |
-| Tests | [Vitest](https://vitest.dev/) |
-| Persistance | LocalStorage et fichiers JSON |
+| `apps/web/src/main.ts` | Interface clicker, achats, événements, progression, onglets et sauvegardes |
+| `apps/web/src/economy.ts` | Règles déterministes des revenus, producteurs, recherches, contrats et prestige |
+| `apps/web/src/style.css` | Mise en page responsive, thème clair/sombre et animations d'interface |
+| `public/assets/*.svg` | Illustrations originales des flacons et équipements |
+| `tests/economy.test.ts` | Tests unitaires de l'économie, du prestige et de la persistance |
 
-## État et prochaines étapes
+Le rendu est désormais réalisé en HTML/CSS/TypeScript avec SVG ; Phaser n'est plus nécessaire pour la boucle de jeu actuelle.
 
-Parfum Empire reste un **prototype web jouable**, pas encore une expérience équivalente en contenu à un jeu Roblox complet. Les prochaines étapes prioritaires sont les commandes de clients, une vente plus interactive, des objectifs spécifiques aux mondes, des tests visuels sur mobile et un déploiement public.
+## État du projet
 
-Les comptes joueurs, le multijoueur, les sauvegardes cloud et le backend autoritaire ne sont pas implémentés.
+Parfum Empire reste un prototype incrémental côté navigateur. Les tests automatisés vérifient le moteur économique et la compilation. Une inspection visuelle dans un navigateur réel reste nécessaire avant de considérer l'interface comme définitivement validée sur tous les appareils.
+
+Les comptes, les sauvegardes cloud, le multijoueur et un backend autoritaire ne sont pas implémentés.
 
 ## Documentation
 
@@ -129,7 +113,7 @@ Les comptes joueurs, le multijoueur, les sauvegardes cloud et le backend autorit
 - [Décision de plateforme](docs/PLATFORM_DECISION.md)
 - [Recherche technique](docs/RESEARCH.md)
 - [Roadmap](docs/ROADMAP.md)
-- [État d’implémentation](docs/IMPLEMENTATION_STATUS.md)
+- [État d'implémentation](docs/IMPLEMENTATION_STATUS.md)
 
 ## Licence
 
