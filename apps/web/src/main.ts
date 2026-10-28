@@ -233,7 +233,7 @@ app.innerHTML = `
         <div class="eyebrow">CARNET DU PARFUMEUR · 01</div>
         <div class="tutorial-illustration" aria-hidden="true"><span></span><i></i><b></b></div>
         <h2 id="tutorial-intro-title">Un atelier à construire</h2>
-        <p>Tu arrives dans un jardin encore sauvage. Tu as 1 000 parfums pour acheter ton premier terrain : ensuite, tu pourras créer des parfums et bâtir ta manufacture.</p>
+        <p>Tu arrives dans un jardin encore sauvage. Tu as 1 000 pièces pour acheter ton premier terrain : ensuite, tu pourras créer des parfums et bâtir ta manufacture.</p>
         <div class="tutorial-instructions">
           <div><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd><span>ou les flèches pour te déplacer dehors</span></div>
           <div><kbd>E</kbd><span>près d’une touffe pour récolter, ou d’un panneau pour interagir</span></div>
@@ -518,6 +518,8 @@ function startGame(newGame = false): void {
       .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
     const hasProgress = state.lifetimeCrumbs > 0 || state.rebirths > 0 ||
       state.totalRebirths > 0 || state.essences > 0 || ownedCount > 0 ||
+      Object.values(state.herbInventory).some((count) => count > 0) ||
+      Object.values(state.perfumeInventory).some((count) => count > 0) ||
       state.ordersCompleted > 0 || state.wallsBuilt || state.outsideExpansions > 0;
     if (hasProgress && !window.confirm('Créer une nouvelle partie ? La progression actuelle sera remplacée. Exporte d’abord ta sauvegarde si tu souhaites la conserver.')) return;
     state = prepareEmptySaveForStart(createInitialState());
@@ -563,6 +565,8 @@ function hasSavedProgress(): boolean {
     .reduce((sum, worldMachines) => sum + Object.values(worldMachines).reduce((a, count) => a + count, 0), 0);
   return state.rampBuilt || state.lifetimeCrumbs > 0 || state.rebirths > 0 ||
     state.totalRebirths > 0 || state.essences > 0 || owned > 0 ||
+    Object.values(state.herbInventory).some((count) => count > 0) ||
+    Object.values(state.perfumeInventory).some((count) => count > 0) ||
     state.ordersCompleted > 0 || state.wallsBuilt || state.outsideExpansions > 0;
 }
 
@@ -1049,7 +1053,7 @@ function renderHerbWorkshop(): void {
     const sellButton = document.querySelector<HTMLButtonElement>('[data-sell-recipe="' + recipeId + '"]');
     if (craftButton) craftButton.disabled = !state.rampBuilt || !canCraftPerfume(state, recipeId);
     if (sellButton) sellButton.disabled = state.perfumeInventory[recipeId] <= 0;
-    if (sellButton) sellButton.textContent = 'VENDRE · ' + format(Math.ceil(recipe.salePrice * getWorld(state.currentWorld).incomeMultiplier * rebirthMultiplier(state) * essenceMultiplier(state)));
+    if (sellButton) sellButton.textContent = 'VENDRE · ' + format(Math.ceil((recipe.salePrice + state.upgrades.clickPower) * getWorld(state.currentWorld).incomeMultiplier * rebirthMultiplier(state) * essenceMultiplier(state)));
   }
 }
 
@@ -1911,7 +1915,7 @@ class TycoonScene extends Phaser.Scene {
       }
       if (Phaser.Math.Distance.Between(playerX, playerY, 620, 425) < 100) {
         if (state.crumbs < STARTING_LAND_COST) {
-          setStatus('Le terrain coûte ' + format(STARTING_LAND_COST) + ' parfums. Ton solde doit atteindre ce montant.');
+          setStatus('Le terrain coûte ' + format(STARTING_LAND_COST) + ' pièces. Ton solde doit atteindre ce montant.');
           return;
         }
         this.isBuildingRamp = true;
@@ -2270,7 +2274,7 @@ class TycoonScene extends Phaser.Scene {
       this.isBuildingRamp = false;
       if (purchased === state) {
         this.drawLandPurchaseButton();
-        setStatus('Il te faut ' + format(STARTING_LAND_COST) + ' parfums pour acheter le terrain.');
+        setStatus('Il te faut ' + format(STARTING_LAND_COST) + ' pièces pour acheter le terrain.');
         return;
       }
       state = purchased;
