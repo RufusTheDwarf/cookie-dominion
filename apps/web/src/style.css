@@ -872,3 +872,20 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .theme-dark .customer-reputation{background:#302f25;border-color:#5e5139}
 .theme-dark .customer-reputation-track{background:#433b2b;border-color:#62543a}
 .theme-dark .customer-reputation-heading strong{color:#c4d1b2}
+
+
+.botanical-expansion-panel{margin:11px 0;padding:9px;border:1px solid #c6b58d;background:#ece2ce}
+.botanical-expansion-card{display:grid;gap:8px}
+.botanical-expansion-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.botanical-expansion-heading .eyebrow{font-size:8px;font-weight:900;letter-spacing:.75px;color:#80643c}
+.botanical-expansion-heading strong{font-family:Georgia,"Times New Roman",serif;font-size:14px;color:var(--moss-dark)}
+.botanical-expansion-card p{margin:0;font-size:9px;line-height:1.45;color:var(--ink-soft)}
+.botanical-expansion-card button{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:36px;padding:8px 10px;border:1px solid var(--moss-dark);background:var(--moss);color:#fbf2dc;font-size:8px;font-weight:900;letter-spacing:.45px;text-align:left}
+.botanical-expansion-card button b{font-family:Georgia,"Times New Roman",serif;font-size:12px;color:#f0d7a0;white-space:nowrap}
+.botanical-expansion-card button:disabled{border-color:#c6b99f;background:#ded5c2;color:#7d745f}
+.botanical-expansion-card button:disabled b{color:#7d745f}
+.botanical-expansion-card.is-ready{border-left:2px solid var(--moss);padding-left:7px}
+.botanical-expansion-card.is-complete .botanical-expansion-heading strong{color:var(--moss-dark)}
+.theme-dark .botanical-expansion-panel{background:#302f25;border-color:#62563c}
+.theme-dark .botanical-expansion-card button:disabled{background:#39352a;border-color:#5d5139;color:#9a9075}
+.theme-dark .botanical-expansion-card button:disabled b{color:#9a9075}

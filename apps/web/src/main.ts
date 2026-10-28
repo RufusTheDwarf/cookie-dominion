@@ -1,5 +1,9 @@
 import {
   addPerfumeRevenue,
+  botanicalExpansionCost,
+  canUnlockBotanicalExpansion,
+  unlockBotanicalExpansion,
+  MAX_BOTANICAL_EXPANSIONS,
   buyMachine,
   buyUpgrade,
   canClaimMission,
@@ -86,6 +90,17 @@ let nearbyStation: WorkshopStation | null = null;
 let state: GameState;
 let soundEnabled = readSoundPreference();
 let soundContext: AudioContext | null = null;
+
+const EXPANSION_PLOT_MATERIALS: Partial<Record<WorkshopStation, MaterialId>> = {
+  'lavender-plot-2': 'lavender',
+  'mint-plot-2': 'mint',
+  'rose-plot-2': 'rose',
+};
+const EXPANSION_PLOT_NAMES = [
+  'Second carré de lavande',
+  'Seconde parcelle de menthe',
+  'Seconde roseraie',
+];
 
 function readSoundPreference(): boolean {
   try {
@@ -202,6 +217,7 @@ app.innerHTML = `
             <span class="harvest-counter"><strong id="harvest-progress">0</strong><small>en stock</small></span>
           </div>
           <div class="harvest-progress-track"><i id="harvest-progress-bar"></i></div>
+          <div id="botanical-expansion-panel" class="botanical-expansion-panel"></div>
           <div class="workshop-instructions">
             <strong>Travaille à chaque poste</strong>
             <span>Approche les parcelles pour récolter une matière précise. Choisis une recette, formule-la au laboratoire et vends le flacon au comptoir.</span>
@@ -367,6 +383,27 @@ function renderHarvestView(): void {
         <strong>${format(stock, 0)}</strong>
       </div>`;
   }).join('');
+}
+
+function renderBotanicalExpansion(): void {
+  const level = state.outsideExpansions;
+  const maxed = level >= MAX_BOTANICAL_EXPANSIONS;
+  const cost = botanicalExpansionCost(state);
+  const canAfford = canUnlockBotanicalExpansion(state);
+  const nextName = EXPANSION_PLOT_NAMES[level] ?? '';
+  const stateClass = maxed ? 'is-complete' : canAfford ? 'is-ready' : '';
+  byId('botanical-expansion-panel').innerHTML =
+    '<section class="botanical-expansion-card ' + stateClass + '">' +
+      '<div class="botanical-expansion-heading"><span class="eyebrow">EXTENSIONS DU JARDIN</span><strong>' +
+        level + ' / ' + MAX_BOTANICAL_EXPANSIONS + '</strong></div>' +
+      '<p>' + (maxed
+        ? 'Toutes les parcelles supplémentaires sont ouvertes.'
+        : nextName + ' sera accessible après achat.') + '</p>' +
+      '<button type="button" data-buy-botanical-expansion="true" ' + (canAfford ? '' : 'disabled') + '>' +
+        '<span>' + (maxed ? 'JARDIN COMPLET' : 'DÉBLOQUER LA PARCELLE') + '</span>' +
+        '<b>' + (maxed ? 'MAX' : format(cost)) + '</b>' +
+      '</button>' +
+    '</section>';
 }
 
 function renderStats(): void {
@@ -619,6 +656,9 @@ function renderSceneSelection(): void {
     bergamot: 'Bergamotiers', sandalwood: 'Bois de santal', jasmine: 'Jardin de jasmin',
     resin: 'Résine ambrée', laboratory: 'Laboratoire de formulation', counter: 'Comptoir de vente',
     stairs: 'Escalier de la maison',
+    'lavender-plot-2': 'Parcelle agrandie de lavande',
+    'mint-plot-2': 'Parcelle agrandie de menthe',
+    'rose-plot-2': 'Parcelle agrandie de rose',
   };
   const order = getActiveCustomerOrder(state);
   const selectedRecipeIsOrder = selectedRecipeId === order.recipeId;
@@ -651,8 +691,9 @@ function renderSceneSelection(): void {
 }
 
 function interactWithStation(station: WorkshopStation): void {
-  if (MATERIALS.some((material) => material.id === station)) {
-    const material = station as MaterialId;
+  const expansionMaterial = EXPANSION_PLOT_MATERIALS[station];
+  if (MATERIALS.some((material) => material.id === station) || expansionMaterial) {
+    const material: MaterialId = expansionMaterial ?? (station as MaterialId);
     const result = harvestMaterial(state, material);
     if (result.state !== state) playSound('harvest');
     state = result.state;
@@ -751,10 +792,11 @@ function renderAll(): void {
   workshopScene?.setEnvironment(getWorld(state.currentWorld), state.currentFloor, MACHINES.map((machine) => ({
     id: machine.id, short: machine.short, name: machine.name, floor: machine.floor,
     count: state.machines[state.currentWorld][machine.id],
-  })));
+  })), state.outsideExpansions);
   renderStats();
   renderFloorNavigation();
   renderHarvestView();
+  renderBotanicalExpansion();
   renderRecipeWorkshop();
   renderSceneSelection();
   renderMachines();
@@ -994,6 +1036,20 @@ app.addEventListener('click', (event) => {
     buyMachineById(target.dataset.buyMachine as MachineId);
     return;
   }
+  if (target.dataset.buyBotanicalExpansion !== undefined) {
+    const previous = state;
+    state = unlockBotanicalExpansion(state);
+    if (state === previous) {
+      setStatus('Il faut plus de pièces pour ouvrir la prochaine parcelle botanique.');
+      return;
+    }
+    const plotName = EXPANSION_PLOT_NAMES[state.outsideExpansions - 1] ?? 'nouvelle parcelle';
+    playSound('unlock');
+    renderAll();
+    setStatus(plotName + ' est maintenant accessible dans le jardin.');
+    saveSoon();
+    return;
+  }
   if (target.dataset.buyUpgrade) {
     buyUpgradeById(target.dataset.buyUpgrade as UpgradeId);
     return;
@@ -1124,7 +1180,7 @@ workshopScene = createWorkshopScene(byId<HTMLCanvasElement>('workshop-canvas'), 
 workshopScene.setEnvironment(getWorld(state.currentWorld), state.currentFloor, MACHINES.map((machine) => ({
   id: machine.id, short: machine.short, name: machine.name, floor: machine.floor,
   count: state.machines[state.currentWorld][machine.id],
-})));
+})), state.outsideExpansions);
 renderFloorNavigation();
 save();
 requestAnimationFrame(gameTick);
