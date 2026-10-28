@@ -218,13 +218,19 @@ describe('tycoon economy', () => {
     expect(enterFloor(opened, 2)).toBe(opened);
   });
 
-  it('requires the matching floor to build a machine', () => {
-    const state = { ...createInitialState(100), perfumeRevenue: 5000 };
-    expect(buyMachine(state, 'bottling-line')).toBe(state);
-    const floorTwo = { ...state, currentFloor: 2, unlockedFloors: [0, 1, 2] };
-    expect(buyMachine(floorTwo, 'astral-extractor')).toBe(floorTwo);
-    const floorOne = { ...state, currentFloor: 1, unlockedFloors: [0, 1] };
-    expect(buyMachine(floorOne, 'bottling-line').machines['glass-garden']['bottling-line']).toBe(1);
+  it('allows all production tiers to be purchased directly from the clicker catalog', () => {
+    const starter = { ...createInitialState(100), perfumeRevenue: 5000 };
+    const firstHighTier = buyMachine(starter, 'bottling-line');
+    expect(firstHighTier.perfumeRevenue).toBe(3400);
+    expect(firstHighTier.machines['glass-garden']['bottling-line']).toBe(1);
+
+    const funded = { ...starter, perfumeRevenue: 100_000_000 };
+    const advanced = buyMachine(funded, 'astral-extractor');
+    expect(advanced.machines['glass-garden']['astral-extractor']).toBe(1);
+    expect(advanced.perfumeRevenue).toBeLessThan(funded.perfumeRevenue);
+
+    const orbital = buyMachine({ ...funded, perfumeRevenue: 2_000_000_000 }, 'orbital-manufactory');
+    expect(orbital.machines['glass-garden']['orbital-manufactory']).toBe(1);
   });
 
   it('scales production by each world and permanent rebirths', () => {
@@ -330,7 +336,7 @@ describe('tycoon economy', () => {
     expect(next.currentFloor).toBe(0);
     expect(next.unlockedWorlds).toEqual(['glass-garden']);
     expect(next.machines['astral-palace']['astral-extractor']).toBe(0);
-    expect(next.upgrades).toEqual({ production: 0, clickPower: 0, discount: 0 });
+    expect(next.upgrades).toEqual({ production: 0, clickPower: 0, discount: 0, rareBonus: 0, orders: 0 });
     expect(next.claimedMissions).toEqual([]);
     expect(next.essences).toBe(3);
     expect(next.totalRebirths).toBe(1);
@@ -406,7 +412,7 @@ describe('tycoon economy', () => {
     expect(loaded?.currentWorld).toBe('amber-house');
     expect(loaded?.currentFloor).toBe(1);
     expect(loaded?.machines['amber-house']['bottling-line']).toBe(2);
-    expect(loaded?.upgrades).toEqual({ production: 0, clickPower: 0, discount: 0 });
+    expect(loaded?.upgrades).toEqual({ production: 0, clickPower: 0, discount: 0, rareBonus: 0, orders: 0 });
     expect(loaded?.claimedMissions).toEqual([]);
     expect(loaded?.rareFlaconsClaimed).toBe(3);
     expect(loaded?.ordersCompleted).toBe(4);
