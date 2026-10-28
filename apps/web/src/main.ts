@@ -10,7 +10,7 @@ import {
   claimMission,
   completeCustomerOrder,
   createInitialState,
-  customerOrderCost,
+  currentCustomerOrder,
   customerOrderReward,
   craftPerfume,
   enterWorld,
@@ -167,9 +167,9 @@ app.innerHTML = `
 
         <section class="order-card">
           <div class="section-heading compact-heading"><div><span class="eyebrow">VENTES PRIVÉES</span><h2>Commande VIP</h2></div><span class="order-seal">VIP</span></div>
-          <p>Prépare un lot spécial pour la clientèle de la maison. Les contrats deviennent plus lucratifs à chaque livraison.</p>
+          <p>Un client commande une fragrance précise. Compose les flacons demandés : la livraison consomme le stock et rapporte une prime VIP.</p>
           <div class="order-values">
-            <span><small>LOT À PRÉPARER</small><strong id="order-cost">120</strong></span>
+            <span><small>DEMANDE</small><strong id="order-request">Brise verte × 1</strong></span>
             <span><small>PAIEMENT</small><strong id="order-reward">216</strong></span>
             <span><small>LIVRAISONS</small><strong id="order-count">0</strong></span>
           </div>
@@ -347,8 +347,10 @@ function renderStats(): void {
   byId('current-rank').textContent = 'Maison indépendante · Rang ' + (1 + state.rebirths + state.totalRebirths * 10);
   byId('click-multiplier').textContent = state.upgrades.clickPower > 0 ? '+' + (state.upgrades.clickPower * 8) + '% BUTIN BONUS' : 'BUTIN ALÉATOIRE';
   byId('global-status').textContent = statusMessage;
+  const order = currentCustomerOrder(state);
+  const orderRecipe = PERFUME_RECIPES.find((recipe) => recipe.id === order.recipeId)!;
   byId('order-count').textContent = format(state.ordersCompleted, 0);
-  byId('order-cost').textContent = format(customerOrderCost(state));
+  byId('order-request').textContent = orderRecipe.name + ' × ' + format(order.quantity, 0);
   byId('order-reward').textContent = format(customerOrderReward(state));
   byId('factory-status').textContent = currentWorldMachineTotal() === 0
     ? 'La première ligne attend son équipement.'
@@ -357,10 +359,11 @@ function renderStats(): void {
     ? format(cps) + ' pièces sont générées chaque seconde.'
     : 'Vends tes premiers flacons ou investis dans une machine pour lancer les revenus automatiques.';
   byId('machine-count').textContent = format(currentWorldMachineTotal(), 0) + ' INSTALLÉ' + (currentWorldMachineTotal() > 1 ? 'S' : '');
-  byId('complete-order').toggleAttribute('disabled', !canCompleteCustomerOrder(state));
-  byId('complete-order').title = canCompleteCustomerOrder(state)
-    ? 'Livrer cette commande et recevoir ' + formatExact(customerOrderReward(state)) + ' parfums.'
-    : 'Il manque ' + formatExact(Math.max(0, customerOrderCost(state) - state.perfumeRevenue)) + ' parfums pour préparer le lot.';
+  const orderReady = canCompleteCustomerOrder(state);
+  byId('complete-order').toggleAttribute('disabled', !orderReady);
+  byId('complete-order').title = orderReady
+    ? 'Livrer ' + formatExact(order.quantity) + ' flacon(s) de ' + orderRecipe.name + ' et recevoir ' + formatExact(customerOrderReward(state)) + ' pièces.'
+    : 'Stock requis : ' + formatExact(order.quantity) + ' flacon(s) de ' + orderRecipe.name + '. Compose la recette avant la livraison.';
   renderRareFlacon(performance.now());
 }
 
@@ -749,14 +752,17 @@ function claimContract(missionId: MissionId): void {
 }
 
 function deliverOrder(): void {
+  const order = currentCustomerOrder(state);
+  const recipe = PERFUME_RECIPES.find((item) => item.id === order.recipeId)!;
   if (!canCompleteCustomerOrder(state)) {
-    setStatus('Commande non préparée : il manque ' + format(Math.max(0, customerOrderCost(state) - state.perfumeRevenue)) + ' parfums.');
+    const missing = Math.max(0, order.quantity - state.perfumeStock[order.recipeId]);
+    setStatus('Commande en attente : il manque ' + format(missing, 0) + ' flacon(s) de ' + recipe.name + '. Compose cette recette avant de livrer.');
     return;
   }
   const payout = customerOrderReward(state);
   state = completeCustomerOrder(state);
   renderAll();
-  setStatus('Commande VIP livrée automatiquement : +' + format(payout) + ' parfums.');
+  setStatus('Commande VIP livrée : ' + format(order.quantity, 0) + ' × ' + recipe.name + ', +' + format(payout) + ' pièces.');
   saveSoon();
 }
 
