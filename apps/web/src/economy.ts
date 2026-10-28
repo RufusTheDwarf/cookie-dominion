@@ -112,7 +112,6 @@ export interface GameState {
 export const MAX_OFFLINE_SECONDS = 8 * 60 * 60;
 /** The opening plot is a one-time purchase; an empty new game receives this amount. */
 export const STARTING_LAND_COST = 1_000;
-export const STARTING_LAND_COST = 1_000;
 export const TOTAL_REBIRTH_BASE_LEVEL = 10;
 export const TOTAL_REBIRTH_LEVEL_STEP = 5;
 export const ESSENCE_PRODUCTION_BONUS = 0.75;
