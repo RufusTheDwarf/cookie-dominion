@@ -713,4 +713,23 @@ body.theme-dark{
 @media(prefers-reduced-motion:reduce){
   .crafted-flacon-pop.is-visible{animation:none;opacity:1}
 }
+/* Keep the large-screen layout truly fixed; semantic labels remain compact but readable. */
+.rare-event[hidden]{display:none!important}
+@media (min-width:1121px) and (min-height:680px) and (min-width:1450px){
+  .building-title-line h3{font-size:10px}
+  .building-output span,.building-price-line span{font-size:6.5px}
+  .building-output strong,.building-price-line strong{font-size:8px}
+  .buy-building{font-size:6.5px}
+  .buy-building b{font-size:9px}
+  .material-chip span{font-size:6.5px}
+  .material-chip strong{font-size:8px}
+  .store-tab{font-size:8px}
+  .upgrade-info h3{font-size:10px}
+  .upgrade-info p{font-size:8px}
+  .contract-heading h3{font-size:9px}
+  .contract-info p{font-size:7.5px}
+  .honour-row h3{font-size:9px}
+  .honour-row p{font-size:7px}
+  .world-info h3{font-size:10px}
+}
 
