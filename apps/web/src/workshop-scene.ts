@@ -1,6 +1,6 @@
 export type WorkshopStation =
   | 'lavender' | 'mint' | 'rose' | 'bergamot' | 'sandalwood' | 'jasmine' | 'resin'
-  | 'laboratory' | 'counter';
+  | 'laboratory' | 'counter' | 'stairs';
 
 export type MoveDirection = 'up' | 'down' | 'left' | 'right';
 
