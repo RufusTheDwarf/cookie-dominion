@@ -4,7 +4,11 @@
 
 | Système | État | Détails |
 |---|---|---|
-| Atelier 2D | Implémenté | Jardin, laboratoire et boutique, avec personnage déplaçable |
+| Atelier 2D | Implémenté | Jardin, laboratoire et boutique dans un monde plus grand que l'écran |
+| Caméra | Implémenté | Suit le joueur et reste dans les limites de la carte |
+| Animation du personnage | Implémenté | Orientation, marche, mouvement du corps et geste d'interaction |
+| Animation du décor | Implémenté | Plantes animées et particules temporaires lors des interactions |
+| Machines visibles | Implémenté | Laboratoire et comptoir dessinés comme des objets physiques |
 | Déplacement | Implémenté | Flèches, ZQSD, clic ou toucher pour marcher |
 | Commandes tactiles | Implémenté | Pavé directionnel et bouton Interagir sur petits écrans |
 | Récolte botanique | Implémenté | Chaque parcelle fournit une matière précise, sans tirage aléatoire |
@@ -26,9 +30,9 @@ Les champs historiques liés à d'anciennes mécaniques peuvent rester dans le f
 
 ## Vérifications
 
-- TypeScript : vérifié dans GitHub Actions.
-- Tests unitaires : vérifiés dans GitHub Actions.
-- Build Vite : vérifié dans GitHub Actions.
+- TypeScript : à confirmer dans la CI du dernier commit.
+- Tests unitaires : à confirmer dans la CI du dernier commit.
+- Build Vite : à confirmer dans la CI du dernier commit.
 - Inspection visuelle dans un navigateur réel : à effectuer sur ordinateur et téléphone.
 - Équilibrage sur une session longue : à effectuer.
 
