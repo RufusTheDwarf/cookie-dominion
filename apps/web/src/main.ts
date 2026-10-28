@@ -39,10 +39,12 @@ import {
   type MissionId,
   type RecipeId,
   type MaterialId,
+  type MaterialId,
   type UpgradeId,
   type WorldId,
 } from './economy';
 import './style.css';
+import { createWorkshopScene, type WorkshopScene, type WorkshopStation, type MoveDirection } from './workshop-scene';
 import { createWorkshopScene, type WorkshopScene, type WorkshopStation, type MoveDirection } from './workshop-scene';
 
 const SAVE_KEY = 'parfum-empire-save-v1';
@@ -494,6 +496,63 @@ function renderStore(): void {
     button.classList.toggle('is-active', selected);
     button.setAttribute('aria-selected', String(selected));
   });
+}
+
+
+function renderSceneSelection(): void {
+  const prompt = byId('scene-prompt');
+  const button = byId<HTMLButtonElement>('scene-interact');
+  const stationNames: Record<WorkshopStation, string> = {
+    lavender: 'Parcelle de lavande', mint: 'Parcelle de menthe', rose: 'Roseraie',
+    bergamot: 'Bergamotiers', sandalwood: 'Bois de santal', jasmine: 'Jardin de jasmin',
+    resin: 'Résine ambrée', laboratory: 'Laboratoire de formulation', counter: 'Comptoir de vente',
+  };
+  button.disabled = nearbyStation === null;
+  prompt.textContent = nearbyStation
+    ? stationNames[nearbyStation] + ' · ' + (nearbyStation === 'laboratory' ? 'composer la recette active' : nearbyStation === 'counter' ? 'vendre la recette active' : 'récolter une matière choisie')
+    : 'Marche jusqu’à un poste, puis appuie sur E ou Interagir.';
+  button.textContent = nearbyStation === 'laboratory' ? 'FORMULER · E' : nearbyStation === 'counter' ? 'VENDRE · E' : 'INTERAGIR · E';
+}
+
+function interactWithStation(station: WorkshopStation): void {
+  if (MATERIALS.some((material) => material.id === station)) {
+    const material = station as MaterialId;
+    const result = harvestMaterial(state, material);
+    state = result.state;
+    const definition = MATERIALS.find((item) => item.id === material)!;
+    renderAll();
+    floatText('+' + definition.name);
+    setStatus('Récolte ciblée : ' + definition.name + '. Retourne au laboratoire pour formuler.');
+    saveSoon();
+    return;
+  }
+  const recipe = PERFUME_RECIPES.find((item) => item.id === selectedRecipeId)!;
+  if (station === 'laboratory') {
+    if (!canCraftPerfume(state, selectedRecipeId)) {
+      const missing = Object.entries(recipe.ingredients)
+        .filter(([id, amount]) => state.ingredients[id as MaterialId] < (amount ?? 0))
+        .map(([id, amount]) => {
+          const material = MATERIALS.find((item) => item.id === id)!;
+          return material.name + ' × ' + Math.max(0, (amount ?? 0) - state.ingredients[material.id]);
+        });
+      setStatus('Formulation impossible. Il manque ' + missing.join(', ') + '. Récolte ces matières dans le jardin.');
+      return;
+    }
+    state = craftPerfume(state, selectedRecipeId);
+    renderAll();
+    setStatus(recipe.name + ' formulé au laboratoire. Le flacon attend au comptoir.');
+    saveSoon();
+    return;
+  }
+  if (state.perfumeStock[selectedRecipeId] <= 0) {
+    setStatus('Aucun flacon de ' + recipe.name + ' en stock. Compose cette recette au laboratoire avant de la vendre.');
+    return;
+  }
+  const price = perfumeSalePrice(state, selectedRecipeId);
+  state = sellPerfume(state, selectedRecipeId);
+  renderAll();
+  setStatus(recipe.name + ' vendu au comptoir pour ' + format(price) + ' pièces.');
+  saveSoon();
 }
 
 
