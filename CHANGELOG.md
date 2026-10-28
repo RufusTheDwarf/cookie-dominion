@@ -4,6 +4,7 @@
 
 - Added original vector artwork for the house emblem, rare flacon and five production stations.
 - Integrated illustrated stills, formulation equipment, bottling machinery and laboratory extractors into the Phaser scene.
+- Replaced moving production parcels with an original illustrated flacon and added a rising-bottle sparkle effect when formulating manually.
 - Added subtle motion to installed equipment and refined the emblem, tutorial illustration and rare-flacon treatment in the interface.
 
 ## 0.2.0 — 2026-10-27
