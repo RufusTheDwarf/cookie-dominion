@@ -1,7 +1,7 @@
-export type WorldId = 'cookie-valley' | 'choco-moon' | 'galaxy-oven';
-export type MachineId = 'hand-mixer' | 'brick-oven' | 'conveyor-oven' | 'frosting-lab' | 'quantum-bakery';
+export type WorldId = 'glass-garden' | 'amber-house' | 'astral-palace';
+export type MachineId = 'formulation-table' | 'copper-still' | 'bottling-line' | 'perfumer-studio' | 'astral-extractor';
 export type UpgradeId = 'production' | 'clickPower' | 'discount';
-export type MissionId = 'first-machine' | 'industrialist' | 'lifetime-baker' | 'world-explorer' | 'galactic-empire' | 'first-order';
+export type MissionId = 'first-machine' | 'industrialist' | 'lifetime-formulater' | 'world-explorer' | 'galactic-empire' | 'first-order';
 
 export interface UpgradeLevels {
   production: number;
@@ -47,9 +47,9 @@ export type WorldMachines = Record<MachineId, number>;
 export type MachineSave = Record<WorldId, WorldMachines>;
 
 export interface GameState {
-  crumbs: number;
-  lifetimeCrumbs: number;
-  runCrumbsEarned: number;
+  perfumeRevenue: number;
+  lifetimePerfumeRevenue: number;
+  runPerfumeRevenue: number;
   machines: MachineSave;
   rebirths: number;
   currentWorld: WorldId;
@@ -58,7 +58,7 @@ export interface GameState {
   unlockedWorlds: WorldId[];
   upgrades: UpgradeLevels;
   claimedMissions: MissionId[];
-  goldenCookiesClaimed: number;
+  rareFlaconsClaimed: number;
   ordersCompleted: number;
   totalRebirths: number;
   essences: number;
@@ -71,7 +71,7 @@ export interface GameState {
 export const MAX_OFFLINE_SECONDS = 8 * 60 * 60;
 /** The opening plot is a one-time purchase; an empty new game receives this amount. */
 export const STARTING_LAND_COST = 1_000;
-export const COOKIE_CLICK_VALUE = 5;
+export const PERFUME_CLICK_VALUE = 5;
 export const TOTAL_REBIRTH_BASE_LEVEL = 10;
 export const TOTAL_REBIRTH_LEVEL_STEP = 5;
 export const ESSENCE_PRODUCTION_BONUS = 0.75;
@@ -112,7 +112,7 @@ export const UPGRADES: Record<UpgradeId, { name: string; description: string; ba
 export const MISSION_DEFINITIONS: MissionDefinition[] = [
   { id: 'first-machine', name: 'Premier atelier', description: 'Installe ton premier équipement.', target: 1, reward: 75, kind: 'machines' },
   { id: 'industrialist', name: 'Maison en expansion', description: 'Possède 5 équipements.', target: 5, reward: 400, kind: 'machines' },
-  { id: 'lifetime-baker', name: 'Mille flacons vendus', description: 'Vends 1 000 parfums au total.', target: 1000, reward: 500, kind: 'lifetime' },
+  { id: 'lifetime-formulater', name: 'Mille flacons vendus', description: 'Vends 1 000 parfums au total.', target: 1000, reward: 500, kind: 'lifetime' },
   { id: 'world-explorer', name: 'Nez voyageur', description: 'Déverrouille un deuxième monde.', target: 2, reward: 1500, kind: 'worlds' },
   { id: 'galactic-empire', name: 'Grand nez de l’Empire', description: 'Déverrouille les trois mondes.', target: 3, reward: 8000, kind: 'worlds' },
   { id: 'first-order', name: 'Premier client VIP', description: 'Livre ta première commande au client VIP.', target: 1, reward: 250, kind: 'orders' },
@@ -122,7 +122,7 @@ const MISSION_IDS: MissionId[] = MISSION_DEFINITIONS.map((mission) => mission.id
 
 export const WORLDS: WorldDefinition[] = [
   {
-    id: 'cookie-valley',
+    id: 'glass-garden',
     name: 'Jardin de Verre',
     tagline: 'Les premières notes fraîches',
     unlockRebirths: 0,
@@ -134,7 +134,7 @@ export const WORLDS: WorldDefinition[] = [
     belt: 0xa46f4e,
   },
   {
-    id: 'choco-moon',
+    id: 'amber-house',
     name: 'Maison d’Ambre',
     tagline: 'Bois précieux et vanille noire',
     unlockRebirths: 1,
@@ -146,7 +146,7 @@ export const WORLDS: WorldDefinition[] = [
     belt: 0x9a715c,
   },
   {
-    id: 'galaxy-oven',
+    id: 'astral-palace',
     name: 'Palais Astral',
     tagline: 'Les essences les plus rares',
     unlockRebirths: 3,
@@ -161,7 +161,7 @@ export const WORLDS: WorldDefinition[] = [
 
 export const MACHINES: MachineDefinition[] = [
   {
-    id: 'hand-mixer',
+    id: 'formulation-table',
     name: 'Table de formulation',
     short: 'FORM',
     description: 'Mélange les premières notes parfumées',
@@ -172,7 +172,7 @@ export const MACHINES: MachineDefinition[] = [
     cycleSeconds: 3.5,
   },
   {
-    id: 'brick-oven',
+    id: 'copper-still',
     name: 'Alambic de cuivre',
     short: 'ALAM',
     description: 'Distille des extraits de caractère',
@@ -183,7 +183,7 @@ export const MACHINES: MachineDefinition[] = [
     cycleSeconds: 4,
   },
   {
-    id: 'conveyor-oven',
+    id: 'bottling-line',
     name: 'Ligne d’embouteillage',
     short: 'FILL',
     description: 'Remplit et ferme les flacons à la chaîne',
@@ -194,7 +194,7 @@ export const MACHINES: MachineDefinition[] = [
     cycleSeconds: 5,
   },
   {
-    id: 'frosting-lab',
+    id: 'perfumer-studio',
     name: 'Atelier de parfumeur',
     short: 'LAB',
     description: 'Crée des compositions premium',
@@ -205,7 +205,7 @@ export const MACHINES: MachineDefinition[] = [
     cycleSeconds: 6,
   },
   {
-    id: 'quantum-bakery',
+    id: 'astral-extractor',
     name: 'Extracteur astral',
     short: 'ASTR',
     description: 'Synthétise des essences interdimensionnelles',
@@ -222,36 +222,36 @@ const MACHINE_IDS = MACHINES.map((machine) => machine.id);
 
 function emptyWorldMachines(): WorldMachines {
   return {
-    'hand-mixer': 0,
-    'brick-oven': 0,
-    'conveyor-oven': 0,
-    'frosting-lab': 0,
-    'quantum-bakery': 0,
+    'formulation-table': 0,
+    'copper-still': 0,
+    'bottling-line': 0,
+    'perfumer-studio': 0,
+    'astral-extractor': 0,
   };
 }
 
 export function createEmptyMachineSave(): MachineSave {
   return {
-    'cookie-valley': emptyWorldMachines(),
-    'choco-moon': emptyWorldMachines(),
-    'galaxy-oven': emptyWorldMachines(),
+    'glass-garden': emptyWorldMachines(),
+    'amber-house': emptyWorldMachines(),
+    'astral-palace': emptyWorldMachines(),
   };
 }
 
 export function createInitialState(now = Date.now()): GameState {
   return {
-    crumbs: 0,
-    lifetimeCrumbs: 0,
-    runCrumbsEarned: 0,
+    perfumeRevenue: 0,
+    lifetimePerfumeRevenue: 0,
+    runPerfumeRevenue: 0,
     machines: createEmptyMachineSave(),
     rebirths: 0,
-    currentWorld: 'cookie-valley',
+    currentWorld: 'glass-garden',
     currentFloor: 0,
     unlockedFloors: [0],
-    unlockedWorlds: ['cookie-valley'],
+    unlockedWorlds: ['glass-garden'],
     upgrades: { production: 0, clickPower: 0, discount: 0 },
     claimedMissions: [],
-    goldenCookiesClaimed: 0,
+    rareFlaconsClaimed: 0,
     ordersCompleted: 0,
     totalRebirths: 0,
     essences: 0,
@@ -267,8 +267,8 @@ export function createInitialState(now = Date.now()): GameState {
  * for save compatibility; it now means the starter plot/workshop entrance exists.
  */
 export function buyStartingLand(state: GameState): GameState {
-  if (state.rampBuilt || state.crumbs < STARTING_LAND_COST) return state;
-  return { ...state, crumbs: state.crumbs - STARTING_LAND_COST, rampBuilt: true };
+  if (state.rampBuilt || state.perfumeRevenue < STARTING_LAND_COST) return state;
+  return { ...state, perfumeRevenue: state.perfumeRevenue - STARTING_LAND_COST, rampBuilt: true };
 }
 
 export function getWorld(worldId: WorldId): WorldDefinition {
@@ -293,7 +293,7 @@ export function essenceMultiplier(state: Pick<GameState, 'essences'>): number {
 
 export function canTotalRebirth(state: GameState): boolean {
   return state.rebirths >= totalRebirthRequiredLevel(state) &&
-    state.runCrumbsEarned >= rebirthCost(state.rebirths);
+    state.runPerfumeRevenue >= rebirthCost(state.rebirths);
 }
 
 export function performTotalRebirth(state: GameState, now = Date.now()): GameState {
@@ -322,18 +322,18 @@ export function upgradeCost(state: GameState, upgradeId: UpgradeId): number {
   return Math.ceil(definition.baseCost * definition.growth ** level);
 }
 
-export function manualCookieValue(state: Pick<GameState, 'upgrades'>): number {
-  return COOKIE_CLICK_VALUE * (1 + state.upgrades.clickPower);
+export function manualPerfumeValue(state: Pick<GameState, 'upgrades'>): number {
+  return PERFUME_CLICK_VALUE * (1 + state.upgrades.clickPower);
 }
 
 export function buyUpgrade(state: GameState, upgradeId: UpgradeId): GameState {
   const level = state.upgrades[upgradeId];
   if (level >= MAX_UPGRADE_LEVEL) return state;
   const cost = upgradeCost(state, upgradeId);
-  if (state.crumbs < cost) return state;
+  if (state.perfumeRevenue < cost) return state;
   return {
     ...state,
-    crumbs: state.crumbs - cost,
+    perfumeRevenue: state.perfumeRevenue - cost,
     upgrades: { ...state.upgrades, [upgradeId]: level + 1 },
   };
 }
@@ -349,7 +349,7 @@ export function missionProgress(state: GameState, mission: MissionDefinition): n
   const progress = mission.kind === 'machines'
     ? totalMachinesOwned(state)
     : mission.kind === 'lifetime'
-      ? state.lifetimeCrumbs
+      ? state.lifetimePerfumeRevenue
       : mission.kind === 'orders'
         ? state.ordersCompleted
         : state.unlockedWorlds.length;
@@ -365,7 +365,7 @@ export function claimMission(state: GameState, missionId: MissionId): GameState 
   if (!canClaimMission(state, missionId)) return state;
   const mission = MISSION_DEFINITIONS.find((item) => item.id === missionId);
   if (!mission) return state;
-  const rewarded = addCrumbs(state, mission.reward);
+  const rewarded = addPerfumeRevenue(state, mission.reward);
   return { ...rewarded, claimedMissions: [...rewarded.claimedMissions, missionId] };
 }
 
@@ -391,27 +391,27 @@ export function customerOrderReward(state: Pick<GameState, 'ordersCompleted'>): 
 }
 
 export function canCompleteCustomerOrder(state: GameState): boolean {
-  return state.crumbs >= customerOrderCost(state);
+  return state.perfumeRevenue >= customerOrderCost(state);
 }
 
 export function completeCustomerOrder(state: GameState): GameState {
   if (!canCompleteCustomerOrder(state)) return state;
   const cost = customerOrderCost(state);
   const reward = customerOrderReward(state);
-  const withMaterialsPaid = { ...state, crumbs: state.crumbs - cost };
+  const withMaterialsPaid = { ...state, perfumeRevenue: state.perfumeRevenue - cost };
   return {
-    ...addCrumbs(withMaterialsPaid, reward),
+    ...addPerfumeRevenue(withMaterialsPaid, reward),
     ordersCompleted: state.ordersCompleted + 1,
   };
 }
 
-export function addCrumbs(state: GameState, amount: number): GameState {
+export function addPerfumeRevenue(state: GameState, amount: number): GameState {
   if (!Number.isFinite(amount) || amount < 0) return state;
   return {
     ...state,
-    crumbs: state.crumbs + amount,
-    lifetimeCrumbs: state.lifetimeCrumbs + amount,
-    runCrumbsEarned: state.runCrumbsEarned + amount,
+    perfumeRevenue: state.perfumeRevenue + amount,
+    lifetimePerfumeRevenue: state.lifetimePerfumeRevenue + amount,
+    runPerfumeRevenue: state.runPerfumeRevenue + amount,
   };
 }
 
@@ -419,10 +419,10 @@ export function buyMachine(state: GameState, machineId: MachineId): GameState {
   const machine = getMachine(machineId);
   if (machine.floor !== state.currentFloor) return state;
   const cost = machineCost(state, machineId);
-  if (state.crumbs < cost) return state;
+  if (state.perfumeRevenue < cost) return state;
   return {
     ...state,
-    crumbs: state.crumbs - cost,
+    perfumeRevenue: state.perfumeRevenue - cost,
     machines: {
       ...state.machines,
       [state.currentWorld]: {
@@ -438,13 +438,13 @@ export function rebirthCost(rebirths: number): number {
 }
 
 export function canRebirth(state: GameState): boolean {
-  return state.runCrumbsEarned >= rebirthCost(state.rebirths);
+  return state.runPerfumeRevenue >= rebirthCost(state.rebirths);
 }
 
 export function performRebirth(state: GameState): GameState {
   if (!canRebirth(state)) return state;
   const nextRebirths = state.rebirths + 1;
-  const unlockedWorlds: WorldId[] = ['cookie-valley'];
+  const unlockedWorlds: WorldId[] = ['glass-garden'];
   for (const world of WORLDS) {
     if (world.unlockRebirths <= nextRebirths && !unlockedWorlds.includes(world.id)) {
       unlockedWorlds.push(world.id);
@@ -452,15 +452,15 @@ export function performRebirth(state: GameState): GameState {
   }
   return {
     ...state,
-    crumbs: 0,
-    runCrumbsEarned: 0,
+    perfumeRevenue: 0,
+    runPerfumeRevenue: 0,
     machines: createEmptyMachineSave(),
     rebirths: nextRebirths,
     rampBuilt: true,
     wallsBuilt: false,
     outsideExpansions: 0,
     unlockedFloors: [0],
-    currentWorld: 'cookie-valley',
+    currentWorld: 'glass-garden',
     currentFloor: 0,
     unlockedWorlds,
   };
@@ -482,14 +482,14 @@ export function canUnlockFloor(state: GameState, floor: number): boolean {
     .filter((machine) => machine.floor === floor - 1)
     .reduce((sum, machine) => sum + state.machines[state.currentWorld][machine.id], 0);
   const requiredMachines = floor === 1 ? 2 : 1;
-  return previousFloorMachineCount >= requiredMachines && state.crumbs >= floorUnlockCost(floor);
+  return previousFloorMachineCount >= requiredMachines && state.perfumeRevenue >= floorUnlockCost(floor);
 }
 
 export function unlockFloor(state: GameState, floor: number): GameState {
   if (!canUnlockFloor(state, floor)) return state;
   return {
     ...state,
-    crumbs: state.crumbs - floorUnlockCost(floor),
+    perfumeRevenue: state.perfumeRevenue - floorUnlockCost(floor),
     unlockedFloors: [...state.unlockedFloors, floor].sort((a, b) => a - b),
   };
 }
@@ -499,8 +499,8 @@ export function enterFloor(state: GameState, floor: number): GameState {
   return { ...state, currentFloor: floor };
 }
 
-export function collectCookies(state: GameState, amount: number): GameState {
-  return addCrumbs(state, amount);
+export function collectParfums(state: GameState, amount: number): GameState {
+  return addPerfumeRevenue(state, amount);
 }
 
 export function applyOfflineProgress(state: GameState, now: number): GameState {
@@ -508,7 +508,7 @@ export function applyOfflineProgress(state: GameState, now: number): GameState {
     MAX_OFFLINE_SECONDS,
     Math.max(0, (now - state.lastSavedAt) / 1000),
   );
-  return addCrumbs(state, productionPerSecond(state) * elapsedSeconds);
+  return addPerfumeRevenue(state, productionPerSecond(state) * elapsedSeconds);
 }
 
 function isFiniteNonNegative(value: unknown): value is number {
@@ -528,26 +528,68 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
   try {
     const data: unknown = JSON.parse(raw);
     if (!data || typeof data !== 'object') return createInitialState(now);
-    const value = data as Record<string, unknown>;
+    const rawValue = data as Record<string, unknown>;
+    const legacyWorldIds: Record<string, string> = {
+      'cookie-valley': 'glass-garden',
+      'choco-moon': 'amber-house',
+      'galaxy-oven': 'astral-palace',
+    };
+    const legacyMachineIds: Record<string, string> = {
+      'hand-mixer': 'formulation-table',
+      'brick-oven': 'copper-still',
+      'conveyor-oven': 'bottling-line',
+      'frosting-lab': 'perfumer-studio',
+      'quantum-bakery': 'astral-extractor',
+    };
+    const rawMachines = rawValue.machines && typeof rawValue.machines === 'object'
+      ? rawValue.machines as Record<string, unknown>
+      : undefined;
+    const normalizedMachines: Record<string, unknown> = {};
+    if (rawMachines) {
+      for (const [rawWorldId, rawCounts] of Object.entries(rawMachines)) {
+        if (!rawCounts || typeof rawCounts !== 'object') continue;
+        const worldId = legacyWorldIds[rawWorldId] ?? rawWorldId;
+        const counts: Record<string, unknown> = {};
+        for (const [rawMachineId, count] of Object.entries(rawCounts as Record<string, unknown>)) {
+          counts[legacyMachineIds[rawMachineId] ?? rawMachineId] = count;
+        }
+        normalizedMachines[worldId] = counts;
+      }
+    }
+    const value: Record<string, unknown> = {
+      ...rawValue,
+      perfumeRevenue: rawValue.perfumeRevenue ?? rawValue.crumbs,
+      lifetimePerfumeRevenue: rawValue.lifetimePerfumeRevenue ?? rawValue.lifetimeCrumbs,
+      runPerfumeRevenue: rawValue.runPerfumeRevenue ?? rawValue.runCrumbsEarned ?? rawValue.lifetimeCrumbs,
+      rareFlaconsClaimed: rawValue.rareFlaconsClaimed ?? rawValue.goldenCookiesClaimed,
+      alambics: rawValue.alambics ?? rawValue.ovens,
+      currentWorld: typeof rawValue.currentWorld === 'string'
+        ? legacyWorldIds[rawValue.currentWorld] ?? rawValue.currentWorld
+        : rawValue.currentWorld,
+      unlockedWorlds: Array.isArray(rawValue.unlockedWorlds)
+        ? rawValue.unlockedWorlds.map((id) => typeof id === 'string' ? legacyWorldIds[id] ?? id : id)
+        : rawValue.unlockedWorlds,
+      machines: rawMachines ? normalizedMachines : rawValue.machines,
+    };
 
-    // Migrate the earlier prototype save format, where only ovens were stored.
-    if (!value.machines && isFiniteNonNegative(value.crumbs) &&
-        isFiniteNonNegative(value.lifetimeCrumbs) && Number.isSafeInteger(value.ovens) &&
-        (value.ovens as number) >= 0 && isFiniteNonNegative(value.lastSavedAt)) {
+    // Migrate the earlier prototype save format, where only alambics were stored.
+    if (!value.machines && isFiniteNonNegative(value.perfumeRevenue) &&
+        isFiniteNonNegative(value.lifetimePerfumeRevenue) && Number.isSafeInteger(value.alambics) &&
+        (value.alambics as number) >= 0 && isFiniteNonNegative(value.lastSavedAt)) {
       const migrated = createInitialState(now);
-      migrated.crumbs = value.crumbs;
-      migrated.lifetimeCrumbs = value.lifetimeCrumbs;
-      migrated.runCrumbsEarned = value.lifetimeCrumbs;
-      migrated.machines['cookie-valley']['brick-oven'] = value.ovens as number;
-      migrated.rampBuilt = (value.ovens as number) > 0 || value.crumbs > 0 || value.lifetimeCrumbs > 0;
+      migrated.perfumeRevenue = value.perfumeRevenue;
+      migrated.lifetimePerfumeRevenue = value.lifetimePerfumeRevenue;
+      migrated.runPerfumeRevenue = value.lifetimePerfumeRevenue;
+      migrated.machines['glass-garden']['copper-still'] = value.alambics as number;
+      migrated.rampBuilt = (value.alambics as number) > 0 || value.perfumeRevenue > 0 || value.lifetimePerfumeRevenue > 0;
       migrated.lastSavedAt = value.lastSavedAt;
       return applyOfflineProgress(migrated, now);
     }
 
     if (
-      !isFiniteNonNegative(value.crumbs) ||
-      !isFiniteNonNegative(value.lifetimeCrumbs) ||
-      !isFiniteNonNegative(value.runCrumbsEarned) ||
+      !isFiniteNonNegative(value.perfumeRevenue) ||
+      !isFiniteNonNegative(value.lifetimePerfumeRevenue) ||
+      !isFiniteNonNegative(value.runPerfumeRevenue) ||
       !Number.isSafeInteger(value.rebirths) || (value.rebirths as number) < 0 ||
       !isFiniteNonNegative(value.lastSavedAt) ||
       !value.machines || typeof value.machines !== 'object' ||
@@ -569,23 +611,23 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
 
     const currentWorld = WORLD_IDS.includes(value.currentWorld as WorldId)
       ? value.currentWorld as WorldId
-      : 'cookie-valley';
+      : 'glass-garden';
     const unlockedWorlds = (value.unlockedWorlds as unknown[])
       .filter((item): item is WorldId => typeof item === 'string' && WORLD_IDS.includes(item as WorldId));
-    if (!unlockedWorlds.includes('cookie-valley')) unlockedWorlds.unshift('cookie-valley');
+    if (!unlockedWorlds.includes('glass-garden')) unlockedWorlds.unshift('glass-garden');
     const state: GameState = {
-      crumbs: value.crumbs,
-      lifetimeCrumbs: value.lifetimeCrumbs,
-      runCrumbsEarned: value.runCrumbsEarned,
+      perfumeRevenue: value.perfumeRevenue,
+      lifetimePerfumeRevenue: value.lifetimePerfumeRevenue,
+      runPerfumeRevenue: value.runPerfumeRevenue,
       machines,
       rebirths: value.rebirths as number,
-      currentWorld: unlockedWorlds.includes(currentWorld) ? currentWorld : 'cookie-valley',
+      currentWorld: unlockedWorlds.includes(currentWorld) ? currentWorld : 'glass-garden',
       currentFloor: Number.isSafeInteger(value.currentFloor) && (value.currentFloor as number) >= 0 && (value.currentFloor as number) <= 2
         ? value.currentFloor as number
         : 0,
       unlockedFloors: Array.isArray(value.unlockedFloors)
         ? [...new Set([0, ...(value.unlockedFloors as unknown[]).filter((floor): floor is number => typeof floor === 'number' && Number.isInteger(floor) && floor >= 0 && floor <= 2)])].sort((a, b) => a - b)
-        : [0, ...MACHINES.filter((machine) => machines[WORLD_IDS.includes(currentWorld) ? currentWorld : 'cookie-valley'][machine.id] > 0).map((machine) => machine.floor), Number.isInteger(value.currentFloor) && (value.currentFloor as number) >= 0 && (value.currentFloor as number) <= 2 ? value.currentFloor as number : 0].filter((floor) => floor >= 0 && floor <= 2).filter((floor, index, all) => all.indexOf(floor) === index).sort((a, b) => a - b),
+        : [0, ...MACHINES.filter((machine) => machines[WORLD_IDS.includes(currentWorld) ? currentWorld : 'glass-garden'][machine.id] > 0).map((machine) => machine.floor), Number.isInteger(value.currentFloor) && (value.currentFloor as number) >= 0 && (value.currentFloor as number) <= 2 ? value.currentFloor as number : 0].filter((floor) => floor >= 0 && floor <= 2).filter((floor, index, all) => all.indexOf(floor) === index).sort((a, b) => a - b),
       unlockedWorlds,
       upgrades: {
         production: parseUpgradeLevel(value.upgrades, 'production'),
@@ -595,8 +637,8 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       claimedMissions: Array.isArray(value.claimedMissions)
         ? value.claimedMissions.filter((id): id is MissionId => typeof id === 'string' && MISSION_IDS.includes(id as MissionId))
         : [],
-      goldenCookiesClaimed: Number.isSafeInteger(value.goldenCookiesClaimed) && (value.goldenCookiesClaimed as number) >= 0
-        ? value.goldenCookiesClaimed as number
+      rareFlaconsClaimed: Number.isSafeInteger(value.rareFlaconsClaimed) && (value.rareFlaconsClaimed as number) >= 0
+        ? value.rareFlaconsClaimed as number
         : 0,
       ordersCompleted: Number.isSafeInteger(value.ordersCompleted) && (value.ordersCompleted as number) >= 0
         ? value.ordersCompleted as number
@@ -617,14 +659,14 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
     const ownedMachineCount = Object.values(state.machines)
       .reduce((sum, machinesInWorld) => sum + Object.values(machinesInWorld).reduce((worldSum, count) => worldSum + count, 0), 0);
     const hasMeaningfulProgress =
-      state.crumbs > 0 ||
-      state.lifetimeCrumbs > 0 ||
-      state.runCrumbsEarned > 0 ||
+      state.perfumeRevenue > 0 ||
+      state.lifetimePerfumeRevenue > 0 ||
+      state.runPerfumeRevenue > 0 ||
       state.rebirths > 0 ||
       state.totalRebirths > 0 ||
       state.essences > 0 ||
       state.ordersCompleted > 0 ||
-      state.goldenCookiesClaimed > 0 ||
+      state.rareFlaconsClaimed > 0 ||
       state.claimedMissions.length > 0 ||
       state.upgrades.production > 0 ||
       state.upgrades.clickPower > 0 ||
@@ -638,8 +680,8 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       state.outsideExpansions = 0;
       state.currentFloor = 0;
       state.unlockedFloors = [0];
-      state.currentWorld = 'cookie-valley';
-      state.unlockedWorlds = ['cookie-valley'];
+      state.currentWorld = 'glass-garden';
+      state.unlockedWorlds = ['glass-garden'];
     }
     state.unlockedFloors = state.unlockedFloors.filter((floor) => floor >= 0 && floor <= 2);
     if (!state.unlockedFloors.includes(0)) state.unlockedFloors.unshift(0);
@@ -655,7 +697,7 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
 
 
 export interface SaveFileV1 {
-  format: 'ovenfall-save';
+  format: 'alambicfall-save';
   version: 1;
   exportedAt: string;
   state: GameState;
@@ -664,7 +706,7 @@ export interface SaveFileV1 {
 /** Serialize a transferable, human-readable save file. */
 export function exportSaveFile(state: GameState, now = Date.now()): string {
   return JSON.stringify({
-    format: 'ovenfall-save',
+    format: 'alambicfall-save',
     version: 1,
     exportedAt: new Date(now).toISOString(),
     state: { ...state, lastSavedAt: now },
@@ -672,8 +714,8 @@ export function exportSaveFile(state: GameState, now = Date.now()): string {
 }
 
 /**
- * Import a save exported by Ovenfall, a raw current-format state, or the
- * previous oven-only local-save format. Returns null rather than resetting
+ * Import a save exported by Alambicfall, a raw current-format state, or the
+ * previous alambic-only local-save format. Returns null rather than resetting
  * progress when the supplied import is malformed.
  */
 export function parseImportedSave(raw: string, now = Date.now()): GameState | null {
@@ -684,7 +726,7 @@ export function parseImportedSave(raw: string, now = Date.now()): GameState | nu
     let candidate: unknown = root;
 
     if ('format' in rootRecord || 'version' in rootRecord || 'state' in rootRecord) {
-      if (rootRecord.format !== 'ovenfall-save' || rootRecord.version !== 1 ||
+      if (rootRecord.format !== 'alambicfall-save' || rootRecord.version !== 1 ||
           !rootRecord.state || typeof rootRecord.state !== 'object' ||
           Array.isArray(rootRecord.state)) return null;
       candidate = rootRecord.state;
@@ -697,9 +739,9 @@ export function parseImportedSave(raw: string, now = Date.now()): GameState | nu
     // a save made before the multi-world tycoon was introduced.
     if (!('machines' in value)) {
       if (
-        !isFiniteNonNegative(value.crumbs) ||
-        !isFiniteNonNegative(value.lifetimeCrumbs) ||
-        !Number.isSafeInteger(value.ovens) || (value.ovens as number) < 0 ||
+        !isFiniteNonNegative(value.perfumeRevenue) ||
+        !isFiniteNonNegative(value.lifetimePerfumeRevenue) ||
+        !Number.isSafeInteger(value.alambics) || (value.alambics as number) < 0 ||
         !isFiniteNonNegative(value.lastSavedAt)
       ) return null;
       const migrated = parseSavedState(JSON.stringify(value), now);
@@ -707,9 +749,9 @@ export function parseImportedSave(raw: string, now = Date.now()): GameState | nu
     }
 
     if (
-      !isFiniteNonNegative(value.crumbs) ||
-      !isFiniteNonNegative(value.lifetimeCrumbs) ||
-      !isFiniteNonNegative(value.runCrumbsEarned) ||
+      !isFiniteNonNegative(value.perfumeRevenue) ||
+      !isFiniteNonNegative(value.lifetimePerfumeRevenue) ||
+      !isFiniteNonNegative(value.runPerfumeRevenue) ||
       !Number.isSafeInteger(value.rebirths) || (value.rebirths as number) < 0 ||
       !isFiniteNonNegative(value.lastSavedAt) ||
       !WORLD_IDS.includes(value.currentWorld as WorldId) ||
