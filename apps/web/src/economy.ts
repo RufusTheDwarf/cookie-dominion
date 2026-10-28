@@ -657,12 +657,10 @@ export function currentCustomerOrder(state: Pick<GameState, 'ordersCompleted'>):
 /** VIP orders pay a premium over selling the requested bottles individually. */
 export function customerOrderReward(state: GameState): number {
   const order = currentCustomerOrder(state);
-  return Math.ceil(
-    perfumeSalePrice(state, order.recipeId) *
-    order.quantity *
-    CUSTOMER_ORDER_REWARD_MULTIPLIER *
-    (1 + state.upgrades.orders * 0.1),
+  const baseReward = Math.ceil(
+    perfumeSalePrice(state, order.recipeId) * order.quantity * CUSTOMER_ORDER_REWARD_MULTIPLIER,
   );
+  return Math.ceil(baseReward * (1 + state.upgrades.orders * 0.1));
 }
 
 export function canCompleteCustomerOrder(state: GameState): boolean {
