@@ -130,6 +130,8 @@ describe('tycoon economy', () => {
     expect(crafted.perfumeInventory['green-whisper']).toBe(1);
     expect(crafted.crumbs).toBe(0);
     expect(craftPerfume(crafted, 'royal-bouquet')).toBe(crafted);
+    const researched = { ...crafted, upgrades: { ...crafted.upgrades, clickPower: 1 } };
+    expect(sellPerfume(researched, 'green-whisper').crumbs).toBe(3);
 
     const sold = sellPerfume(crafted, 'green-whisper');
     expect(sold.crumbs).toBe(2);
