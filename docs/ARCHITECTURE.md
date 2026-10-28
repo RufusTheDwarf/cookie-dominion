@@ -12,13 +12,15 @@
 ## Responsabilités
 
 1. Le module de scène signale le poste utilisé. Il ne modifie jamais directement l'argent ou l'inventaire.
-2. Le module économique valide les récoltes, la consommation des ingrédients, la fabrication, les ventes et la progression.
+2. Le module économique valide les récoltes, la consommation des ingrédients, la fabrication, les ventes, les commandes clients et la progression.
 3. Le module principal relie les interactions à l'économie et actualise l'interface.
 4. La sauvegarde conserve les champs historiques nécessaires à l'import des anciennes parties. Un champ historique ne doit pas être réintroduit dans la boucle de jeu active sans raison.
 
 ## Boucle de jeu actuelle
 
-Le joueur se déplace entre trois zones d'un même monde : le jardin botanique, le laboratoire et le comptoir. La carte dépasse la zone visible et la caméra accompagne les déplacements. Chaque parcelle donne une matière définie. Le joueur choisit une formule, se rend au laboratoire pour consommer les ingrédients et fabriquer un flacon, puis rejoint le comptoir pour le vendre. Les recherches améliorent les récoltes et la valeur des flacons de manière déterministe.
+Le joueur se déplace entre trois zones d'un même monde : le jardin botanique, le laboratoire et le comptoir. La carte dépasse la zone visible et la caméra accompagne les déplacements. Chaque parcelle donne une matière définie. Le joueur choisit une formule, se rend au laboratoire pour consommer les ingrédients et fabriquer un flacon, puis rejoint le comptoir pour le vendre ou livrer la commande active.
+
+Les commandes clients suivent une rotation déterministe de cinq recettes. La progression de commande est conservée dans la sauvegarde, les quantités augmentent progressivement jusqu'à un plafond de cinq flacons et une livraison complète verse une prime de 50 % par rapport à la vente normale. Les commandes ne sont jamais tirées au hasard et ne se terminent pas par un minuteur. Les règles de stock et de paiement restent dans le moteur économique; la scène n'est qu'un point d'interaction.
 
 ## Scène et animation
 

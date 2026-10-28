@@ -4,7 +4,10 @@ import {
   buyUpgrade,
   canClaimMission,
   canCraftPerfume,
+  canFulfillCustomerOrder,
   craftPerfume,
+  fulfillCustomerOrder,
+  getActiveCustomerOrder,
   perfumeSalePrice,
   sellPerfume,
   canRebirth,
@@ -143,6 +146,7 @@ app.innerHTML = `
             <p class="recipe-workshop-intro">Choisis une recette, récolte les ingrédients dans le jardin, puis rejoins le laboratoire pour la composer. Le comptoir sert à vendre les flacons.</p>
             <p class="selected-recipe-note">Recette active : <strong id="selected-recipe-name">Brise verte</strong></p>
             <div id="recipe-list" class="recipe-list"></div>
+            <div id="customer-order-panel" class="customer-order-panel"></div>
           </section>
           <div class="workshop-card-footer">
             <span>INTERACTIONS À L’ATELIER</span><strong id="workshop-actions-count">0</strong>
@@ -511,7 +515,25 @@ function renderSceneSelection(): void {
   prompt.textContent = nearbyStation
     ? stationNames[nearbyStation] + ' · ' + (nearbyStation === 'laboratory' ? 'composer la recette active' : nearbyStation === 'counter' ? 'vendre la recette active' : 'récolter une matière choisie')
     : 'Marche jusqu’à un poste, puis appuie sur E ou Interagir.';
-  button.textContent = nearbyStation === 'laboratory' ? 'FORMULER · E' : nearbyStation === 'counter' ? 'VENDRE · E' : 'INTERAGIR · E';
+  const order = getActiveCustomerOrder(state);
+  const selectedRecipeIsOrder = selectedRecipeId === order.recipeId;
+  const orderReady = selectedRecipeIsOrder && canFulfillCustomerOrder(state);
+  prompt.textContent = nearbyStation
+    ? stationNames[nearbyStation] + ' · ' + (
+      nearbyStation === 'laboratory'
+        ? 'composer la recette active'
+        : nearbyStation === 'counter'
+          ? selectedRecipeIsOrder
+            ? orderReady ? 'livrer la commande de ' + order.customer : 'préparer ' + order.quantity + ' flacon(s) pour ' + order.customer
+            : 'vendre la recette active'
+          : 'récolter une matière choisie'
+    )
+    : 'Marche jusqu’à un poste, puis appuie sur E ou Interagir.';
+  button.textContent = nearbyStation === 'laboratory'
+    ? 'FORMULER · E'
+    : nearbyStation === 'counter'
+      ? orderReady ? 'LIVRER · E' : 'VENDRE · E'
+      : 'INTERAGIR · E';
 }
 
 function interactWithStation(station: WorkshopStation): void {
@@ -541,6 +563,22 @@ function interactWithStation(station: WorkshopStation): void {
     state = craftPerfume(state, selectedRecipeId);
     renderAll();
     setStatus(recipe.name + ' formulé au laboratoire. Le flacon attend au comptoir.');
+    saveSoon();
+    return;
+  }
+  const order = getActiveCustomerOrder(state);
+  if (selectedRecipeId === order.recipeId) {
+    const available = state.perfumeStock[selectedRecipeId];
+    if (available < order.quantity) {
+      setStatus('Commande de ' + order.customer + ' : ' + order.quantity + ' flacon(s) de ' + recipe.name +
+        ' requis, ' + available + ' disponible(s). Prépare les flacons au laboratoire avant de revenir au comptoir.');
+      return;
+    }
+    state = fulfillCustomerOrder(state);
+    renderAll();
+    setStatus('Commande #' + order.orderNumber + ' livrée à ' + order.customer + ' : ' +
+      order.quantity + ' × ' + recipe.name + ', prime comprise : +' + format(order.reward) + ' pièces.');
+    floatText('+' + format(order.reward) + ' pièces');
     saveSoon();
     return;
   }
@@ -603,7 +641,34 @@ function renderRecipeWorkshop(): void {
         <div class="recipe-actions"><button type="button" data-select-recipe="${recipe.id}" class="${selected ? 'is-selected' : ''}">${selected ? 'RECETTE CHOISIE' : 'CHOISIR'}</button><small>${canCraft ? 'Ingrédients disponibles' : 'Ingrédients manquants'}</small></div>
       </article>`;
   }).join('');
+  renderCustomerOrder();
 }
+
+function renderCustomerOrder(): void {
+  const order = getActiveCustomerOrder(state);
+  const recipe = PERFUME_RECIPES.find((item) => item.id === order.recipeId)!;
+  const stock = state.perfumeStock[order.recipeId];
+  const ready = canFulfillCustomerOrder(state);
+  const initials = order.customer.split(' ').map((part) => part[0]).join('');
+  byId('customer-order-panel').innerHTML =
+    '<article class="customer-order-card ' + (ready ? 'is-ready' : '') + '">' +
+      '<div class="customer-order-topline"><span class="eyebrow">COMMANDE CLIENT #' + format(order.orderNumber, 0) + '</span><span class="customer-order-premium">+50 %</span></div>' +
+      '<div class="customer-order-client"><span class="customer-order-initials" aria-hidden="true">' + initials + '</span>' +
+        '<span class="customer-order-identity"><strong>' + order.customer + '</strong><small>' + order.atelier + '</small></span></div>' +
+      '<p class="customer-order-request">' + order.request + '</p>' +
+      '<div class="customer-order-data">' +
+        '<span><small>FORMULE</small><strong>' + recipe.name + '</strong></span>' +
+        '<span><small>QUANTITÉ</small><strong>' + order.quantity + ' flacon' + (order.quantity > 1 ? 's' : '') + '</strong></span>' +
+        '<span><small>EN STOCK</small><strong>' + stock + ' / ' + order.quantity + '</strong></span></div>' +
+      '<div class="customer-order-payout">' +
+        '<span><small>VENTE NORMALE</small><strong>' + format(order.normalValue) + ' pièces</strong></span>' +
+        '<span><small>PAIEMENT CLIENT</small><strong>' + format(order.reward) + ' pièces</strong></span></div>' +
+      '<p class="customer-order-hint">' + (ready
+        ? 'Prête à livrer. Sélectionne cette formule et interagis avec le comptoir.'
+        : 'Prépare la quantité demandée, puis livre la commande au comptoir. La prime est versée une seule fois.') + '</p>' +
+    '</article>';
+}
+
 function buyMachineById(machineId: MachineId): void {
   const previous = state;
   state = buyMachine(state, machineId);

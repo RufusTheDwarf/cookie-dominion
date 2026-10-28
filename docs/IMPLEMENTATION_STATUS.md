@@ -14,7 +14,8 @@
 | Récolte botanique | Implémenté | Chaque parcelle fournit une matière précise, sans tirage aléatoire |
 | Carnet de formulations | Implémenté | Cinq recettes, sélection d'une formule et stock de flacons |
 | Laboratoire | Implémenté | Consomme les ingrédients nécessaires et crée le flacon choisi |
-| Comptoir | Implémenté | Vend le flacon sélectionné et met à jour la trésorerie |
+| Comptoir | Implémenté | Vend le flacon sélectionné ou livre une commande client complète |
+| Commandes clients | Implémenté | Rotation déterministe de recettes, quantité vérifiée, prime de 50 %, progression sauvegardée |
 | Producteurs | Implémenté | Dix équipements avec coûts croissants et production passive |
 | Recherches | Implémenté | Production, récolte ciblée, remise, extraction spécialisée et finition de luxe |
 | Contrats et honneurs | Implémenté | Objectifs liés aux ventes, équipements et collections |
@@ -30,11 +31,9 @@ Les champs historiques liés à d'anciennes mécaniques peuvent rester dans le f
 
 ## Vérifications
 
-- TypeScript : à confirmer dans la CI du dernier commit.
-- Tests unitaires : à confirmer dans la CI du dernier commit.
-- Build Vite : à confirmer dans la CI du dernier commit.
+- TypeScript, tests unitaires et build Vite : consulter les vérifications CI du commit le plus récent; chaque modification doit être validée à nouveau.
 - Inspection visuelle dans un navigateur réel : à effectuer sur ordinateur et téléphone.
-- Équilibrage sur une session longue : à effectuer.
+- Équilibrage sur une session longue, notamment la montée de quantité des commandes : à effectuer.
 
 ## Limites
 

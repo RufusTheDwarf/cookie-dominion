@@ -23,7 +23,7 @@ Parfum Empire se déroule dans une maison de parfumerie que le joueur développe
 2. Approche une parcelle et appuie sur E ou sur le bouton Interagir pour récolter la matière correspondante.
 3. Choisis une recette dans le carnet de formulations.
 4. Rejoins le laboratoire et interagis pour fabriquer le flacon. Les ingrédients nécessaires sont consommés.
-5. Va au comptoir pour vendre le flacon et financer les équipements.
+5. Au comptoir, vends tes flacons ou livre la commande du client en cours pour obtenir une prime de 50 %.
 6. Achète des machines et des recherches pour développer la manufacture, puis ouvre de nouvelles collections grâce au prestige.
 
 ## Systèmes
@@ -35,6 +35,7 @@ Parfum Empire se déroule dans une maison de parfumerie que le joueur développe
 - Sept parcelles botaniques à récolte déterministe.
 - Cinq recettes qui utilisent des combinaisons d'ingrédients précises.
 - Inventaire des matières, découvertes, flacons fabriqués et ventes.
+- Commandes clients déterministes, quantité requise, rotation de recettes sauvegardée et prime de livraison de 50 %.
 - Dix équipements de production et cinq recherches évolutives.
 - Contrats, honneurs, trois collections, rebirth et ascension totale.
 - Sauvegarde locale, export JSON, import et migration des anciennes sauvegardes.

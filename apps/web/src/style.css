@@ -792,3 +792,37 @@ body.theme-dark{
   .recipe-actions{min-width:82px}
   .recipe-actions button{font-size:9px;padding:7px 5px}
 }
+
+
+/* Deterministic client orders are part of the workshop loop, not a random popup. */
+.customer-order-panel{margin-top:13px}
+.customer-order-card{padding:12px;border:1px solid #c6b58d;border-left:3px solid var(--brass);background:#eee4ce}
+.customer-order-card.is-ready{border-color:#8e9d7a;border-left-color:var(--moss);background:#edf0e3}
+.customer-order-topline{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.customer-order-topline .eyebrow{font-size:8px;font-weight:900;letter-spacing:.85px;color:#826337}
+.customer-order-premium{padding:4px 6px;border:1px solid #b8a071;background:#f9edcf;color:#8a622c;font-size:8px;font-weight:900;letter-spacing:.55px}
+.customer-order-client{display:flex;align-items:center;gap:9px}
+.customer-order-initials{display:grid;place-items:center;flex:0 0 39px;width:39px;height:39px;border:1px solid #a9905f;background:#e2d4b4;color:#675431;font-family:Georgia,"Times New Roman",serif;font-size:12px;font-weight:800}
+.customer-order-identity{display:flex;flex-direction:column;gap:4px;min-width:0}
+.customer-order-identity strong{font-family:Georgia,"Times New Roman",serif;font-size:15px}
+.customer-order-identity small{font-size:9px;font-weight:800;letter-spacing:.45px;color:var(--ink-soft)}
+.customer-order-request{margin:10px 0;font-size:10px;line-height:1.5;color:var(--ink-soft)}
+.customer-order-data,.customer-order-payout{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+.customer-order-data>span,.customer-order-payout>span{display:flex;flex-direction:column;gap:5px;min-width:0;padding:7px 6px;border:1px solid #d0c09a;background:#f7efdc}
+.customer-order-data small,.customer-order-payout small{font-size:7px;font-weight:900;letter-spacing:.45px;color:#766747}
+.customer-order-data strong,.customer-order-payout strong{font-family:Georgia,"Times New Roman",serif;font-size:11px;line-height:1.25;overflow-wrap:anywhere}
+.customer-order-payout{grid-template-columns:1fr 1fr;margin-top:6px}
+.customer-order-payout>span:last-child{border-color:#9aa787;background:#e5e9d9}
+.customer-order-payout>span:last-child strong{color:var(--moss-dark)}
+.customer-order-hint{margin:9px 0 0;padding-top:8px;border-top:1px solid #d1c19c;font-size:9px;line-height:1.45;color:var(--ink-soft)}
+.theme-dark .customer-order-card{background:#302f25;border-color:#746547}
+.theme-dark .customer-order-card.is-ready{background:#2b3428;border-color:#61775b}
+.theme-dark .customer-order-premium{background:#443822;color:#e6c98f;border-color:#806a40}
+.theme-dark .customer-order-initials{background:#443c2b;color:#ead8af;border-color:#806a40}
+.theme-dark .customer-order-data>span,.theme-dark .customer-order-payout>span{background:#383327;border-color:#5a503b}
+.theme-dark .customer-order-payout>span:last-child{background:#2e392b;border-color:#61775b}
+@media(max-width:560px){
+  .customer-order-data{grid-template-columns:1fr 1fr}
+  .customer-order-data>span:first-child{grid-column:1/-1}
+  .customer-order-payout strong{font-size:10px}
+}

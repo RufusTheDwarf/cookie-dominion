@@ -23,6 +23,26 @@ export interface PerfumeRecipe {
   salePrice: number;
 }
 
+export interface CustomerOrder {
+  orderNumber: number;
+  customer: string;
+  atelier: string;
+  request: string;
+  recipeId: RecipeId;
+  quantity: number;
+  unitPrice: number;
+  normalValue: number;
+  reward: number;
+  bonus: number;
+}
+
+interface CustomerOrderTemplate {
+  customer: string;
+  atelier: string;
+  request: string;
+  recipeId: RecipeId;
+}
+
 export interface HarvestResult {
   state: GameState;
   materials: MaterialId[];
@@ -91,6 +111,8 @@ export interface GameState {
   perfumeStock: PerfumeStock;
   /** Lifetime count of bottles sold, independent from their price. */
   perfumesSold: number;
+  /** Number of deterministic customer orders successfully delivered. */
+  customerOrdersCompleted: number;
   lastHarvestedMaterial: MaterialId | null;
   machines: MachineSave;
   rebirths: number;
@@ -145,6 +167,14 @@ export const PERFUME_RECIPES: PerfumeRecipe[] = [
   { id: 'amber-velvet', name: 'Velours ambré', description: 'Bois de santal et résine rare', ingredients: { sandalwood: 1, resin: 1, jasmine: 1 }, salePrice: 10 },
 ];
 const RECIPE_IDS: RecipeId[] = PERFUME_RECIPES.map((recipe) => recipe.id);
+
+const CUSTOMER_ORDER_TEMPLATES: CustomerOrderTemplate[] = [
+  { customer: 'Camille Perrin', atelier: 'Maison Perrin', request: 'Une fragrance fraîche pour accueillir les visiteurs du salon.', recipeId: 'green-whisper' },
+  { customer: 'Lucien Morel', atelier: 'Hôtel Morel', request: 'Une note florale discrète pour les chambres de la maison.', recipeId: 'soft-rose' },
+  { customer: 'Nora Vidal', atelier: 'Atelier Vidal', request: 'Un parfum vif pour une nouvelle vitrine de printemps.', recipeId: 'citrus-dawn' },
+  { customer: 'Émile Laurent', atelier: 'Maison Laurent', request: 'Un bouquet élégant réservé aux clients fidèles.', recipeId: 'royal-bouquet' },
+  { customer: 'Inès Rochat', atelier: 'Parfumerie Rochat', request: 'Une composition ambrée pour une édition confidentielle.', recipeId: 'amber-velvet' },
+];
 
 function emptyPerfumeStock(): PerfumeStock {
   return Object.fromEntries(RECIPE_IDS.map((id) => [id, 0])) as PerfumeStock;
@@ -406,6 +436,7 @@ export function createInitialState(now = Date.now()): GameState {
     materialDiscoveries: emptyMaterialStock(),
     perfumeStock: emptyPerfumeStock(),
     perfumesSold: 0,
+    customerOrdersCompleted: 0,
     lastHarvestedMaterial: null,
     machines: createEmptyMachineSave(),
     rebirths: 0,
@@ -547,6 +578,48 @@ export function sellPerfume(state: GameState, recipeId: RecipeId): GameState {
     perfumesSold: state.perfumesSold + 1,
   };
   return addPerfumeRevenue(withBottleSold, price);
+}
+
+/** The customer queue is a fixed rotation, so an order never depends on a random roll. */
+export function getActiveCustomerOrder(state: GameState): CustomerOrder {
+  const completed = Math.max(0, Math.floor(state.customerOrdersCompleted));
+  const template = CUSTOMER_ORDER_TEMPLATES[completed % CUSTOMER_ORDER_TEMPLATES.length];
+  const orderNumber = completed + 1;
+  const quantity = 1 + Math.min(4, Math.floor(completed / CUSTOMER_ORDER_TEMPLATES.length));
+  const unitPrice = perfumeSalePrice(state, template.recipeId);
+  const normalValue = unitPrice * quantity;
+  const reward = Math.ceil(normalValue * 1.5);
+  return {
+    ...template,
+    orderNumber,
+    quantity,
+    unitPrice,
+    normalValue,
+    reward,
+    bonus: reward - normalValue,
+  };
+}
+
+/** Orders can only be delivered when all required bottles are in stock. */
+export function canFulfillCustomerOrder(state: GameState): boolean {
+  const order = getActiveCustomerOrder(state);
+  return state.perfumeStock[order.recipeId] >= order.quantity;
+}
+
+/** Deliver the current order, consume the exact quantity, and pay a 50% premium. */
+export function fulfillCustomerOrder(state: GameState): GameState {
+  if (!canFulfillCustomerOrder(state)) return state;
+  const order = getActiveCustomerOrder(state);
+  const delivered: GameState = {
+    ...state,
+    perfumeStock: {
+      ...state.perfumeStock,
+      [order.recipeId]: state.perfumeStock[order.recipeId] - order.quantity,
+    },
+    perfumesSold: state.perfumesSold + order.quantity,
+    customerOrdersCompleted: state.customerOrdersCompleted + 1,
+  };
+  return addPerfumeRevenue(delivered, order.reward);
 }
 
 export function buyUpgrade(state: GameState, upgradeId: UpgradeId): GameState {
@@ -833,6 +906,9 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       materialDiscoveries,
       perfumeStock: parsePerfumeStock(value.perfumeStock),
       perfumesSold: Number.isSafeInteger(value.perfumesSold) && (value.perfumesSold as number) >= 0 ? Math.min(1_000_000_000, value.perfumesSold as number) : 0,
+      customerOrdersCompleted: Number.isSafeInteger(value.customerOrdersCompleted) && (value.customerOrdersCompleted as number) >= 0
+        ? Math.min(1_000_000_000, value.customerOrdersCompleted as number)
+        : 0,
       lastHarvestedMaterial: isMaterialId(value.lastHarvestedMaterial) ? value.lastHarvestedMaterial : null,
       machines,
       rebirths: value.rebirths as number,
@@ -883,6 +959,7 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       state.totalRebirths > 0 ||
       state.essences > 0 ||
       state.ordersCompleted > 0 ||
+      state.customerOrdersCompleted > 0 ||
       state.rareFlaconsClaimed > 0 ||
       state.claimedMissions.length > 0 ||
       state.upgrades.production > 0 ||

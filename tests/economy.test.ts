@@ -7,6 +7,9 @@ import {
   buyUpgrade,
   canClaimMission,
   canCraftPerfume,
+  canFulfillCustomerOrder,
+  fulfillCustomerOrder,
+  getActiveCustomerOrder,
   canUnlockFloor,
   canRebirth,
   canTotalRebirth,
@@ -175,6 +178,51 @@ describe('tycoon economy', () => {
     expect(restored?.lastHarvestedMaterial).toBe('lavender');
     expect(restored?.perfumeStock['green-whisper']).toBe(2);
     expect(restored?.perfumesSold).toBe(1);
+  });
+
+  it('delivers deterministic customer orders and pays the 50% premium exactly once', () => {
+    const initial = createInitialState(100);
+    const first = getActiveCustomerOrder(initial);
+    expect(first.orderNumber).toBe(1);
+    expect(first.recipeId).toBe('green-whisper');
+    expect(first.quantity).toBe(1);
+    expect(first.normalValue).toBe(2);
+    expect(first.reward).toBe(3);
+    expect(canFulfillCustomerOrder(initial)).toBe(false);
+    expect(fulfillCustomerOrder(initial)).toBe(initial);
+
+    const stocked = {
+      ...initial,
+      perfumeStock: { ...initial.perfumeStock, 'green-whisper': 1 },
+    };
+    expect(canFulfillCustomerOrder(stocked)).toBe(true);
+    const delivered = fulfillCustomerOrder(stocked);
+    expect(delivered.perfumeStock['green-whisper']).toBe(0);
+    expect(delivered.perfumesSold).toBe(1);
+    expect(delivered.customerOrdersCompleted).toBe(1);
+    expect(delivered.perfumeRevenue).toBe(3);
+    expect(delivered.lifetimePerfumeRevenue).toBe(3);
+    expect(getActiveCustomerOrder(delivered).recipeId).toBe('soft-rose');
+    expect(fulfillCustomerOrder(delivered)).toBe(delivered);
+  });
+
+  it('requires the full order quantity and preserves the order queue in saves', () => {
+    const initial = createInitialState(100);
+    const partial = {
+      ...initial,
+      customerOrdersCompleted: 5,
+      perfumeStock: { ...initial.perfumeStock, 'green-whisper': 1 },
+    };
+    const order = getActiveCustomerOrder(partial);
+    expect(order.recipeId).toBe('green-whisper');
+    expect(order.quantity).toBe(2);
+    expect(canFulfillCustomerOrder(partial)).toBe(false);
+    expect(fulfillCustomerOrder(partial)).toBe(partial);
+
+    const restored = parseImportedSave(exportSaveFile(partial, 1000), 1000);
+    expect(restored?.customerOrdersCompleted).toBe(5);
+    expect(getActiveCustomerOrder(restored!).orderNumber).toBe(6);
+    expect(getActiveCustomerOrder(restored!).quantity).toBe(2);
   });
 
   it('rejects invalid earning amounts', () => {
