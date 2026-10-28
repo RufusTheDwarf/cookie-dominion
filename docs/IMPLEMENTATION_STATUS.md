@@ -20,7 +20,8 @@
 | Carnet de formulations | Implémenté | Cinq recettes, sélection d'une formule et stock de flacons |
 | Laboratoire | Implémenté | Consomme les ingrédients nécessaires et crée le flacon choisi |
 | Comptoir | Implémenté | Vend le flacon sélectionné ou livre une commande client complète |
-| Commandes clients | Implémenté | Rotation déterministe de recettes, quantité vérifiée, prime de 50 %, progression sauvegardée |
+| Commandes clients | Implémenté | Rotation déterministe de recettes, quantité vérifiée et progression sauvegardée |
+| Réputation de la maison | Implémenté | 25 points par livraison, 10 rangs, prime de commande de 50 à 95 % |
 | Producteurs | Implémenté | Dix équipements avec coûts croissants et production passive |
 | Recherches | Implémenté | Production, récolte ciblée, remise, extraction spécialisée et finition de luxe |
 | Contrats et honneurs | Implémenté | Objectifs liés aux ventes, équipements et collections |
@@ -38,7 +39,7 @@ Les champs historiques liés à d'anciennes mécaniques peuvent rester dans le f
 
 - TypeScript, tests unitaires et build Vite : validés par la CI sur le commit ecd5d60551ac74af3e426a6d95eaea0891f152eb. Chaque nouveau commit doit repasser ces contrôles.
 - Inspection visuelle dans un navigateur réel : à effectuer sur ordinateur et téléphone.
-- Équilibrage sur une session longue, notamment la montée de quantité des commandes : à effectuer.
+- Équilibrage sur une session longue, notamment la montée de quantité des commandes et la prime maximale de réputation : à effectuer.
 
 ## Limites
 
