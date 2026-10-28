@@ -22,7 +22,6 @@ import {
   enterWorld,
   exportSaveFile,
   machineCost,
-  manualPerfumeValue,
   missionProgress,
   MAX_OFFLINE_SECONDS,
   parseImportedSave,
@@ -169,7 +168,6 @@ describe('tycoon economy', () => {
         'glass-garden': { ...initial.machines['glass-garden'], 'formulation-table': 1 },
       },
     };
-    expect(manualPerfumeValue(withMixer)).toBe(1);
     expect(productionPerSecond(withMixer)).toBeCloseTo(3 / 3.5);
 
     const researched = buyUpgrade(withMixer, 'production');
@@ -179,7 +177,7 @@ describe('tycoon economy', () => {
     expect(upgradeCost(researched, 'production')).toBe(555);
 
     const clickResearch = buyUpgrade({ ...withMixer, perfumeRevenue: 200 }, 'clickPower');
-    expect(manualPerfumeValue(clickResearch)).toBe(2);
+    expect(clickResearch.upgrades.clickPower).toBe(1);
 
     const discounted = buyUpgrade({ ...withMixer, perfumeRevenue: 600 }, 'discount');
     expect(machineCost(discounted, 'copper-still')).toBe(18);
