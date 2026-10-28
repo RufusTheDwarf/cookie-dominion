@@ -29,7 +29,7 @@
 | Contrats et honneurs | Implémenté | Objectifs liés aux ventes, équipements et collections |
 | Collections | Implémenté | Jardin de Verre, Maison d'Ambre et Palais Astral |
 | Rebirth et ascension | Implémenté | Réinitialisations de progression avec bonus persistants |
-| Sauvegarde | Implémenté | LocalStorage, export/import JSON, validation et migration |
+| Sauvegarde | Implémenté | LocalStorage, copie de secours, restauration de secours, export/import JSON, validation et migration |
 | Production hors ligne | Implémenté | Plafond de huit heures |
 | Comptes, cloud, multijoueur | Non implémenté | Aucun backend distant |
 

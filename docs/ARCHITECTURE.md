@@ -45,6 +45,8 @@ Les commandes clients suivent une rotation déterministe de cinq recettes. La pr
 
 ## Sécurité et sauvegardes
 
+La sauvegarde locale dispose d'une copie de secours actualisée avant le remplacement de la sauvegarde principale. Au démarrage, la sauvegarde principale est validée; si elle est illisible, le jeu essaie la copie de secours puis l'ancien format local. La suppression de partie retire ces trois clés avant de créer une nouvelle sauvegarde. Ces mesures limitent les pertes dues à une corruption accidentelle, mais n'empêchent pas la modification volontaire des données locales.
+
 La sauvegarde locale et le code côté navigateur peuvent être modifiés par un joueur. La validation actuelle protège contre les états malformés, pas contre une triche déterminée. Pour empêcher la modification de l'argent ou des inventaires, il faudra déplacer l'état faisant autorité et les opérations économiques vers un backend.
 
 ## Vérification

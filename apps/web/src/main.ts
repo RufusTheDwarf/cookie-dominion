@@ -201,7 +201,7 @@ app.innerHTML = `
         </div>
         <div class="header-stat"><span>PRODUCTION NETTE</span><strong id="header-cps">0</strong><small>après entretien / s</small></div>
         <div class="header-stat"><span>MATIÈRES</span><strong id="header-click">0</strong><small>ingrédients en stock</small></div>
-        <div class="header-stat"><span>VIE DU RUN</span><strong id="header-run">0</strong><small>produits cumulés</small></div>
+        <div class="header-stat"><span>REVENU DU RUN</span><strong id="header-run">0</strong><small>pièces gagnées ce run</small></div>
         <button id="open-settings" class="icon-button" type="button" title="Paramètres et sauvegarde" aria-label="Paramètres et sauvegarde">☷</button>
       </div>
     </header>
@@ -262,7 +262,7 @@ app.innerHTML = `
 
 
         <div class="mini-metrics">
-          <div><span>Ventes cumulées</span><strong id="lifetime-sales">0</strong></div>
+          <div><span>Revenus cumulés</span><strong id="lifetime-sales">0</strong></div>
         </div>
       </section>
 
