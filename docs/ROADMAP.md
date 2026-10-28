@@ -1,30 +1,30 @@
 # Roadmap — Parfum Empire
 
-- [x] Phase 0–2: inspecter les outils, choisir Web/Phaser et définir l’architecture.
-- [x] Phase 3: économie déterministe, équipements, sauvegarde locale et progression hors ligne plafonnée.
-- [x] Phase 4: CI, tests unitaires, vérification TypeScript et build.
-- [x] Phase 5: tycoon 2D avec déplacement, trois étages, convoyeur, collecteur, trois mondes et rebirth normal.
-- [x] Phase 6: commandes tactiles, clic pour se déplacer, export/import/effacement des sauvegardes.
-- [x] Phase 7a: rebranding de la pâtisserie vers une maison de parfumerie ; nouveau HUD coloré inspiré des conventions de tycoon Roblox.
-- [x] Phase 7b: nouveaux personnages dessinés dans Phaser, équipements de parfumerie et flacons animés sur le convoyeur.
-- [x] Phase 7c: double prestige — rebirth normal et ascension totale avec Essences originelles.
-- [x] Phase 8a: améliorations de production, créations manuelles et réduction des coûts.
-- [x] Phase 8b: cinq contrats de progression avec récompenses sauvegardées.
-- [x] Phase 8c: flacon mythique temporaire, récompense immédiate et bonus de production ×2.
-- [ ] Phase 9: test manuel dans un navigateur, ajuster la caméra et valider les tailles d’écran.
-- [x] Phase 10a: commandes VIP livrables en se déplaçant vers le client, paiement progressif et contrat de première livraison.
-- [ ] Phase 10b: chaîne production → vente plus riche et objectifs propres à chaque monde.
-- [ ] Phase 11: multijoueur autoritaire et sauvegardes cloud.
-- [ ] Phase 12: déploiement public et tests avec des joueurs.
-- [ ] Phase 13: décider si un packaging desktop est utile.
+- [x] Prototype web avec économie déterministe, sauvegarde locale et progression hors ligne plafonnée.
+- [x] CI : typecheck TypeScript, tests unitaires et build.
+- [x] Identité de parfumerie avec palette papier ivoire, vert profond, cuivre et laiton.
+- [x] Dix producteurs illustrés avec coûts croissants et revenus passifs.
+- [x] Refonte de la structure vers un clicker tycoon à trois colonnes.
+- [x] Flacon central cliquable avec récompense flottante et animation de clic.
+- [x] Événement du flacon mythique avec récompense temporaire et production doublée.
+- [x] Catalogue de cinq recherches à dix niveaux.
+- [x] Six contrats réclamables et registre de douze honneurs calculés automatiquement.
+- [x] Commandes VIP accessibles directement depuis l'interface, sans déplacement sur la carte.
+- [x] Trois collections avec inventaire séparé, multiplicateurs et déverrouillage par prestige.
+- [x] Rebirth normal et ascension totale avec Essences originelles.
+- [x] Import/export JSON, sauvegarde locale et support des anciens formats.
+- [ ] Test visuel manuel des états UI sur navigateur desktop et mobile.
+- [ ] Réglage fin de l'équilibrage et ajout de bonus spécifiques aux collections.
+- [ ] Déploiement public et tests avec des joueurs.
+- [ ] Comptes et sauvegardes cloud si nécessaires.
+- [ ] Décider si un packaging desktop est utile.
 
 ## Critères de la version actuelle
 
-- Déplacement en 2D au clavier, au clic et via D-pad.
-- Achat des équipements limité à l’étage et au prix affiché.
-- Production passive calculée séparément des animations des flacons.
-- Rebirth normal : remet les machines et le solde courant à zéro, conserve les recherches et augmente le multiplicateur.
-- Ascension totale : débloquée après 10 rebirths normaux, remet à zéro la progression normale et donne des Essences originelles.
-- Chaque essence accorde +75 % de rendement et compte pour 1 000 000 points de valeur d’empire.
-- Import/export JSON validé, sauvegarde locale automatique et migration des anciens champs.
-- Tests, typecheck et build via GitHub Actions.
+- Créer des parfums manuellement en cliquant sur le flacon.
+- Acheter tous les producteurs depuis un catalogue vertical, sans déplacement par étage.
+- Calculer les revenus passifs séparément des animations d'interface.
+- Appliquer les recherches aux clics, aux coûts, aux commandes et aux bonus temporaires.
+- Réclamer des contrats, suivre les honneurs, changer de collection et utiliser le prestige.
+- Conserver une sauvegarde locale migrable avec export/import JSON.
+- Valider tous les changements avec tests, typecheck et build GitHub Actions.
