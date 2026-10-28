@@ -1,6 +1,7 @@
 export type WorkshopStation =
   | 'lavender' | 'mint' | 'rose' | 'bergamot' | 'sandalwood' | 'jasmine' | 'resin'
-  | 'laboratory' | 'counter' | 'stairs';
+  | 'laboratory' | 'counter' | 'stairs'
+  | 'lavender-plot-2' | 'mint-plot-2' | 'rose-plot-2';
 
 export type MoveDirection = 'up' | 'down' | 'left' | 'right';
 
@@ -22,7 +23,7 @@ export interface WorkshopMachineVisual {
 export interface WorkshopScene {
   move(direction: MoveDirection): void;
   interact(): void;
-  setEnvironment(theme: WorkshopTheme, floor: number, machines: WorkshopMachineVisual[]): void;
+  setEnvironment(theme: WorkshopTheme, floor: number, machines: WorkshopMachineVisual[], botanicalExpansions?: number): void;
   destroy(): void;
 }
 
@@ -63,6 +64,9 @@ const STATIONS: Station[] = [
   { id: 'sandalwood', x: 472, y: 172, title: 'SANTAL', detail: 'Parcelle 05', color: '#a66b4c' },
   { id: 'jasmine', x: 472, y: 365, title: 'JASMIN', detail: 'Parcelle 06', color: '#d8c99b' },
   { id: 'resin', x: 472, y: 545, title: 'RÉSINE', detail: 'Parcelle 07', color: '#c28a42' },
+  { id: 'lavender-plot-2', x: 112, y: 545, title: 'LAVANDE II', detail: 'Parcelle agrandie 08', color: '#798e64' },
+  { id: 'mint-plot-2', x: 292, y: 545, title: 'MENTHE II', detail: 'Parcelle agrandie 09', color: '#6f9c77' },
+  { id: 'rose-plot-2', x: 590, y: 172, title: 'ROSIER II', detail: 'Parcelle agrandie 10', color: '#b96e7b' },
   { id: 'laboratory', x: 820, y: 355, title: 'LABORATOIRE', detail: 'Formuler un parfum', color: '#b28a4d' },
   { id: 'stairs', x: 925, y: 520, title: 'ESCALIER', detail: 'Ouvrir un étage', color: '#8e7051' },
   { id: 'counter', x: 1225, y: 355, title: 'COMPTOIR', detail: 'Vendre un flacon', color: '#53694c' },
@@ -71,7 +75,13 @@ const STATIONS: Station[] = [
 const HERB_COLORS = ['#71885b', '#8ba36a', '#b2b67a', '#d5c99b', '#6e8e70'];
 const MATERIAL_STATION_IDS = new Set<WorkshopStation>([
   'lavender', 'mint', 'rose', 'bergamot', 'sandalwood', 'jasmine', 'resin',
+  'lavender-plot-2', 'mint-plot-2', 'rose-plot-2',
 ]);
+const BOTANICAL_EXPANSION_REQUIREMENT: Partial<Record<WorkshopStation, number>> = {
+  'lavender-plot-2': 1,
+  'mint-plot-2': 2,
+  'rose-plot-2': 3,
+};
 const MACHINE_POSITIONS: Record<number, Record<string, { x: number; y: number }>> = {
   0: {
     'formulation-table': { x: 730, y: 230 },
@@ -138,6 +148,7 @@ export function createWorkshopScene(
     belt: 0xa46f4e,
   };
   let currentFloor = 0;
+  let unlockedBotanicalExpansions = 0;
   let placedMachines: WorkshopMachineVisual[] = [];
   let destroyed = false;
   let lastReported: WorkshopStation | null = null;
@@ -594,7 +605,10 @@ export function createWorkshopScene(
     c.translate(-cameraX, -cameraY);
     drawGround();
     if (currentFloor === 0) {
-      STATIONS.filter((station) => !['laboratory', 'counter', 'stairs'].includes(station.id)).forEach((station, i) => {
+      STATIONS.filter((station) =>
+        !['laboratory', 'counter', 'stairs'].includes(station.id) &&
+        isBotanicalPlotUnlocked(station.id),
+      ).forEach((station, i) => {
         drawHerbBed(station, i);
       });
     }
@@ -622,11 +636,17 @@ export function createWorkshopScene(
     c.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
   }
 
+  function isBotanicalPlotUnlocked(stationId: WorkshopStation): boolean {
+    const requiredExpansions = BOTANICAL_EXPANSION_REQUIREMENT[stationId];
+    return requiredExpansions === undefined || unlockedBotanicalExpansions >= requiredExpansions;
+  }
+
   function nearestStation(): Station | null {
     let result: Station | null = null;
     let best = 68;
     for (const station of STATIONS) {
       if (currentFloor > 0 && MATERIAL_STATION_IDS.has(station.id)) continue;
+      if (!isBotanicalPlotUnlocked(station.id)) continue;
       const distance = Math.hypot(player.x - station.x, player.y - station.y);
       if (distance < best) {
         best = distance;
@@ -715,9 +735,13 @@ export function createWorkshopScene(
     const bounds = canvas.getBoundingClientRect();
     const x = (event.clientX - bounds.left) / bounds.width * VIEW_WIDTH + cameraX;
     const y = (event.clientY - bounds.top) / bounds.height * VIEW_HEIGHT + cameraY;
-    const station = STATIONS.find((item) => Math.hypot(item.x - x, item.y - y) < 58);
+    const station = STATIONS.find((item) =>
+      isBotanicalPlotUnlocked(item.id) && Math.hypot(item.x - x, item.y - y) < 58,
+    );
     if (station) {
-      const offset = station.id === 'counter' || station.id === 'laboratory' ? -72 : station.id === 'stairs' ? -64 : 64;
+      const offset = station.id === 'counter' || station.id === 'laboratory'
+        ? -72
+        : station.id === 'stairs' || station.id === 'rose-plot-2' ? -64 : 64;
       destination = { x: station.x + offset, y: station.y + 48 };
     } else {
       destination = { x, y };
@@ -744,7 +768,7 @@ export function createWorkshopScene(
       onNearbyChange(nearby);
     },
     interact(): void { if (nearby) triggerInteraction(nearby); },
-    setEnvironment(nextTheme: WorkshopTheme, floor: number, nextMachines: WorkshopMachineVisual[]): void {
+    setEnvironment(nextTheme: WorkshopTheme, floor: number, nextMachines: WorkshopMachineVisual[], botanicalExpansions = 0): void {
       theme = {
         background: nextTheme.background,
         floorColor: nextTheme.floorColor,
@@ -752,6 +776,9 @@ export function createWorkshopScene(
         belt: nextTheme.belt,
       };
       currentFloor = Number.isInteger(floor) ? Math.max(0, Math.min(2, floor)) : 0;
+      unlockedBotanicalExpansions = Number.isInteger(botanicalExpansions)
+        ? Math.max(0, Math.min(3, botanicalExpansions))
+        : 0;
       placedMachines = nextMachines.map((machine) => ({ ...machine }));
       draw();
     },
