@@ -23,6 +23,11 @@ export interface PerfumeRecipe {
   ingredients: Partial<MaterialStock>;
   salePrice: number;
 }
+
+export interface CustomerOrderRequest {
+  recipeId: RecipeId;
+  quantity: number;
+}
 export interface HarvestResult {
   state: GameState;
   materials: MaterialId[];
@@ -116,8 +121,6 @@ export const TOTAL_REBIRTH_BASE_LEVEL = 10;
 export const TOTAL_REBIRTH_LEVEL_STEP = 5;
 export const ESSENCE_PRODUCTION_BONUS = 0.75;
 export const ESSENCE_PRESTIGE_VALUE = 1_000_000;
-export const CUSTOMER_ORDER_BASE_COST = 8;
-export const CUSTOMER_ORDER_COST_GROWTH = 1.65;
 export const CUSTOMER_ORDER_REWARD_MULTIPLIER = 1.8;
 export const REBIRTH_BASE_COST = 10000;
 export const REBIRTH_COST_GROWTH = 1.65;
@@ -620,28 +623,68 @@ export function productionPerSecond(
   return base * world.incomeMultiplier * REBIRTH_MULTIPLIER ** state.rebirths * productionUpgrade * essenceMultiplier(state);
 }
 
-export function customerOrderCost(state: Pick<GameState, 'ordersCompleted'>): number {
-  return Math.ceil(CUSTOMER_ORDER_BASE_COST * CUSTOMER_ORDER_COST_GROWTH ** state.ordersCompleted);
+const INTRODUCTORY_ORDER_SEQUENCE: RecipeId[] = [
+  'green-whisper',
+  'soft-rose',
+  'citrus-dawn',
+  'green-whisper',
+  'soft-rose',
+  'citrus-dawn',
+];
+const ADVANCED_ORDER_SEQUENCE: RecipeId[] = [
+  'royal-bouquet',
+  'amber-velvet',
+  'green-whisper',
+  'soft-rose',
+  'citrus-dawn',
+];
+
+/** The next VIP request is derived from completed orders, so it needs no separate save field. */
+export function currentCustomerOrder(state: Pick<GameState, 'ordersCompleted'>): CustomerOrderRequest {
+  const completed = Math.max(0, Math.floor(state.ordersCompleted));
+  if (completed < INTRODUCTORY_ORDER_SEQUENCE.length) {
+    return {
+      recipeId: INTRODUCTORY_ORDER_SEQUENCE[completed]!,
+      quantity: completed < 3 ? 1 : 2,
+    };
+  }
+
+  const advancedIndex = (completed - INTRODUCTORY_ORDER_SEQUENCE.length) % ADVANCED_ORDER_SEQUENCE.length;
+  const quantity = 1 + Math.floor((completed - INTRODUCTORY_ORDER_SEQUENCE.length) / ADVANCED_ORDER_SEQUENCE.length);
+  return { recipeId: ADVANCED_ORDER_SEQUENCE[advancedIndex]!, quantity };
 }
 
-export function customerOrderReward(state: Pick<GameState, 'ordersCompleted' | 'upgrades'>): number {
-  const rewardMultiplier = CUSTOMER_ORDER_REWARD_MULTIPLIER * (1 + state.upgrades.orders * 0.1);
-  return Math.ceil(customerOrderCost(state) * rewardMultiplier);
+/** VIP orders pay a premium over selling the requested bottles individually. */
+export function customerOrderReward(state: GameState): number {
+  const order = currentCustomerOrder(state);
+  return Math.ceil(
+    perfumeSalePrice(state, order.recipeId) *
+    order.quantity *
+    CUSTOMER_ORDER_REWARD_MULTIPLIER *
+    (1 + state.upgrades.orders * 0.1),
+  );
 }
 
 export function canCompleteCustomerOrder(state: GameState): boolean {
-  return state.perfumeRevenue >= customerOrderCost(state);
+  const order = currentCustomerOrder(state);
+  return state.perfumeStock[order.recipeId] >= order.quantity;
 }
 
 export function completeCustomerOrder(state: GameState): GameState {
   if (!canCompleteCustomerOrder(state)) return state;
-  const cost = customerOrderCost(state);
+  const order = currentCustomerOrder(state);
   const reward = customerOrderReward(state);
-  const withMaterialsPaid = { ...state, perfumeRevenue: state.perfumeRevenue - cost };
-  return {
-    ...addPerfumeRevenue(withMaterialsPaid, reward),
+  const perfumeStock = {
+    ...state.perfumeStock,
+    [order.recipeId]: state.perfumeStock[order.recipeId] - order.quantity,
+  };
+  const delivered: GameState = {
+    ...state,
+    perfumeStock,
+    perfumesSold: state.perfumesSold + order.quantity,
     ordersCompleted: state.ordersCompleted + 1,
   };
+  return addPerfumeRevenue(delivered, reward);
 }
 
 export function addPerfumeRevenue(state: GameState, amount: number): GameState {
