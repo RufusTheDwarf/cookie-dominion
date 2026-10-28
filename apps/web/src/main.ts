@@ -49,9 +49,8 @@ type StoreTab = 'upgrades' | 'contracts' | 'honours' | 'worlds' | 'prestige' | '
 let activeTab: StoreTab = 'upgrades';
 let statusMessage = 'Ta première fragrance t’attend. Clique sur le flacon pour commencer.';
 let clickCount = 0;
-let sessionStart = Date.now();
 let lastTick = performance.now();
-let lastSavedAt = Date.now();
+let lastPassiveUiSecond = -1;
 let autoSaveElapsed = 0;
 let rareNextAt = performance.now() + 24_000;
 let rareExpiresAt = 0;
@@ -109,7 +108,7 @@ app.innerHTML = `
       <span id="save-indicator">SAUVEGARDE LOCALE</span>
     </div>
 
-    <main class="clicker-layout">
+    <div class="clicker-layout">
       <section class="column click-column">
         <div class="section-heading click-heading">
           <div><span class="eyebrow">01 · CRÉATION</span><h1>Le parfumeur</h1></div>
@@ -194,7 +193,7 @@ app.innerHTML = `
         </nav>
         <div id="store-content" class="store-content"></div>
       </aside>
-    </main>
+    </div>
     <footer class="game-footer">
       <span>PARFUM EMPIRE <i>—</i> MAISON DES ESSENCES</span>
       <span>PRODUCTION CONTINUE · SAUVEGARDE AUTOMATIQUE</span>
@@ -273,7 +272,6 @@ function save(): void {
   } catch {
     byId('save-indicator').textContent = 'SAUVEGARDE INDISPONIBLE';
   }
-  lastSavedAt = now;
 }
 
 function renderStats(): void {
@@ -835,7 +833,8 @@ function gameTick(now: number): void {
   lastTick = now;
   if (elapsed > 0) {
     const cps = productionPerSecond(state);
-    if (cps > 0) state = addPerfumeRevenue(state, cps * elapsed);
+    const activeProductionMultiplier = now < rareBoostUntil ? 2 : 1;
+    if (cps > 0) state = addPerfumeRevenue(state, cps * elapsed * activeProductionMultiplier);
     state = { ...state, lastSavedAt: Date.now(), currentFloor: 0, unlockedFloors: [0], rampBuilt: true };
     autoSaveElapsed += elapsed;
     if (autoSaveElapsed >= 10) {
@@ -843,11 +842,11 @@ function gameTick(now: number): void {
       autoSaveElapsed = 0;
     }
     renderStats();
-    if (Math.floor(now / 1000) % 1 === 0) {
+    const second = Math.floor(now / 1000);
+    if (second !== lastPassiveUiSecond) {
+      lastPassiveUiSecond = second;
       renderMachines();
-      if (activeTab === 'upgrades' || activeTab === 'contracts' || activeTab === 'prestige' || activeTab === 'worlds' || activeTab === 'honours') {
-        renderStore();
-      }
+      if (activeTab !== 'save') renderStore();
     }
   }
   requestAnimationFrame(gameTick);
