@@ -507,6 +507,17 @@ function gatherOneMaterial(state: GameState, material: MaterialId): GameState {
   return { ...state, ingredients, materialDiscoveries, lastHarvestedMaterial: material, harvestProgress };
 }
 
+/** Harvest a chosen material at a specific garden bed. No random roll is involved. */
+export function harvestMaterial(state: GameState, material: MaterialId, quantity = 1): HarvestResult {
+  if (!MATERIAL_IDS.includes(material) || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100) {
+    return { state, materials: [] };
+  }
+  let next = state;
+  for (let i = 0; i < quantity; i++) next = gatherOneMaterial(next, material);
+  next = { ...next, gatherClicks: next.gatherClicks + 1 };
+  return { state: next, materials: Array.from({ length: quantity }, () => material) };
+}
+
 /** Harvest one random material (occasionally two with botanical research). Materials stay in stock until a recipe is crafted. */
 export function harvestIngredient(state: GameState, random: () => number = Math.random): HarvestResult {
   const primary = chooseMaterial(random());
