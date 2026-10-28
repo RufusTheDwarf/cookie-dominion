@@ -1,6 +1,6 @@
 export type WorkshopStation =
   | 'lavender' | 'mint' | 'rose' | 'bergamot' | 'sandalwood' | 'jasmine' | 'resin'
-  | 'laboratory' | 'counter' | 'stairs'
+  | 'laboratory' | 'counter' | 'stairs' | 'stairs-down'
   | 'lavender-plot-2' | 'mint-plot-2' | 'rose-plot-2';
 
 export type MoveDirection = 'up' | 'down' | 'left' | 'right';
@@ -68,7 +68,8 @@ const STATIONS: Station[] = [
   { id: 'mint-plot-2', x: 292, y: 545, title: 'MENTHE II', detail: 'Parcelle agrandie 09', color: '#6f9c77' },
   { id: 'rose-plot-2', x: 590, y: 172, title: 'ROSIER II', detail: 'Parcelle agrandie 10', color: '#b96e7b' },
   { id: 'laboratory', x: 820, y: 355, title: 'LABORATOIRE', detail: 'Formuler un parfum', color: '#b28a4d' },
-  { id: 'stairs', x: 925, y: 520, title: 'ESCALIER', detail: 'Ouvrir un étage', color: '#8e7051' },
+  { id: 'stairs', x: 925, y: 520, title: 'ESCALIER ↑', detail: 'Monter d’un étage', color: '#8e7051' },
+  { id: 'stairs-down', x: 720, y: 520, title: 'ESCALIER ↓', detail: 'Descendre d’un étage', color: '#657f87' },
   { id: 'counter', x: 1225, y: 355, title: 'COMPTOIR', detail: 'Vendre un flacon', color: '#53694c' },
 ];
 
@@ -278,24 +279,31 @@ export function createWorkshopScene(
     c.ellipse(0, 31, 52, 12, 0, 0, Math.PI * 2);
     c.fill();
 
-    if (station.id === 'stairs') {
+    if (station.id === 'stairs' || station.id === 'stairs-down') {
+      const descending = station.id === 'stairs-down';
       if (active) {
-        c.shadowColor = '#dfc28c';
+        c.shadowColor = descending ? '#9fcbd2' : '#dfc28c';
         c.shadowBlur = 14 + glow;
       }
       roundedRect(-38, -8, 76, 35, 5, '#6f5a42', '#47382a');
       c.shadowBlur = 0;
-      roundedRect(-31, -31, 62, 56, 4, '#bba37e', '#72583d');
+      roundedRect(-31, -31, 62, 56, 4, descending ? '#a8c1c3' : '#bba37e', descending ? '#55777e' : '#72583d');
       for (let step = 0; step < 4; step++) {
         const y = -24 + step * 12;
         roundedRect(-25 + step * 3, y, 50 - step * 6, 9, 2,
           step % 2 === 0 ? '#e3d1ac' : '#c7ad80', '#8a6e48');
       }
-      c.strokeStyle = '#6d5537';
+      c.strokeStyle = descending ? '#55777e' : '#6d5537';
       c.lineWidth = 2;
       c.beginPath(); c.moveTo(-30, -28); c.lineTo(30, -28); c.stroke();
       c.fillStyle = '#f2e7ce';
-      c.beginPath(); c.moveTo(0, -39); c.lineTo(-6, -32); c.lineTo(6, -32); c.closePath(); c.fill();
+      c.beginPath();
+      if (descending) {
+        c.moveTo(0, -28); c.lineTo(-6, -35); c.lineTo(6, -35);
+      } else {
+        c.moveTo(0, -39); c.lineTo(-6, -32); c.lineTo(6, -32);
+      }
+      c.closePath(); c.fill();
     } else if (station.id === 'laboratory') {
       if (active) {
         c.shadowColor = '#d7b96f';
@@ -514,6 +522,75 @@ export function createWorkshopScene(
     roundedRect(1050, 525, 70, 48, 6, colorHex(palette.belt), colorHex(palette.accent));
     roundedRect(1134, 525, 70, 48, 6, colorHex(palette.belt), colorHex(palette.accent));
     roundedRect(1218, 525, 70, 48, 6, colorHex(palette.belt), colorHex(palette.accent));
+
+    if (currentFloor === 1) {
+      // Assembly lanes use each room's central aisle, leaving wall openings clear.
+      const lanes = [
+        { x: 42, y: 348, width: 566 },
+        { x: 672, y: 348, width: 302 },
+        { x: 1020, y: 348, width: 380 },
+      ];
+      for (const lane of lanes) {
+        roundedRect(lane.x, lane.y, lane.width, 24, 5, '#46565d', '#839197');
+        c.fillStyle = colorHex(palette.belt);
+        c.fillRect(lane.x + 8, lane.y + 4, lane.width - 16, 3);
+        c.fillRect(lane.x + 8, lane.y + 17, lane.width - 16, 3);
+        for (let rollerX = lane.x + 13; rollerX < lane.x + lane.width - 8; rollerX += 22) {
+          c.fillStyle = '#a9b9bc';
+          c.beginPath();
+          c.arc(rollerX, lane.y + 12, 4, 0, Math.PI * 2);
+          c.fill();
+        }
+      }
+      c.fillStyle = colorHex(palette.accent);
+      c.font = 'bold 9px system-ui';
+      c.textAlign = 'center';
+      c.fillText('LIGNE DE CONDITIONNEMENT', 325, 335);
+      c.fillText('ASSEMBLAGE', 823, 335);
+      c.fillText('EXPÉDITION', 1210, 335);
+    } else if (currentFloor === 2) {
+      // Inlaid rings make the rare-essence floor visually distinct without blocking movement.
+      const chambers = [
+        { x: 300, y: 350, radius: 64 },
+        { x: 820, y: 350, radius: 52 },
+        { x: 1215, y: 350, radius: 64 },
+      ];
+      c.save();
+      c.globalAlpha = 0.62;
+      for (const chamber of chambers) {
+        c.strokeStyle = colorHex(palette.belt);
+        c.lineWidth = 3;
+        c.beginPath(); c.arc(chamber.x, chamber.y, chamber.radius, 0, Math.PI * 2); c.stroke();
+        c.lineWidth = 1.5;
+        c.beginPath(); c.arc(chamber.x, chamber.y, chamber.radius - 12, 0, Math.PI * 2); c.stroke();
+        c.strokeStyle = colorHex(palette.accent);
+        c.beginPath();
+        c.moveTo(chamber.x - chamber.radius - 8, chamber.y);
+        c.lineTo(chamber.x + chamber.radius + 8, chamber.y);
+        c.moveTo(chamber.x, chamber.y - chamber.radius - 8);
+        c.lineTo(chamber.x, chamber.y + chamber.radius + 8);
+        c.stroke();
+        for (let node = 0; node < 6; node++) {
+          const angle = node * Math.PI / 3;
+          c.fillStyle = colorHex(palette.belt);
+          c.beginPath();
+          c.arc(chamber.x + Math.cos(angle) * (chamber.radius - 6),
+            chamber.y + Math.sin(angle) * (chamber.radius - 6), 4, 0, Math.PI * 2);
+          c.fill();
+        }
+      }
+      c.restore();
+    }
+
+    // Door jambs mark the openings used by the movement collision rules.
+    for (const wall of WALLS) {
+      c.fillStyle = colorHex(palette.belt);
+      c.fillRect(wall - 9, DOOR_TOP - 5, 18, 5);
+      c.fillRect(wall - 9, DOOR_BOTTOM, 18, 5);
+      c.fillStyle = colorHex(palette.accent);
+      c.fillRect(wall - 7, DOOR_TOP, 3, DOOR_BOTTOM - DOOR_TOP);
+      c.fillRect(wall + 4, DOOR_TOP, 3, DOOR_BOTTOM - DOOR_TOP);
+    }
   }
 
   function drawPlacedMachines(): void {
@@ -606,13 +683,15 @@ export function createWorkshopScene(
     drawGround();
     if (currentFloor === 0) {
       STATIONS.filter((station) =>
-        !['laboratory', 'counter', 'stairs'].includes(station.id) &&
-        isBotanicalPlotUnlocked(station.id),
+        MATERIAL_STATION_IDS.has(station.id) && isStationAvailable(station.id),
       ).forEach((station, i) => {
         drawHerbBed(station, i);
       });
     }
-    STATIONS.filter((station) => station.id === 'laboratory' || station.id === 'counter' || station.id === 'stairs').forEach(drawMachine);
+    STATIONS.filter((station) =>
+      ['laboratory', 'counter', 'stairs', 'stairs-down'].includes(station.id) &&
+      isStationAvailable(station.id),
+    ).forEach(drawMachine);
     drawPlacedMachines();
 
     for (const particle of particles) {
@@ -641,12 +720,19 @@ export function createWorkshopScene(
     return requiredExpansions === undefined || unlockedBotanicalExpansions >= requiredExpansions;
   }
 
+  function isStationAvailable(stationId: WorkshopStation): boolean {
+    if (currentFloor > 0 && MATERIAL_STATION_IDS.has(stationId)) return false;
+    if (!isBotanicalPlotUnlocked(stationId)) return false;
+    if (stationId === 'stairs' && currentFloor >= 2) return false;
+    if (stationId === 'stairs-down' && currentFloor <= 0) return false;
+    return true;
+  }
+
   function nearestStation(): Station | null {
     let result: Station | null = null;
     let best = 68;
     for (const station of STATIONS) {
-      if (currentFloor > 0 && MATERIAL_STATION_IDS.has(station.id)) continue;
-      if (!isBotanicalPlotUnlocked(station.id)) continue;
+      if (!isStationAvailable(station.id)) continue;
       const distance = Math.hypot(player.x - station.x, player.y - station.y);
       if (distance < best) {
         best = distance;
@@ -736,7 +822,7 @@ export function createWorkshopScene(
     const x = (event.clientX - bounds.left) / bounds.width * VIEW_WIDTH + cameraX;
     const y = (event.clientY - bounds.top) / bounds.height * VIEW_HEIGHT + cameraY;
     const station = STATIONS.find((item) =>
-      isBotanicalPlotUnlocked(item.id) && Math.hypot(item.x - x, item.y - y) < 58,
+      isStationAvailable(item.id) && Math.hypot(item.x - x, item.y - y) < 58,
     );
     if (station) {
       const offset = station.id === 'counter' || station.id === 'laboratory' ||

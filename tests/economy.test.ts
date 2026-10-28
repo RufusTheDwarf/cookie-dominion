@@ -428,13 +428,16 @@ describe('tycoon economy', () => {
     expect(enterWorld(unlocked, 'amber-house').currentWorld).toBe('amber-house');
   });
 
-  it('changes only to unlocked floors', () => {
+  it('changes only to unlocked floors and allows returning down the staircase', () => {
     const state = createInitialState(100);
     expect(state.unlockedFloors).toEqual([0]);
     expect(enterFloor(state, 2)).toBe(state);
     const firstFloor = { ...state, unlockedFloors: [0, 1], currentFloor: 1 };
     expect(enterFloor(firstFloor, 1).currentFloor).toBe(1);
     expect(enterFloor(firstFloor, 2)).toBe(firstFloor);
+    const upperFloor = { ...state, unlockedFloors: [0, 1, 2], currentFloor: 2 };
+    expect(enterFloor(upperFloor, 1).currentFloor).toBe(1);
+    expect(enterFloor(upperFloor, 0).currentFloor).toBe(0);
     expect(enterFloor(state, 4)).toBe(state);
   });
 

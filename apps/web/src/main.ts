@@ -677,11 +677,13 @@ function renderFloorNavigation(): void {
   }).join('');
   const nextFloor = state.currentFloor + 1;
   if (nextFloor > 2) {
-    byId('floor-navigation-hint').textContent = 'Dernier étage atteint. Tu peux redescendre avec les boutons ci-dessus.';
+    byId('floor-navigation-hint').textContent = 'Dernier étage atteint. Utilise l’escalier descendant ou les boutons ci-dessus.';
     return;
   }
   if (state.unlockedFloors.includes(nextFloor)) {
-    byId('floor-navigation-hint').textContent = 'L’escalier permet de monter à l’étage suivant. Les revenus automatisés continuent dans les étages non actifs.';
+    byId('floor-navigation-hint').textContent = 'L’escalier montant mène à l’étage suivant. ' +
+      (state.currentFloor > 0 ? 'L’escalier descendant ramène à l’étage ' + (state.currentFloor - 1) + '. ' : '') +
+      'Les revenus automatisés continuent dans les étages non actifs.';
     return;
   }
   const requiredMachines = nextFloor === 1 ? 2 : 1;
@@ -693,8 +695,9 @@ function renderFloorNavigation(): void {
   const requirements: string[] = [];
   if (missingMachines > 0) requirements.push(missingMachines + ' équipement(s) supplémentaire(s)');
   if (missingCash > 0) requirements.push(format(missingCash) + ' pièces');
-  byId('floor-navigation-hint').textContent = 'Près de l’escalier : ouvre ' + names[nextFloor] +
-    (requirements.length ? ' après avoir obtenu ' + requirements.join(' et ') + '.' : ' dès maintenant.');
+  byId('floor-navigation-hint').textContent = 'Près de l’escalier montant : ouvre ' + names[nextFloor] +
+    (requirements.length ? ' après avoir obtenu ' + requirements.join(' et ') + '.' : ' dès maintenant.') +
+    (state.currentFloor > 0 ? ' L’escalier descendant ramène à l’étage ' + (state.currentFloor - 1) + '.' : '');
 }
 
 function renderStore(): void {
@@ -725,7 +728,8 @@ function renderSceneSelection(): void {
     lavender: 'Parcelle de lavande', mint: 'Parcelle de menthe', rose: 'Roseraie',
     bergamot: 'Bergamotiers', sandalwood: 'Bois de santal', jasmine: 'Jardin de jasmin',
     resin: 'Résine ambrée', laboratory: 'Laboratoire de formulation', counter: 'Comptoir de vente',
-    stairs: 'Escalier de la maison',
+    stairs: 'Escalier montant',
+    'stairs-down': 'Escalier descendant',
     'lavender-plot-2': 'Parcelle agrandie de lavande',
     'mint-plot-2': 'Parcelle agrandie de menthe',
     'rose-plot-2': 'Parcelle agrandie de rose',
@@ -747,7 +751,9 @@ function renderSceneSelection(): void {
         : 'vendre la recette active'
     );
   } else if (nearbyStation === 'stairs') {
-    prompt.textContent = stationNames[nearbyStation] + ' · ouvrir ou rejoindre l’étage suivant';
+    prompt.textContent = stationNames[nearbyStation] + ' · ouvrir ou rejoindre l’étage ' + (state.currentFloor + 1);
+  } else if (nearbyStation === 'stairs-down') {
+    prompt.textContent = stationNames[nearbyStation] + ' · rejoindre l’étage ' + (state.currentFloor - 1);
   } else {
     prompt.textContent = stationNames[nearbyStation] + ' · récolter une matière choisie';
   }
@@ -757,7 +763,9 @@ function renderSceneSelection(): void {
       ? selectedRecipeIsOrder ? (orderReady ? 'LIVRER · E' : 'COMMANDE · E') : 'VENDRE · E'
       : nearbyStation === 'stairs'
         ? 'MONTER · E'
-        : 'INTERAGIR · E';
+        : nearbyStation === 'stairs-down'
+          ? 'DESCENDRE · E'
+          : 'INTERAGIR · E';
 }
 
 function interactWithStation(station: WorkshopStation): void {
@@ -790,6 +798,20 @@ function interactWithStation(station: WorkshopStation): void {
     playSound('craft');
     renderAll();
     setStatus(recipe.name + ' formulé au laboratoire. Le flacon attend au comptoir.');
+    saveSoon();
+    return;
+  }
+  if (station === 'stairs-down') {
+    const targetFloor = state.currentFloor - 1;
+    if (targetFloor < 0 || !state.unlockedFloors.includes(targetFloor)) {
+      setStatus('Cet étage inférieur n’est pas accessible depuis cet escalier.');
+      return;
+    }
+    state = enterFloor(state, targetFloor);
+    playSound('unlock');
+    renderAll();
+    setStatus('Tu es redescendu à l’étage ' + targetFloor + ' · ' +
+      ['Artisanat', 'Manufacture', 'Essences rares'][targetFloor] + '.');
     saveSoon();
     return;
   }

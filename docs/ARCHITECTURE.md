@@ -31,7 +31,9 @@ Les commandes clients suivent une rotation déterministe de cinq recettes. La pr
 - Le personnage change d'orientation, anime son corps pendant la marche et tend le bras pendant une interaction.
 - Les plantes oscillent légèrement. Les interactions créent des particules temporaires.
 - Les producteurs achetés sont transmis à la scène comme données d'affichage et rendus à des emplacements fixes, avec animation de fonctionnement et quantité visible.
-- Les deux murs intérieurs comportent des passages. Le déplacement ne peut pas traverser les murs en dehors de ces passages.
+- Les deux murs intérieurs comportent des passages avec encadrement visuel; la collision bloque le passage hors des ouvertures.
+- Les étages de manufacture affichent des lignes de conditionnement; l’étage rare affiche des chambres circulaires d’extraction.
+- Deux escaliers physiques assurent la montée et la descente; un escalier n’est visible et interactif que si sa direction correspond à l’étage actif.
 - Les coordonnées des clics sont converties de l'écran vers le monde, en tenant compte de la caméra.
 - Un escalier dans la scène déclenche les règles d'ouverture des étages. L'état ouvert et l'étage actif sont persistés, tandis que le catalogue n'affiche que les équipements de l'étage actif.
 - Les collections utilisent leur palette persistée (fond, sol, couleur d'accent et bois) pour différencier visuellement l'atelier sans casser les collisions ou l'économie.

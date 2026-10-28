@@ -40,7 +40,7 @@ Les champs historiques liés à d'anciennes mécaniques peuvent rester dans le f
 ## Vérifications
 
 - TypeScript, tests unitaires et build Vite : vérifier le statut GitHub Actions du commit candidat avant toute fusion.
-- Inspection visuelle dans un navigateur réel : à effectuer sur ordinateur et téléphone.
+- Inspection visuelle dans un navigateur réel : à effectuer sur ordinateur et téléphone, notamment la proximité des nouveaux escaliers.
 - Équilibrage sur une session longue, notamment la montée de quantité des commandes, la prime maximale de réputation et l'entretien : à effectuer.
 
 ## Limites
