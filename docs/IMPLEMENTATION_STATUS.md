@@ -4,37 +4,40 @@
 
 | Système | État | Détails |
 |---|---|---|
-| Déplacement | Implémenté | WASD, flèches, D-pad tactile et clic sur la carte |
-| Personnages | Implémenté | Joueur parfumeur, Mila la parfumeuse et client VIP en formes Phaser |
-| Manufacture | Implémenté | Trois étages et cinq équipements de parfumerie |
-| Flacons animés | Implémenté | Flacons colorés sur la ligne d’embouteillage ; l’animation ne double pas les revenus |
-| Mondes | Implémenté | Jardin de Verre, Maison d’Ambre et Palais Astral |
-| Améliorations | Implémenté | Rendement, puissance de création et réduction des coûts, dix niveaux chacun |
-| Contrats | Implémenté | Six objectifs avec progression et récompenses réclamables, dont le premier client VIP |
-| Commandes VIP | Implémenté | Approche le client et appuie sur E, dépense de préparation, paiement croissant et progression sauvegardée |
-| Flacon mythique | Implémenté | Fenêtre de récupération, récompense instantanée et production ×2 pendant 20 secondes |
-| Rebirth normal | Implémenté | Réinitialise les machines et le solde du run, conserve les recherches et augmente le multiplicateur |
-| Ascension totale | Implémenté | Après 10 rebirths normaux ; réinitialise la progression normale et récompense des Essences originelles |
-| Valeur des essences | Implémenté | 1 000 000 points de valeur d’empire par essence et +75 % de rendement par unité |
-| Sauvegarde | Implémenté | LocalStorage, export/import JSON, validation, migration et effacement confirmé |
-| Progression hors ligne | Implémenté | Production plafonnée à huit heures |
+| Structure clicker | Implémenté | Flacon cliquable, manufacture verticale et bureau à onglets |
+| Création manuelle | Implémenté | Revenus par clic, retour visuel flottant et animation du flacon |
+| Producteurs | Implémenté | Dix types d'équipement avec coûts croissants et revenu passif |
+| Améliorations | Implémenté | Production, clic, remise, bonus mythique et marge VIP ; dix niveaux chacune |
+| Flacon mythique | Implémenté | Événement temporaire, récompense immédiate et production ×2 |
+| Commandes VIP | Implémenté | Livraison directe par bouton, coût croissant, paiement et marge améliorables |
+| Contrats | Implémenté | Six objectifs avec récompenses à réclamer |
+| Honneurs | Implémenté | Registre de douze distinctions calculées à partir de la progression |
+| Collections | Implémenté | Jardin de Verre, Maison d’Ambre et Palais Astral ; inventaires par collection |
+| Rebirth normal | Implémenté | Réinitialise le stock du run et les producteurs, conserve les recherches |
+| Ascension totale | Implémenté | Réinitialise la progression normale et récompense des Essences originelles |
+| Illustrations | Implémenté | SVG originaux pour le flacon principal, le flacon mythique et dix équipements |
+| Responsive | Implémenté dans le CSS | Grille à trois colonnes, repli en deux colonnes et une colonne sur petit écran |
+| Mode sombre | Implémenté | Palette sombre activable dans l'onglet Données |
+| Sauvegardes | Implémenté | LocalStorage, export/import JSON, validation, migration et effacement confirmé |
+| Progression hors ligne | Implémenté dans le moteur | Plafond de huit heures par chargement |
 | Comptes / cloud / multijoueur | Non implémenté | Aucun compte ni backend distant |
 
 ## Persistance
 
-Les anciens champs de sauvegarde restent lus pour ne pas perdre la progression déjà enregistrée. Les champs ajoutés pour les Essences originelles et l’ascension totale reçoivent des valeurs par défaut lors du chargement d’une ancienne partie.
+Les anciennes sauvegardes restent lisibles. Les nouveaux champs de recherche sont initialisés à zéro si l'ancienne partie ne les contient pas. Les identifiants historiques de producteurs et de collections sont migrés lors du chargement.
 
-Les sauvegardes restent locales au navigateur. L’import/export JSON sert de transfert manuel entre appareils.
+Le format conserve encore les champs historiques de déplacement et d'étages pour éviter de casser les sauvegardes, mais la nouvelle interface n'utilise plus la carte ni les escaliers.
 
 ## Vérifications
 
-- Tests Vitest : économie, machines, recherches, contrats, commandes VIP, rebirth normal, ascension totale, essences, migration et import/export.
-- GitHub Actions : installation npm, typecheck TypeScript, tests et build Vite.
-- Test visuel manuel dans un vrai navigateur : à effectuer.
-- Vérifications finales de l’interface sur ordinateur, tablette et petit écran : à effectuer.
+- Tests Vitest : économie, producteurs, recherches, contrats, commandes VIP, rebirth, ascension, migration et import/export.
+- GitHub Actions : installation npm, vérification TypeScript, tests et build Vite.
+- Inspection visuelle manuelle dans un navigateur réel : à effectuer.
+- Vérification finale des comportements sur ordinateur et petit écran : à effectuer.
 
 ## Prochaines étapes
 
-1. Tests visuels en navigateur et corrections de caméra / interaction.
-2. Commandes clients, vente interactive et objectifs contextuels des mondes.
-3. Version publique hébergée et tests joueurs.
+1. Vérifier visuellement les états du flacon, les achats, les onglets et la sauvegarde dans un navigateur.
+2. Ajouter davantage de formules et des bonus spécifiques à chaque collection.
+3. Équilibrer la progression avec des tests de session plus longs.
+4. Préparer un déploiement public et des sauvegardes cloud uniquement si le besoin se confirme.
