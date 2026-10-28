@@ -60,7 +60,7 @@ if (!app) throw new Error('Missing app root');
 app.innerHTML = `
   <main class="shell">
     <header class="topbar">
-      <div class="brand"><div class="brand-symbol"><span></span><i></i></div><div class="brand-copy"><div class="eyebrow">MAISON DES ESSENCES · TYCOON</div><h1>PARFUM<span> EMPIRE</span></h1><p class="subtitle">Compose. Produis. Deviens une légende du parfum.</p></div></div>
+      <div class="brand"><div class="brand-symbol"><img src="/assets/perfume-emblem.svg" alt="" /></div><div class="brand-copy"><div class="eyebrow">MAISON DES ESSENCES · TYCOON</div><h1>PARFUM<span> EMPIRE</span></h1><p class="subtitle">Compose. Produis. Deviens une légende du parfum.</p></div></div>
       <button id="open-menu-button" class="pause-menu-button" type="button" aria-label="Ouvrir le menu">MENU</button>
       <div class="header-stats">
         <div class="currency-display"><span>VENTES</span><strong id="parfum-total">0</strong><small>PARFUMS</small></div>
@@ -112,7 +112,7 @@ app.innerHTML = `
           <small>Le prix et la récompense augmentent à chaque livraison.</small>
         </section>
         <button id="rare-flacon" class="rare-flacon-button" type="button" disabled hidden>
-          <span class="rare-flacon-icon">✦</span>
+          <span class="rare-flacon-icon"><img src="/assets/bottle-rare.svg" alt="" /></span>
           <span class="rare-flacon-copy"><strong>FLACON MYTHIQUE</strong><small id="rare-flacon-status">Premier parfum rare dans 25 s</small></span>
           <span class="rare-flacon-mark">×2</span>
         </button>
@@ -193,7 +193,7 @@ app.innerHTML = `
     <div id="tutorial-intro" class="tutorial-intro" role="dialog" aria-modal="true" aria-labelledby="tutorial-intro-title" hidden>
       <section class="tutorial-intro-card">
         <div class="eyebrow">CARNET DU PARFUMEUR · 01</div>
-        <div class="tutorial-illustration" aria-hidden="true"><span></span><i></i><b></b></div>
+        <div class="tutorial-illustration" aria-hidden="true"><img src="/assets/perfume-emblem.svg" alt="" /></div>
         <h2 id="tutorial-intro-title">Un atelier à construire</h2>
         <p>Tu arrives dans un jardin encore sauvage. Tu as 1 000 parfums pour acheter ton premier terrain : ensuite, tu pourras créer des parfums et bâtir ta manufacture.</p>
         <div class="tutorial-instructions">
@@ -221,7 +221,7 @@ app.innerHTML = `
     </div>
     <div id="main-menu" class="main-menu" role="dialog" aria-modal="true" aria-labelledby="menu-title">
       <div class="menu-card">
-        <div class="menu-emblem" aria-hidden="true"><span>PE</span><i></i><b></b></div>
+        <div class="menu-emblem" aria-hidden="true"><img src="/assets/perfume-emblem.svg" alt="" /></div>
         <div class="eyebrow">MAISON DES ESSENCES · TYCOON 2D</div>
         <h1 id="menu-title">PARFUM <span>EMPIRE</span></h1>
         <p class="menu-subtitle">Pars d’un atelier vide. Construis ta maison de parfum, équipe tes lignes et développe ton empire.</p>
@@ -1148,6 +1148,16 @@ class TycoonScene extends Phaser.Scene {
     super('TycoonScene');
   }
 
+  preload(): void {
+    this.load.svg('perfume-emblem', '/assets/perfume-emblem.svg', { width: 120, height: 140 });
+    this.load.svg('machine-formulation', '/assets/machine-formulation.svg', { width: 128, height: 128 });
+    this.load.svg('machine-still', '/assets/machine-still.svg', { width: 128, height: 128 });
+    this.load.svg('machine-bottling', '/assets/machine-bottling.svg', { width: 128, height: 128 });
+    this.load.svg('machine-lab', '/assets/machine-lab.svg', { width: 128, height: 128 });
+    this.load.svg('machine-extractor', '/assets/machine-extractor.svg', { width: 128, height: 128 });
+    this.load.svg('bottle-rare', '/assets/bottle-rare.svg', { width: 90, height: 110 });
+  }
+
   create(): void {
     atelierScene = this;
     this.isBuildingRamp = false;
@@ -1548,73 +1558,36 @@ class TycoonScene extends Phaser.Scene {
       wood.lineBetween(x - 49, y + 13, x + 49, y + 13);
       keep(wood);
 
-      const blueprint = owned === 0;
-      const stationParts: Phaser.GameObjects.GameObject[] = [];
-      const fill = blueprint ? 0xc8bfa8 : world.belt;
-      const detail = blueprint ? 0x9d9278 : 0x776548;
-      const addEllipse = (px: number, py: number, w: number, h: number, color: number, stroke = ink) => {
-        const object = this.add.ellipse(px, py, w, h, color).setStrokeStyle(2, stroke);
-        stationParts.push(object);
-        return object;
+      const artworkByMachine: Record<MachineId, string> = {
+        'formulation-table': 'machine-formulation',
+        'copper-still': 'machine-still',
+        'bottling-line': 'machine-bottling',
+        'perfumer-studio': 'machine-lab',
+        'astral-extractor': 'machine-extractor',
       };
-      const addRect = (px: number, py: number, w: number, h: number, color: number, stroke = ink) => {
-        const object = this.add.rectangle(px, py, w, h, color).setStrokeStyle(1.5, stroke);
-        stationParts.push(object);
-        return object;
-      };
-
-      if (machine.id === 'formulation-table') {
-        addEllipse(x, y - 12, 47, 28, fill);
-        addEllipse(x, y - 13, 37, 18, owned ? 0x9ba083 : 0xd8cbb0, ink);
-        addEllipse(x + 2, y - 14, 20, 8, owned ? 0x777d5d : 0xc8b99a, ink);
-        addRect(x, y - 32, 4, 26, detail);
-        addEllipse(x, y - 43, 10, 5, 0xb49b6a);
-        addEllipse(x - 27, y - 6, 9, 15, 0x9b7256);
-        addRect(x - 27, y - 18, 4, 5, 0xc4a674);
-        addEllipse(x + 27, y - 7, 9, 15, 0x80927d);
-        addRect(x + 27, y - 19, 4, 5, 0xc4a674);
-      } else if (machine.id === 'copper-still') {
-        addEllipse(x, y - 10, 40, 47, blueprint ? 0xc7b69a : 0xb28058);
-        addEllipse(x, y - 11, 27, 30, blueprint ? 0xd8cbb0 : 0x8e6345);
-        addRect(x, y - 40, 12, 13, 0xc0a574);
-        addRect(x, y - 48, 18, 5, 0x6d5039);
-        addRect(x, y + 6, 22, 11, 0xddd0ad);
-        addRect(x + 27, y - 2, 9, 22, 0x899681);
-      } else if (machine.id === 'bottling-line') {
-        for (let index = 0; index < 3; index += 1) {
-          const bx = x - 25 + index * 25;
-          addEllipse(bx, y - 10, 14, 24, index === 1 && owned ? 0x9b7154 : fill);
-          addRect(bx, y - 26, 6, 7, 0xc1a371);
-          addRect(bx, y - 32, 9, 4, 0x6b4f37);
-          addRect(bx, y - 8, 7, 5, 0xe0d2af);
-        }
-        addRect(x, y - 40, 64, 5, detail);
-      } else if (machine.id === 'perfumer-studio') {
-        addRect(x, y - 4, 60, 30, fill);
-        addEllipse(x - 17, y - 20, 19, 28, 0x839482);
-        addRect(x - 17, y - 39, 7, 10, 0xc4ab7c);
-        addEllipse(x + 15, y - 19, 19, 30, 0xb77e58);
-        addRect(x + 15, y - 39, 7, 10, 0xc4ab7c);
-        addRect(x, y - 42, 7, 21, detail);
-        addEllipse(x, y - 46, 15, 6, 0xc4ab7c);
-      } else {
-        addEllipse(x, y - 10, 39, 43, 0x6e7e76);
-        addEllipse(x, y - 17, 26, 32, owned ? 0x78958a : 0xc9c0ab);
-        addRect(x, y - 42, 12, 10, 0xb59a69);
-        addEllipse(x, y - 47, 16, 7, 0xc9b98f);
-        addRect(x - 26, y - 2, 9, 19, 0x9b7458);
-        addRect(x + 26, y - 2, 9, 19, 0x9b7458);
-      }
+      const artwork = this.add.image(x, y - 22, artworkByMachine[machine.id])
+        .setDisplaySize(100, 100)
+        .setDepth(5);
+      stationParts.push(artwork);
+      // Une très légère oscillation donne une vie discrète aux équipements actifs.
+      this.tweens.add({
+        targets: artwork,
+        y: y - 24,
+        duration: 1450 + (Math.round(x) % 4) * 110,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
       stationParts.forEach((object) => keep(object));
 
       const title = this.add.text(x, y + 39, machine.name, {
         fontFamily: 'Georgia, serif', fontSize: '11px', fontStyle: 'bold',
         color: blueprint ? '#6d634e' : '#35392d', align: 'center', wordWrap: { width: 148 },
       }).setOrigin(0.5).setDepth(6);
-      const status = this.add.text(x, y - 67, blueprint ? 'PLAN · ' + format(machineCost(state, machine.id)) : '×' + owned + ' EN SERVICE', {
+      const status = this.add.text(x, y - 67, '×' + owned + ' EN SERVICE', {
         fontFamily: 'Georgia, serif', fontSize: '9px', fontStyle: 'bold',
-        color: blueprint ? '#5f5948' : '#eee3c9',
-        backgroundColor: blueprint ? '#e4d8bd' : '#4a5d45',
+        color: '#eee3c9',
+        backgroundColor: '#354936',
         padding: { x: 5, y: 3 },
       }).setOrigin(0.5).setDepth(6);
       this.machineObjects.push(title, status);
