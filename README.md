@@ -83,8 +83,8 @@ L'ascension est irréversible pour la progression normale. Le jeu demande une co
 **Prérequis :** Node.js 22+ et npm 10+.
 
 ```bash
-git clone https://github.com/RufusTheDwarf/cookie-dominion.git
-cd cookie-dominion
+git clone https://github.com/RufusTheDwarf/parfum-empire.git
+cd parfum-empire
 npm install
 npm run dev
 ```
