@@ -34,7 +34,8 @@ Parfum Empire se déroule dans une maison de parfumerie que le joueur développe
 - Animation de marche avec orientation, mouvements du corps et animation d'interaction.
 - Machines de production installées dessinées à des emplacements définis, avec animation et compteur d'unités.
 - Machines et parcelles dessinées dans le monde, effets de particules lors des interactions et végétation animée.
-- Atelier organisé en trois pièces reliées par des passages, avec trois étages persistants, un escalier interactif, un catalogue filtré et des palettes visuelles distinctes.
+- Atelier organisé en trois pièces et trois étages persistants, avec escalier montant, escalier descendant, catalogue filtré et palettes visuelles distinctes.
+- L’étage de manufacture possède ses lignes de conditionnement; celui des essences rares possède des chambres d’extraction dessinées dans le sol.
 - Navigation clavier et commandes tactiles, avec activation native des boutons au clavier.
 - Effets sonores originaux générés localement, désactivables dans les paramètres, sans fichier audio externe.
 - Sept parcelles botaniques à récolte déterministe.

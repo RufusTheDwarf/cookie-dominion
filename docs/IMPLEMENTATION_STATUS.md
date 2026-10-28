@@ -8,6 +8,8 @@
 | Caméra | Implémenté | Suit le joueur et reste dans les limites de la carte |
 | Identité visuelle des mondes | Implémenté | Fond, sols, chemins, séparations et mobilier adaptés à la collection active |
 | Étages accessibles | Implémenté | Escalier, coûts et prérequis, sélection, persistance et catalogue limité à l'étage actif |
+| Architecture des étages | Implémenté | Lignes de conditionnement au 1er étage, chambres d’extraction au 2e, ouvertures encadrées |
+| Escaliers bidirectionnels | Implémenté | Escalier montant et descendant visibles selon l’étage, règles de navigation testées |
 | Animation du personnage | Implémenté | Orientation, marche, mouvement du corps et geste d'interaction |
 | Animation du décor | Implémenté | Plantes animées et particules temporaires lors des interactions |
 | Machines visibles | Implémenté | Laboratoire, comptoir et producteurs achetés dessinés comme des objets physiques |

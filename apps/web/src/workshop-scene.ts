@@ -545,9 +545,9 @@ export function createWorkshopScene(
       c.fillStyle = colorHex(palette.accent);
       c.font = 'bold 9px system-ui';
       c.textAlign = 'center';
-      c.fillText('LIGNE DE CONDITIONNEMENT', 325, 335);
-      c.fillText('ASSEMBLAGE', 823, 335);
-      c.fillText('EXPÉDITION', 1210, 335);
+      c.fillText('LIGNE DE CONDITIONNEMENT', 325, 306);
+      c.fillText('ASSEMBLAGE', 823, 306);
+      c.fillText('EXPÉDITION', 1210, 306);
     } else if (currentFloor === 2) {
       // Inlaid rings make the rare-essence floor visually distinct without blocking movement.
       const chambers = [
