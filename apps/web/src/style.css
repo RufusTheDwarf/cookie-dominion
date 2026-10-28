@@ -377,7 +377,7 @@ footer{display:flex;justify-content:space-between;gap:12px;margin-top:14px;paddi
 .progression-stage-0 .tutorial-banner{margin:8px 0 12px;border:1px solid #9b7f53;border-left:4px solid var(--rust);background:#f2e6cc}
 .progression-stage-1 .header-stats .hud-stat,
 .progression-stage-1 .header-stats .world-save{display:none!important}
-.progression-stage-1 .stats-panel>:not(.owner-card):not(.manual-production){display:none!important}
+.progression-stage-1 .stats-panel>:not(.owner-card):not(.manual-production):not(.herb-workshop-panel){display:none!important}
 .progression-stage-1 .building-panel #upgrade-section,
 .progression-stage-1 .building-panel #upgrade-divider,
 .progression-stage-1 .building-panel #factory-tip-divider,
@@ -460,4 +460,32 @@ footer{display:flex;justify-content:space-between;gap:12px;margin-top:14px;paddi
   .coachmark-card{padding:14px 15px;max-height:42vh}
   .coachmark-card h2{font-size:17px}
   .coachmark-card p{font-size:11px}
+}
+
+
+/* Ingredient inventory and recipe cards for the manual perfume loop. */
+.herb-workshop-panel{margin:12px 0;padding:11px;background:#e8ddc4;border:1px solid var(--ink);color:var(--ink)}
+.herb-workshop-heading{display:flex;flex-direction:column;gap:4px;margin-bottom:9px}
+.herb-workshop-heading>.eyebrow{color:var(--rust-dark);font-size:8px}
+.herb-workshop-heading>strong{font-family:Georgia,"Times New Roman",serif;font-size:12px}
+.herb-inventory-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px;margin-bottom:10px}
+.herb-inventory-item{display:grid;grid-template-columns:23px 1fr;align-items:center;gap:3px;padding:6px 4px;border:1px solid #b7a785;background:#f4ecd9;font-size:9px}
+.herb-inventory-item strong{grid-column:2;font-family:Georgia,"Times New Roman",serif;font-size:12px}
+.herb-chip{grid-row:1/3;display:grid;place-items:center;width:22px;height:22px;border:1px solid #554838;border-radius:50%;font-size:13px;color:#302f27}
+.lavender-chip{background:#cbb8e2}.mint-chip{background:#b8d0a6}.rose-chip{background:#e9b6bc}
+.recipe-list{display:grid;gap:7px}
+.recipe-card{padding:8px;border:1px solid #b9aa88;background:#f2e8d2}
+.recipe-card-title{display:flex;align-items:baseline;justify-content:space-between;gap:5px}
+.recipe-card-title>strong{font-family:Georgia,"Times New Roman",serif;font-size:11px}
+.recipe-stock{white-space:nowrap;font-size:8px;color:var(--ink-soft)}
+.recipe-stock b{font-size:10px;color:var(--ink)}
+.recipe-card>small{display:block;margin:5px 0 7px;font-size:9px;line-height:1.4;color:var(--ink-soft)}
+.recipe-actions{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.recipe-actions button{min-width:0;padding:7px 4px;border:1px solid var(--ink);background:#d9d0b6;color:var(--ink);font-family:Georgia,"Times New Roman",serif;font-size:8px;font-weight:700;letter-spacing:.2px}
+.recipe-actions button[data-sell-recipe]{background:var(--moss);color:#f5ecd7}
+.recipe-actions button:disabled{opacity:.4;cursor:not-allowed;filter:grayscale(.6)}
+.herb-workshop-note{display:block;margin-top:9px;font-size:9px;line-height:1.45;color:var(--ink-soft)}
+@media(max-width:820px){
+  .progression-stage-1 .stats-panel>.herb-workshop-panel{display:block!important}
+  .herb-workshop-panel{margin-top:9px}
 }
