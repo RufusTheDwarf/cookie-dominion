@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.3.0 — 2026-10-28
+
+- Replaced the walkable Phaser map as the main gameplay loop with an incremental clicker layout: central perfume bottle, producer catalogue and tabbed management desk.
+- Added ten production tiers, including the botanical greenhouse, enfleurage press, luxury atelier, crystal distiller and orbital manufactory.
+- Expanded the research tree to five upgrades: production, manual formulation, equipment discounts, rare-flacon duration and VIP order margin.
+- Added twelve progression honours, an integrated world-collection selector and one-click VIP order delivery.
+- Added original SVG illustrations for the central bottle, rare flacon and all ten production machines.
+- Added animated manual-formulation rewards and rare-flacon boosts that correctly multiply passive production.
+- Removed the unused Phaser runtime dependency from the current HTML/CSS clicker build.
+- Updated unit tests, project documentation and architecture notes for the new core loop.
+
 ## 0.2.1 — 2026-10-28
 
 - Added original vector artwork for the house emblem, rare flacon and five production stations.
