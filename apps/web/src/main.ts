@@ -1558,6 +1558,7 @@ class TycoonScene extends Phaser.Scene {
       wood.lineBetween(x - 49, y + 13, x + 49, y + 13);
       keep(wood);
 
+      const stationParts: Phaser.GameObjects.GameObject[] = [];
       const artworkByMachine: Record<MachineId, string> = {
         'formulation-table': 'machine-formulation',
         'copper-still': 'machine-still',
@@ -1582,7 +1583,7 @@ class TycoonScene extends Phaser.Scene {
 
       const title = this.add.text(x, y + 39, machine.name, {
         fontFamily: 'Georgia, serif', fontSize: '11px', fontStyle: 'bold',
-        color: blueprint ? '#6d634e' : '#35392d', align: 'center', wordWrap: { width: 148 },
+        color: '#35392d', align: 'center', wordWrap: { width: 148 },
       }).setOrigin(0.5).setDepth(6);
       const status = this.add.text(x, y - 67, '×' + owned + ' EN SERVICE', {
         fontFamily: 'Georgia, serif', fontSize: '9px', fontStyle: 'bold',
