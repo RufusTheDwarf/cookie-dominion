@@ -155,7 +155,7 @@ export const UPGRADES: Record<UpgradeId, { name: string; description: string; ba
     effect: '+20 % parfums / niveau',
   },
   clickPower: {
-    name: 'Gestuelle du maître',
+    name: 'Instinct du botaniste',
     description: 'Chaque niveau augmente de 8 % la chance de trouver une matière botanique supplémentaire.',
     baseCost: 45,
     growth: 1.8,
