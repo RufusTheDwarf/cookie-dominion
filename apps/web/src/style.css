@@ -557,6 +557,7 @@ body{
 .panel h3{font-family:inherit;font-weight:700}
 .eyebrow{font-family:inherit;letter-spacing:1.35px;font-size:9px}
 .owner-avatar{border-radius:0;background:#d8cfba}
+.owner-avatar .avatar-face{border-radius:2px;box-shadow:none}
 .owner-avatar .avatar-hair{border-radius:0;transform:none}
 .owner-avatar .avatar-scarf{border-radius:0;background:#526b51;box-shadow:none}
 .manual-production,.customer-order-card,.prestige-card,.mission-card,.machine-card,.upgrade-card,
@@ -607,7 +608,7 @@ body{
   background:#a5aa8d;
   border-radius:0;
 }
-.game-canvas canvas{image-rendering:pixelated}
+.game-canvas canvas{image-rendering:auto}
 .map-toolbar{border:1px solid var(--soft-line);background:#e9e3d4}
 .interact-button,.nav-button,.world-button{
   border-radius:0!important;
