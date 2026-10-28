@@ -34,6 +34,7 @@ export interface UpgradeLevels {
   clickPower: number;
   discount: number;
   rareBonus: number;
+  /** Historical save key, now used for the luxury finishing bonus. */
   orders: number;
 }
 
@@ -78,11 +79,11 @@ export interface GameState {
   perfumeRevenue: number;
   lifetimePerfumeRevenue: number;
   runPerfumeRevenue: number;
-  /** Number of click actions made while gathering raw materials. */
+  /** Number of player interactions with garden plots, retained under its historical save key. */
   gatherClicks: number;
   /** Total raw ingredients currently in stock; field name retained for old saves. */
   harvestProgress: number;
-  /** Current raw-material stock; ten units are consumed to make one perfume. */
+  /** Current raw-material stock. Each recipe consumes its own listed ingredients. */
   ingredients: MaterialStock;
   /** Lifetime discoveries, used by the botanical collection display. */
   materialDiscoveries: MaterialStock;
@@ -99,7 +100,9 @@ export interface GameState {
   unlockedWorlds: WorldId[];
   upgrades: UpgradeLevels;
   claimedMissions: MissionId[];
+  /** Legacy save field retained only for importing older game files. */
   rareFlaconsClaimed: number;
+  /** Legacy save field retained only for importing older game files. */
   ordersCompleted: number;
   totalRebirths: number;
   essences: number;
