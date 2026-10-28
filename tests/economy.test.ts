@@ -10,6 +10,7 @@ import {
   canFulfillCustomerOrder,
   fulfillCustomerOrder,
   getActiveCustomerOrder,
+  getHouseReputation,
   canUnlockFloor,
   canRebirth,
   canTotalRebirth,
@@ -223,6 +224,38 @@ describe('tycoon economy', () => {
     expect(restored?.customerOrdersCompleted).toBe(5);
     expect(getActiveCustomerOrder(restored!).orderNumber).toBe(6);
     expect(getActiveCustomerOrder(restored!).quantity).toBe(2);
+  });
+
+  it('increases house reputation and customer premiums at deterministic rank thresholds', () => {
+    const initial = createInitialState(100);
+    expect(getHouseReputation(initial)).toEqual({
+      points: 0,
+      rank: 1,
+      maxRank: 10,
+      pointsIntoRank: 0,
+      progressPercent: 0,
+      premiumPercent: 50,
+    });
+
+    const threeOrders = getHouseReputation({ customerOrdersCompleted: 3 });
+    expect(threeOrders.points).toBe(75);
+    expect(threeOrders.rank).toBe(1);
+    expect(threeOrders.progressPercent).toBe(75);
+
+    const fourOrders = getHouseReputation({ customerOrdersCompleted: 4 });
+    expect(fourOrders.points).toBe(100);
+    expect(fourOrders.rank).toBe(2);
+    expect(fourOrders.premiumPercent).toBe(55);
+
+    const nextOrder = getActiveCustomerOrder({ ...initial, customerOrdersCompleted: 4 });
+    expect(nextOrder.premiumPercent).toBe(55);
+    expect(nextOrder.normalValue).toBe(10);
+    expect(nextOrder.reward).toBe(16);
+
+    const maxed = getHouseReputation({ customerOrdersCompleted: 36 });
+    expect(maxed.rank).toBe(10);
+    expect(maxed.premiumPercent).toBe(95);
+    expect(maxed.progressPercent).toBe(100);
   });
 
   it('rejects invalid earning amounts', () => {

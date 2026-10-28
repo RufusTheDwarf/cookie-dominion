@@ -23,6 +23,15 @@ export interface PerfumeRecipe {
   salePrice: number;
 }
 
+export interface HouseReputation {
+  points: number;
+  rank: number;
+  maxRank: number;
+  pointsIntoRank: number;
+  progressPercent: number;
+  premiumPercent: number;
+}
+
 export interface CustomerOrder {
   orderNumber: number;
   customer: string;
@@ -34,6 +43,7 @@ export interface CustomerOrder {
   normalValue: number;
   reward: number;
   bonus: number;
+  premiumPercent: number;
 }
 
 interface CustomerOrderTemplate {
@@ -580,6 +590,31 @@ export function sellPerfume(state: GameState, recipeId: RecipeId): GameState {
   return addPerfumeRevenue(withBottleSold, price);
 }
 
+const REPUTATION_POINTS_PER_ORDER = 25;
+const REPUTATION_POINTS_PER_RANK = 100;
+const MAX_REPUTATION_RANK = 10;
+
+/** Reputation comes from fulfilled orders and persists through customerOrdersCompleted. */
+export function getHouseReputation(
+  state: Pick<GameState, 'customerOrdersCompleted'>,
+): HouseReputation {
+  const completed = Number.isSafeInteger(state.customerOrdersCompleted)
+    ? Math.max(0, state.customerOrdersCompleted)
+    : 0;
+  const points = completed * REPUTATION_POINTS_PER_ORDER;
+  const rank = Math.min(MAX_REPUTATION_RANK, Math.floor(points / REPUTATION_POINTS_PER_RANK) + 1);
+  const pointsIntoRank = rank >= MAX_REPUTATION_RANK ? REPUTATION_POINTS_PER_RANK : points % REPUTATION_POINTS_PER_RANK;
+  const premiumPercent = 50 + Math.min(45, (rank - 1) * 5);
+  return {
+    points,
+    rank,
+    maxRank: MAX_REPUTATION_RANK,
+    pointsIntoRank,
+    progressPercent: rank >= MAX_REPUTATION_RANK ? 100 : pointsIntoRank,
+    premiumPercent,
+  };
+}
+
 /** The customer queue is a fixed rotation, so an order never depends on a random roll. */
 export function getActiveCustomerOrder(state: GameState): CustomerOrder {
   const completed = Math.max(0, Math.floor(state.customerOrdersCompleted));
@@ -588,7 +623,8 @@ export function getActiveCustomerOrder(state: GameState): CustomerOrder {
   const quantity = 1 + Math.min(4, Math.floor(completed / CUSTOMER_ORDER_TEMPLATES.length));
   const unitPrice = perfumeSalePrice(state, template.recipeId);
   const normalValue = unitPrice * quantity;
-  const reward = Math.ceil(normalValue * 1.5);
+  const reputation = getHouseReputation(state);
+  const reward = Math.ceil(normalValue * (1 + reputation.premiumPercent / 100));
   return {
     ...template,
     orderNumber,
@@ -597,6 +633,7 @@ export function getActiveCustomerOrder(state: GameState): CustomerOrder {
     normalValue,
     reward,
     bonus: reward - normalValue,
+    premiumPercent: reputation.premiumPercent,
   };
 }
 
