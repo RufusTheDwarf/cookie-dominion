@@ -90,6 +90,7 @@ let workshopScene: WorkshopScene | null = null;
 let nearbyStation: WorkshopStation | null = null;
 let state: GameState;
 let saveRecoveryMessage: string | null = null;
+let backupNeedsRepair = false;
 let soundEnabled = readSoundPreference();
 let soundContext: AudioContext | null = null;
 
@@ -167,13 +168,16 @@ try {
     state = normalizeGameState(parseSavedState(primary));
   } else if (backupIsValid) {
     state = normalizeGameState(parseSavedState(backup));
+    backupNeedsRepair = true;
     saveRecoveryMessage = 'La sauvegarde principale était illisible. La copie de secours a été restaurée.';
   } else if (legacyIsValid) {
     state = normalizeGameState(parseSavedState(legacy));
+    backupNeedsRepair = true;
     saveRecoveryMessage = 'Une ancienne sauvegarde a été récupérée. Exporte une copie après vérification.';
   } else {
     state = normalizeGameState(createInitialState());
     if (primary !== null || backup !== null || legacy !== null) {
+      backupNeedsRepair = true;
       saveRecoveryMessage = 'Les sauvegardes existantes sont illisibles. Une nouvelle partie a été créée; vérifie tes exports avant de continuer.';
     }
   }
@@ -371,17 +375,18 @@ function save(): void {
   try {
     const previous = localStorage.getItem(SAVE_KEY);
     const previousIsValid = previous !== null && parseImportedSave(previous) !== null;
-    if (previousIsValid || saveRecoveryMessage !== null) {
+    if (previousIsValid || backupNeedsRepair) {
       try {
         // Normally keep the previous valid save as a rollback point. After recovery,
         // refresh the backup from the recovered state to avoid replaying old offline time.
-        const backupPayload = previousIsValid ? previous : JSON.stringify(state);
+        const backupPayload = previousIsValid && !backupNeedsRepair ? previous : JSON.stringify(state);
         localStorage.setItem(BACKUP_SAVE_KEY, backupPayload);
       } catch {
         // Keep attempting the primary save even when there is no room for a backup.
       }
     }
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    backupNeedsRepair = false;
     byId('save-indicator').textContent = 'SAUVEGARDÉ · ' + new Date(now).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' });
   } catch {
     byId('save-indicator').textContent = 'SAUVEGARDE INDISPONIBLE';
