@@ -17,24 +17,24 @@
 
 ## Le concept
 
-Tu commences avec un seul flacon et une petite réserve. Chaque création manuelle rapporte des parfums ; tes revenus servent à acheter des équipements, développer des recherches et automatiser la production. Ensuite, tu fais grandir ta maison, livres des commandes VIP et débloques des collections plus rares.
+Tu commences sans parfum fini, avec des matières premières à découvrir. Chaque clic récolte un ingrédient botanique aléatoire : lavande, menthe, rose, bergamote ou une essence plus rare. **Dix matières permettent de composer un parfum.** Les fragrances gagnées servent ensuite à acheter des équipements, développer des recherches et automatiser la production.
 
 La structure est désormais celle d'un **clicker tycoon** : le flacon est le point d'entrée principal du jeu, la manufacture rassemble les producteurs et le bureau regroupe les systèmes de progression. La navigation sur une carte 2D et les étages à parcourir ne font plus partie de la boucle centrale.
 
 ## Structure de l'interface
 
-- **Le parfumeur :** grand flacon cliquable, revenus par action, flacon mythique temporaire et commandes VIP.
+- **Le parfumeur :** zone de récolte aléatoire, animation de la matière découverte, progression de 0 à 10, carnet botanique, flacon mythique et commandes VIP.
 - **La manufacture :** catalogue vertical de 10 types d'équipements, quantité possédée, coût du prochain exemplaire et rendement par seconde.
 - **Le bureau :** six onglets dédiés aux recherches, contrats, honneurs, collections, prestige et sauvegardes.
-- **Barre économique :** trésorerie, production par seconde, valeur de création manuelle et progression du run.
+- **Barre économique :** trésorerie, production par seconde, progression des matières pour la prochaine fragrance et cumul du run.
 
-L'interface utilise des illustrations SVG originales pour la maison, les flacons et les dix types d'équipement. Le style visuel associe papier ivoire, vert profond, cuivre et laiton, avec une mise en page adaptée aux écrans étroits.
+L'interface utilise des illustrations SVG originales pour la maison, les flacons, les ingrédients et les dix types d'équipement. Le style visuel associe papier ivoire, vert profond, cuivre et laiton. Sur grand écran, la zone de jeu tient dans la hauteur visible, sans défilement vertical ; les écrans plus étroits utilisent une mise en page responsive.
 
 ## Boucle de jeu
 
-1. **Formule des parfums** en cliquant sur le flacon central.
-2. **Investis dans les producteurs** : le rendement passif continue à générer des parfums.
-3. **Débloque de nouveaux équipements** à mesure que tu accumules assez de trésorerie.
+1. **Récolte des matières** : chaque clic révèle un objet aléatoire. Les neuf premiers clics ne donnent pas directement de parfum.
+2. **Assemble une fragrance** après dix matières récoltées. Les matières sont consommées pour produire un parfum.
+3. **Investis dans les producteurs** : commence par la table de formulation, puis achète des équipements plus coûteux qui génèrent des parfums automatiquement.
 4. **Achète des recherches** pour augmenter la production, renforcer les clics, réduire les coûts, prolonger les bonus rares et améliorer les paiements VIP.
 5. **Livre des commandes VIP** depuis le panneau dédié ; les coûts et les paiements progressent avec chaque livraison.
 6. **Réclame les contrats** et complète le registre des honneurs.
@@ -45,7 +45,7 @@ L'interface utilise des illustrations SVG originales pour la maison, les flacons
 
 - **Dix producteurs :** table de formulation, alambic de cuivre, ligne d'embouteillage, atelier de parfumeur, extracteur astral, serre botanique, presse à enfleurage, atelier haute parfumerie, distillateur de cristal et manufacture orbitale.
 - **Production incrémentale :** coûts croissants à chaque achat, revenu passif calculé par seconde et multiplication du rendement selon la collection active.
-- **Cinq recherches :** production globale, force de création manuelle, réduction du prix des équipements, durée du bonus mythique et paiement des commandes VIP. Chaque recherche possède dix niveaux.
+- **Cinq recherches :** production globale, chance de récolter une matière bonus, réduction du prix des équipements, durée du bonus mythique et paiement des commandes VIP. Chaque recherche possède dix niveaux.
 - **Flacon mythique :** apparaît temporairement, rapporte une récompense immédiate et double la production pendant une durée améliorée par la recherche correspondante.
 - **Commandes VIP :** dépense de préparation, paiement croissant, marge améliorée par la recherche commerciale et progression sauvegardée.
 - **Contrats :** six objectifs réclamables, liés aux équipements, aux ventes cumulées, aux collections et aux commandes.
@@ -99,7 +99,7 @@ npm run build
 | `public/assets/*.svg` | Illustrations originales des flacons et équipements |
 | `tests/economy.test.ts` | Tests unitaires de l'économie, du prestige et de la persistance |
 
-Le rendu est désormais réalisé en HTML/CSS/TypeScript avec SVG ; Phaser n'est plus nécessaire pour la boucle de jeu actuelle.
+Le rendu est réalisé en HTML/CSS/TypeScript avec SVG ; Phaser n'est plus nécessaire pour la boucle de jeu actuelle. Les actions de jeu sont opérées au pointeur ou au tactile : Tab ne parcourt pas les boutons et Entrée/Espace ne déclenchent pas les actions répétitivement.
 
 ## État du projet
 
