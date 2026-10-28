@@ -1,7 +1,7 @@
 export type WorldId = 'glass-garden' | 'amber-house' | 'astral-palace';
 export type MachineId = 'formulation-table' | 'copper-still' | 'bottling-line' | 'perfumer-studio' | 'astral-extractor';
 export type UpgradeId = 'production' | 'clickPower' | 'discount';
-export type MissionId = 'first-machine' | 'industrialist' | 'lifetime-formulater' | 'world-explorer' | 'galactic-empire' | 'first-order';
+export type MissionId = 'first-machine' | 'industrialist' | 'lifetime-perfumer' | 'world-explorer' | 'galactic-empire' | 'first-order';
 
 export interface UpgradeLevels {
   production: number;
@@ -112,7 +112,7 @@ export const UPGRADES: Record<UpgradeId, { name: string; description: string; ba
 export const MISSION_DEFINITIONS: MissionDefinition[] = [
   { id: 'first-machine', name: 'Premier atelier', description: 'Installe ton premier équipement.', target: 1, reward: 75, kind: 'machines' },
   { id: 'industrialist', name: 'Maison en expansion', description: 'Possède 5 équipements.', target: 5, reward: 400, kind: 'machines' },
-  { id: 'lifetime-formulater', name: 'Mille flacons vendus', description: 'Vends 1 000 parfums au total.', target: 1000, reward: 500, kind: 'lifetime' },
+  { id: 'lifetime-perfumer', name: 'Mille flacons vendus', description: 'Vends 1 000 parfums au total.', target: 1000, reward: 500, kind: 'lifetime' },
   { id: 'world-explorer', name: 'Nez voyageur', description: 'Déverrouille un deuxième monde.', target: 2, reward: 1500, kind: 'worlds' },
   { id: 'galactic-empire', name: 'Grand nez de l’Empire', description: 'Déverrouille les trois mondes.', target: 3, reward: 8000, kind: 'worlds' },
   { id: 'first-order', name: 'Premier client VIP', description: 'Livre ta première commande au client VIP.', target: 1, reward: 250, kind: 'orders' },
