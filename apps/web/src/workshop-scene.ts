@@ -134,6 +134,85 @@ const MACHINE_POSITIONS: Record<number, Record<string, { x: number; y: number }>
   },
 };
 
+interface CollisionBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+const PLAYER_RADIUS = 10;
+
+function stationAvailableAtFloor(
+  stationId: WorkshopStation,
+  floor: number,
+  botanicalExpansions: number,
+): boolean {
+  if (floor > 0 && MATERIAL_STATION_IDS.has(stationId)) return false;
+  const requiredExpansions = BOTANICAL_EXPANSION_REQUIREMENT[stationId];
+  if (requiredExpansions !== undefined && botanicalExpansions < requiredExpansions) return false;
+  if (stationId === 'stairs' && floor >= 2) return false;
+  if (stationId === 'stairs-down' && floor <= 0) return false;
+  return true;
+}
+
+function stationCollisionBox(station: Station): CollisionBox {
+  if (MATERIAL_STATION_IDS.has(station.id)) {
+    return { x: station.x - 43, y: station.y - 29, width: 86, height: 58 };
+  }
+  if (station.id === 'laboratory') {
+    return { x: station.x - 52, y: station.y - 44, width: 104, height: 76 };
+  }
+  if (station.id === 'counter') {
+    return { x: station.x - 55, y: station.y - 32, width: 110, height: 66 };
+  }
+  if (station.id === 'stairs' || station.id === 'stairs-down') {
+    return { x: station.x - 38, y: station.y - 39, width: 76, height: 66 };
+  }
+  return { x: station.x - 48, y: station.y - 30, width: 96, height: 60 };
+}
+
+function circleOverlapsBox(x: number, y: number, radius: number, box: CollisionBox): boolean {
+  const closestX = Math.max(box.x, Math.min(x, box.x + box.width));
+  const closestY = Math.max(box.y, Math.min(y, box.y + box.height));
+  const dx = x - closestX;
+  const dy = y - closestY;
+  return dx * dx + dy * dy < radius * radius;
+}
+
+/** Checks the player's position against visible stations, machines, and map limits. */
+export function isWorkshopPositionBlocked(
+  x: number,
+  y: number,
+  floor: number,
+  machines: readonly WorkshopMachineVisual[] = [],
+  botanicalExpansions = 0,
+): boolean {
+  if (!Number.isFinite(x) || !Number.isFinite(y) ||
+      !Number.isInteger(floor) || floor < 0 || floor > 2 ||
+      x < 22 || x > WORLD_WIDTH - 22 || y < 76 || y > WORLD_HEIGHT - 24) {
+    return true;
+  }
+
+  const stationBlocked = STATIONS.some((station) =>
+    stationAvailableAtFloor(station.id, floor, botanicalExpansions) &&
+    circleOverlapsBox(x, y, PLAYER_RADIUS, stationCollisionBox(station)),
+  );
+  if (stationBlocked) return true;
+
+  return machines.some((machine) => {
+    if (machine.floor !== floor || machine.count <= 0) return false;
+    const position = MACHINE_POSITIONS[floor]?.[machine.id];
+    if (!position) return false;
+    return circleOverlapsBox(x, y, PLAYER_RADIUS, {
+      x: position.x - 55,
+      y: position.y - 32,
+      width: 110,
+      height: 66,
+    });
+  });
+}
+
 function blendColor(base: number, overlay: number, amount: number): number {
   const ratio = Math.max(0, Math.min(1, amount));
   const channel = (shift: number): number => {
@@ -810,17 +889,8 @@ export function createWorkshopScene(
     c.fillRect(0, 0, VIEW_WIDTH, VIEW_HEIGHT);
   }
 
-  function isBotanicalPlotUnlocked(stationId: WorkshopStation): boolean {
-    const requiredExpansions = BOTANICAL_EXPANSION_REQUIREMENT[stationId];
-    return requiredExpansions === undefined || unlockedBotanicalExpansions >= requiredExpansions;
-  }
-
   function isStationAvailable(stationId: WorkshopStation): boolean {
-    if (currentFloor > 0 && MATERIAL_STATION_IDS.has(stationId)) return false;
-    if (!isBotanicalPlotUnlocked(stationId)) return false;
-    if (stationId === 'stairs' && currentFloor >= 2) return false;
-    if (stationId === 'stairs-down' && currentFloor <= 0) return false;
-    return true;
+    return stationAvailableAtFloor(stationId, currentFloor, unlockedBotanicalExpansions);
   }
 
   function nearestStation(): Station | null {
@@ -837,19 +907,34 @@ export function createWorkshopScene(
     return result;
   }
 
-  function movePlayer(dx: number, dy: number): void {
+  function movePlayer(dx: number, dy: number): boolean {
+    const startX = player.x;
+    const startY = player.y;
     const nextX = Math.max(22, Math.min(WORLD_WIDTH - 22, player.x + dx));
-    const nextY = Math.max(76, Math.min(WORLD_HEIGHT - 24, player.y + dy));
     const crossesWall = WALLS.some((wall) =>
       ((player.x < wall && nextX >= wall) || (player.x > wall && nextX <= wall)) &&
-      (nextY < DOOR_TOP || nextY > DOOR_BOTTOM),
+      (player.y < DOOR_TOP + PLAYER_RADIUS || player.y > DOOR_BOTTOM - PLAYER_RADIUS),
     );
-    if (!crossesWall) player.x = nextX;
-    player.y = nextY;
+    if (!crossesWall &&
+        !isWorkshopPositionBlocked(nextX, player.y, currentFloor, placedMachines, unlockedBotanicalExpansions)) {
+      player.x = nextX;
+    }
+
+    const nextY = Math.max(76, Math.min(WORLD_HEIGHT - 24, player.y + dy));
+    const trappedInWall = WALLS.some((wall) =>
+      Math.abs(player.x - wall) < PLAYER_RADIUS &&
+      (nextY < DOOR_TOP + PLAYER_RADIUS || nextY > DOOR_BOTTOM - PLAYER_RADIUS),
+    );
+    if (!trappedInWall &&
+        !isWorkshopPositionBlocked(player.x, nextY, currentFloor, placedMachines, unlockedBotanicalExpansions)) {
+      player.y = nextY;
+    }
+
     if (dx < 0) facing = 'left';
     else if (dx > 0) facing = 'right';
     if (dy < 0 && Math.abs(dy) >= Math.abs(dx)) facing = 'up';
     else if (dy > 0 && Math.abs(dy) >= Math.abs(dx)) facing = 'down';
+    return player.x !== startX || player.y !== startY;
   }
 
   function update(now: number): void {
@@ -874,7 +959,8 @@ export function createWorkshopScene(
     walking = dx !== 0 || dy !== 0;
     if (walking) {
       const length = Math.hypot(dx, dy);
-      movePlayer(dx / length * PLAYER_SPEED * elapsed, dy / length * PLAYER_SPEED * elapsed);
+      const moved = movePlayer(dx / length * PLAYER_SPEED * elapsed, dy / length * PLAYER_SPEED * elapsed);
+      if (destination && !moved) destination = null;
     }
 
     for (let i = particles.length - 1; i >= 0; i--) {
@@ -922,7 +1008,7 @@ export function createWorkshopScene(
     if (station) {
       const offset = station.id === 'counter' || station.id === 'laboratory' ||
         station.id === 'stairs' || station.id === 'rose-plot-2' ? -54 : 54;
-      destination = { x: station.x + offset, y: station.y + 20 };
+      destination = { x: station.x + offset, y: station.y + (station.id === 'counter' ? 5 : 20) };
     } else {
       destination = { x, y };
     }
