@@ -7,6 +7,7 @@
 | Atelier 2D | Implémenté | Jardin, laboratoire et boutique dans un monde plus grand que l'écran |
 | Caméra | Implémenté | Suit le joueur et reste dans les limites de la carte |
 | Identité visuelle des mondes | Implémenté | Fond, sols, chemins, séparations et mobilier adaptés à la collection active |
+| Étages accessibles | Implémenté | Escalier, coûts et prérequis, sélection, persistance et catalogue limité à l'étage actif |
 | Animation du personnage | Implémenté | Orientation, marche, mouvement du corps et geste d'interaction |
 | Animation du décor | Implémenté | Plantes animées et particules temporaires lors des interactions |
 | Machines visibles | Implémenté | Laboratoire et comptoir dessinés comme des objets physiques |
@@ -32,7 +33,7 @@ Les champs historiques liés à d'anciennes mécaniques peuvent rester dans le f
 
 ## Vérifications
 
-- TypeScript, tests unitaires et build Vite : consulter les vérifications CI du commit le plus récent; chaque modification doit être validée à nouveau.
+- TypeScript, tests unitaires et build Vite : validés par la CI sur le commit ecd5d60551ac74af3e426a6d95eaea0891f152eb. Chaque nouveau commit doit repasser ces contrôles.
 - Inspection visuelle dans un navigateur réel : à effectuer sur ordinateur et téléphone.
 - Équilibrage sur une session longue, notamment la montée de quantité des commandes : à effectuer.
 

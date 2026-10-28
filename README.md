@@ -24,13 +24,16 @@ Parfum Empire se déroule dans une maison de parfumerie que le joueur développe
 3. Choisis une recette dans le carnet de formulations.
 4. Rejoins le laboratoire et interagis pour fabriquer le flacon. Les ingrédients nécessaires sont consommés.
 5. Au comptoir, vends tes flacons ou livre la commande du client en cours pour obtenir une prime de 50 %.
-6. Achète des machines et des recherches pour développer la manufacture, puis ouvre de nouvelles collections grâce au prestige.
+6. Achète les machines de l'étage actif. Après les prérequis et le paiement, utilise l'escalier pour ouvrir l'étage de manufacture puis celui des essences rares.
+7. Les étages ouverts restent accessibles avec le sélecteur et leurs machines continuent de produire pendant que tu travailles ailleurs.
+8. Achète des recherches pour développer la manufacture, puis ouvre de nouvelles collections grâce au prestige.
 
 ## Systèmes
 
 - Atelier 2D avec caméra de suivi, déplacement au clavier, commandes tactiles et déplacement par toucher.
 - Animation de marche avec orientation, mouvements du corps et animation d'interaction.
 - Machines et parcelles dessinées dans le monde, effets de particules lors des interactions et végétation animée.
+- Trois étages persistants, escalier interactif, catalogue limité à l'étage actif et palettes visuelles distinctes.
 - Trois pièces reliées par des passages : jardin botanique, laboratoire et boutique.
 - Sept parcelles botaniques à récolte déterministe.
 - Cinq recettes qui utilisent des combinaisons d'ingrédients précises.

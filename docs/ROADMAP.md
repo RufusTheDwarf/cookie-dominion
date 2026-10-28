@@ -18,7 +18,8 @@
 
 - [ ] Tester les déplacements, la proximité des postes et l'interface tactile sur un vrai navigateur.
 - [ ] Ajouter des animations de marche et d'interaction, ainsi que des effets sonores originaux.
-- [ ] Ajouter une vraie progression spatiale avec pièces verrouillées, portes et étages accessibles.
+- [x] Progression entre étages avec escalier, coûts, prérequis, sélecteur et catalogues séparés.
+- [ ] Développer davantage la géométrie de chaque étage, les portes intérieures et les points d'accès physiques.
 - [ ] Donner à chaque machine un emplacement physique dans l'atelier et une animation de production.
 - [ ] Développer la gestion de la maison : réputation, coûts d'exploitation et déblocage de nouvelles parcelles.
 - [ ] Équilibrer les prix et le rythme d'évolution sur une session longue.

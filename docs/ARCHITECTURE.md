@@ -30,6 +30,7 @@ Les commandes clients suivent une rotation déterministe de cinq recettes. La pr
 - Les plantes oscillent légèrement. Les interactions créent des particules temporaires.
 - Les deux murs intérieurs comportent des passages. Le déplacement ne peut pas traverser les murs en dehors de ces passages.
 - Les coordonnées des clics sont converties de l'écran vers le monde, en tenant compte de la caméra.
+- Un escalier dans la scène déclenche les règles d'ouverture des étages. L'état ouvert et l'étage actif sont persistés, tandis que le catalogue n'affiche que les équipements de l'étage actif.
 - Les collections utilisent leur palette persistée (fond, sol, couleur d'accent et bois) pour différencier visuellement l'atelier sans casser les collisions ou l'économie.
 
 ## Contrôles
