@@ -936,12 +936,31 @@ export function createWorkshopScene(
         accent: nextTheme.accent,
         belt: nextTheme.belt,
       };
-      currentFloor = Number.isInteger(floor) ? Math.max(0, Math.min(2, floor)) : 0;
+      const previousFloor = currentFloor;
+      const nextFloor = Number.isInteger(floor) ? Math.max(0, Math.min(2, floor)) : 0;
+      if (nextFloor !== previousFloor) {
+        // Arrive beside the opposite staircase so the next floor remains physically navigable.
+        player.x = nextFloor > previousFloor ? 720 : 925;
+        player.y = 520;
+        destination = null;
+        keys.clear();
+        actionStation = null;
+        actionUntil = 0;
+        particles.length = 0;
+        cameraX = Math.max(0, Math.min(WORLD_WIDTH - VIEW_WIDTH, player.x - VIEW_WIDTH / 2));
+        cameraY = Math.max(0, Math.min(WORLD_HEIGHT - VIEW_HEIGHT, player.y - VIEW_HEIGHT / 2));
+      }
+      currentFloor = nextFloor;
       unlockedBotanicalExpansions = Number.isInteger(botanicalExpansions)
         ? Math.max(0, Math.min(3, botanicalExpansions))
         : 0;
       placedMachines = nextMachines.map((machine) => ({ ...machine }));
       customerOrder = nextCustomerOrder ? { ...nextCustomerOrder } : null;
+      if (nextFloor !== previousFloor) {
+        nearby = nearestStation()?.id ?? null;
+        lastReported = nearby;
+        onNearbyChange(nearby);
+      }
       draw();
     },
     destroy(): void {
