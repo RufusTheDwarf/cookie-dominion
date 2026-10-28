@@ -1,6 +1,24 @@
 export type WorldId = 'glass-garden' | 'amber-house' | 'astral-palace';
 export type MachineId = 'formulation-table' | 'copper-still' | 'bottling-line' | 'perfumer-studio' | 'astral-extractor' | 'botanical-garden' | 'enfleurage-press' | 'luxury-atelier' | 'crystal-distiller' | 'orbital-manufactory';
 export type UpgradeId = 'production' | 'clickPower' | 'discount' | 'rareBonus' | 'orders';
+export type MaterialId = 'lavender' | 'mint' | 'rose' | 'bergamot' | 'sandalwood' | 'jasmine' | 'resin';
+
+export interface MaterialDefinition {
+  id: MaterialId;
+  name: string;
+  shortName: string;
+  rarity: 'Commune' | 'Inhabituelle' | 'Rare' | 'Très rare';
+  weight: number;
+  color: string;
+  asset: string;
+}
+
+export type MaterialStock = Record<MaterialId, number>;
+export interface HarvestResult {
+  state: GameState;
+  materials: MaterialId[];
+  perfumesCreated: number;
+}
 export type MissionId = 'first-machine' | 'industrialist' | 'lifetime-perfumer' | 'world-explorer' | 'galactic-empire' | 'first-order';
 
 export interface UpgradeLevels {
@@ -52,6 +70,15 @@ export interface GameState {
   perfumeRevenue: number;
   lifetimePerfumeRevenue: number;
   runPerfumeRevenue: number;
+  /** Number of click actions made while gathering raw materials. */
+  gatherClicks: number;
+  /** Ingredients waiting to be blended, always fewer than ten after a harvest. */
+  harvestProgress: number;
+  /** Current raw-material stock; ten units are consumed to make one perfume. */
+  ingredients: MaterialStock;
+  /** Lifetime discoveries, used by the botanical collection display. */
+  materialDiscoveries: MaterialStock;
+  lastHarvestedMaterial: MaterialId | null;
   machines: MachineSave;
   rebirths: number;
   currentWorld: WorldId;
@@ -73,7 +100,8 @@ export interface GameState {
 export const MAX_OFFLINE_SECONDS = 8 * 60 * 60;
 /** The opening plot is a one-time purchase; an empty new game receives this amount. */
 export const STARTING_LAND_COST = 1_000;
-export const PERFUME_CLICK_VALUE = 5;
+export const PERFUME_CLICK_VALUE = 1;
+export const INGREDIENTS_PER_PERFUME = 10;
 export const TOTAL_REBIRTH_BASE_LEVEL = 10;
 export const TOTAL_REBIRTH_LEVEL_STEP = 5;
 export const ESSENCE_PRODUCTION_BONUS = 0.75;
@@ -87,6 +115,38 @@ export const REBIRTH_MULTIPLIER = 1.6;
 export const MACHINE_COST_GROWTH = 1.35;
 export const MAX_UPGRADE_LEVEL = 10;
 
+export const MATERIALS: MaterialDefinition[] = [
+  { id: 'lavender', name: 'Lavande', shortName: 'LAVANDE', rarity: 'Commune', weight: 0.30, color: '#798e64', asset: '/assets/material-lavender.svg' },
+  { id: 'mint', name: 'Menthe', shortName: 'MENTHE', rarity: 'Commune', weight: 0.25, color: '#6f9c77', asset: '/assets/material-mint.svg' },
+  { id: 'rose', name: 'Pétales de rose', shortName: 'ROSE', rarity: 'Inhabituelle', weight: 0.18, color: '#b96e7b', asset: '/assets/material-rose.svg' },
+  { id: 'bergamot', name: 'Bergamote', shortName: 'BERGAMOTE', rarity: 'Inhabituelle', weight: 0.14, color: '#b5a849', asset: '/assets/material-bergamot.svg' },
+  { id: 'sandalwood', name: 'Bois de santal', shortName: 'SANTAL', rarity: 'Rare', weight: 0.075, color: '#a66b4c', asset: '/assets/material-sandalwood.svg' },
+  { id: 'jasmine', name: 'Jasmin', shortName: 'JASMIN', rarity: 'Rare', weight: 0.04, color: '#e0cfa1', asset: '/assets/material-jasmine.svg' },
+  { id: 'resin', name: 'Résine ambrée', shortName: 'RÉSINE', rarity: 'Très rare', weight: 0.015, color: '#c28a42', asset: '/assets/material-resin.svg' },
+];
+
+const MATERIAL_IDS = MATERIALS.map((material) => material.id);
+
+function emptyMaterialStock(): MaterialStock {
+  return { lavender: 0, mint: 0, rose: 0, bergamot: 0, sandalwood: 0, jasmine: 0, resin: 0 };
+}
+
+function parseMaterialStock(value: unknown): MaterialStock {
+  const source = value && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : {};
+  const stock = emptyMaterialStock();
+  for (const id of MATERIAL_IDS) {
+    const count = source[id];
+    stock[id] = Number.isSafeInteger(count) && (count as number) >= 0 ? count as number : 0;
+  }
+  return stock;
+}
+
+function isMaterialId(value: unknown): value is MaterialId {
+  return typeof value === 'string' && MATERIAL_IDS.includes(value as MaterialId);
+}
+
 export const UPGRADES: Record<UpgradeId, { name: string; description: string; baseCost: number; growth: number; effect: string }> = {
   production: {
     name: 'Concentré Absolu',
@@ -97,10 +157,10 @@ export const UPGRADES: Record<UpgradeId, { name: string; description: string; ba
   },
   clickPower: {
     name: 'Gestuelle du maître',
-    description: 'Chaque création manuelle rapporte 10 parfums supplémentaires par niveau.',
-    baseCost: 120,
+    description: 'Chaque niveau augmente de 8 % la chance de trouver une matière botanique supplémentaire.',
+    baseCost: 45,
     growth: 1.8,
-    effect: '+10 parfums / création',
+    effect: '+8 % de chance de récolte bonus / niveau',
   },
   discount: {
     name: 'Contrats verriers',
@@ -183,7 +243,7 @@ export const MACHINES: MachineDefinition[] = [
     description: 'Mélange les premières notes parfumées',
     floor: 0,
     x: 260,
-    cost: 35,
+    cost: 3,
     payout: 3,
     cycleSeconds: 3.5,
   },
@@ -194,7 +254,7 @@ export const MACHINES: MachineDefinition[] = [
     description: 'Distille des extraits de caractère',
     floor: 0,
     x: 450,
-    cost: 220,
+    cost: 18,
     payout: 14,
     cycleSeconds: 4,
   },
@@ -205,7 +265,7 @@ export const MACHINES: MachineDefinition[] = [
     description: 'Remplit et ferme les flacons à la chaîne',
     floor: 1,
     x: 320,
-    cost: 1600,
+    cost: 140,
     payout: 70,
     cycleSeconds: 5,
   },
@@ -216,7 +276,7 @@ export const MACHINES: MachineDefinition[] = [
     description: 'Crée des compositions premium',
     floor: 1,
     x: 560,
-    cost: 8800,
+    cost: 700,
     payout: 360,
     cycleSeconds: 6,
   },
@@ -227,7 +287,7 @@ export const MACHINES: MachineDefinition[] = [
     description: 'Synthétise des essences interdimensionnelles',
     floor: 2,
     x: 440,
-    cost: 52000,
+    cost: 6_000,
     payout: 2200,
     cycleSeconds: 7,
   },
@@ -238,7 +298,7 @@ export const MACHINES: MachineDefinition[] = [
     description: 'Cultive les matières premières fraîches',
     floor: 1,
     x: 680,
-    cost: 125_000,
+    cost: 40_000,
     payout: 5_200,
     cycleSeconds: 7.5,
   },
@@ -249,7 +309,7 @@ export const MACHINES: MachineDefinition[] = [
     description: 'Capture les notes florales les plus délicates',
     floor: 1,
     x: 800,
-    cost: 900_000,
+    cost: 350_000,
     payout: 42_000,
     cycleSeconds: 8,
   },
@@ -260,7 +320,7 @@ export const MACHINES: MachineDefinition[] = [
     description: 'Compose des collections de prestige',
     floor: 1,
     x: 900,
-    cost: 8_000_000,
+    cost: 3_500_000,
     payout: 390_000,
     cycleSeconds: 9,
   },
@@ -271,7 +331,7 @@ export const MACHINES: MachineDefinition[] = [
     description: 'Concentre les essences à très haut rendement',
     floor: 2,
     x: 1000,
-    cost: 75_000_000,
+    cost: 40_000_000,
     payout: 4_500_000,
     cycleSeconds: 10,
   },
@@ -282,7 +342,7 @@ export const MACHINES: MachineDefinition[] = [
     description: 'Produit des fragrances hors normes à grande échelle',
     floor: 2,
     x: 1100,
-    cost: 700_000_000,
+    cost: 350_000_000,
     payout: 48_000_000,
     cycleSeconds: 12,
   },
@@ -308,6 +368,11 @@ export function createInitialState(now = Date.now()): GameState {
     perfumeRevenue: 0,
     lifetimePerfumeRevenue: 0,
     runPerfumeRevenue: 0,
+    gatherClicks: 0,
+    harvestProgress: 0,
+    ingredients: emptyMaterialStock(),
+    materialDiscoveries: emptyMaterialStock(),
+    lastHarvestedMaterial: null,
     machines: createEmptyMachineSave(),
     rebirths: 0,
     currentWorld: 'glass-garden',
@@ -389,6 +454,68 @@ export function upgradeCost(state: GameState, upgradeId: UpgradeId): number {
 
 export function manualPerfumeValue(state: Pick<GameState, 'upgrades'>): number {
   return PERFUME_CLICK_VALUE * (1 + state.upgrades.clickPower);
+}
+
+function chooseMaterial(roll: number): MaterialId {
+  const normalized = Math.max(0, Math.min(0.999999999, Number.isFinite(roll) ? roll : 0));
+  let threshold = 0;
+  for (const material of MATERIALS) {
+    threshold += material.weight;
+    if (normalized < threshold) return material.id;
+  }
+  return 'lavender';
+}
+
+function gatherOneMaterial(state: GameState, material: MaterialId): { state: GameState; crafted: number } {
+  const ingredients: MaterialStock = { ...state.ingredients, [material]: state.ingredients[material] + 1 };
+  const materialDiscoveries: MaterialStock = { ...state.materialDiscoveries, [material]: state.materialDiscoveries[material] + 1 };
+  let progress = state.harvestProgress + 1;
+  let next: GameState = {
+    ...state,
+    ingredients,
+    materialDiscoveries,
+    lastHarvestedMaterial: material,
+  };
+  let crafted = 0;
+  if (progress >= INGREDIENTS_PER_PERFUME) {
+    let toConsume = INGREDIENTS_PER_PERFUME;
+    for (const definition of MATERIALS) {
+      const used = Math.min(toConsume, next.ingredients[definition.id]);
+      if (used > 0) {
+        next = { ...next, ingredients: { ...next.ingredients, [definition.id]: next.ingredients[definition.id] - used } };
+        toConsume -= used;
+      }
+      if (toConsume === 0) break;
+    }
+    progress -= INGREDIENTS_PER_PERFUME;
+    crafted = 1;
+    next = addPerfumeRevenue(next, crafted);
+  }
+  next = { ...next, harvestProgress: progress };
+  return { state: next, crafted };
+}
+
+/**
+ * Harvest a surprise botanical drop. A batch of ten ingredients is consumed
+ * to formulate one perfume; click-power research gives a small chance of a bonus drop.
+ */
+export function harvestIngredient(state: GameState, random: () => number = Math.random): HarvestResult {
+  const primary = chooseMaterial(random());
+  const nextClick: GameState = { ...state, gatherClicks: state.gatherClicks + 1 };
+  const first = gatherOneMaterial(nextClick, primary);
+  const bonusChance = Math.min(0.8, Math.max(0, state.upgrades.clickPower) * 0.08);
+  const materials: MaterialId[] = [primary];
+  let next = first.state;
+  let perfumesCreated = first.crafted;
+  if (random() < bonusChance) {
+    const bonus = chooseMaterial(random());
+    const second = gatherOneMaterial(next, bonus);
+    next = second.state;
+    materials.push(bonus);
+    perfumesCreated += second.crafted;
+  }
+  next = { ...next, lastHarvestedMaterial: materials[materials.length - 1] ?? primary };
+  return { state: next, materials, perfumesCreated };
 }
 
 export function buyUpgrade(state: GameState, upgradeId: UpgradeId): GameState {
@@ -519,6 +646,9 @@ export function performRebirth(state: GameState): GameState {
     perfumeRevenue: 0,
     runPerfumeRevenue: 0,
     machines: createEmptyMachineSave(),
+    ingredients: emptyMaterialStock(),
+    harvestProgress: 0,
+    lastHarvestedMaterial: null,
     rebirths: nextRebirths,
     rampBuilt: true,
     wallsBuilt: false,
@@ -679,10 +809,23 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
     const unlockedWorlds = (value.unlockedWorlds as unknown[])
       .filter((item): item is WorldId => typeof item === 'string' && WORLD_IDS.includes(item as WorldId));
     if (!unlockedWorlds.includes('glass-garden')) unlockedWorlds.unshift('glass-garden');
+    const ingredients = parseMaterialStock(value.ingredients);
+    const materialDiscoveries = parseMaterialStock(value.materialDiscoveries);
+    const parsedProgress = Number.isSafeInteger(value.harvestProgress) && (value.harvestProgress as number) >= 0
+      ? Math.min(INGREDIENTS_PER_PERFUME - 1, value.harvestProgress as number)
+      : Object.values(ingredients).reduce((sum, count) => sum + count, 0);
+    const parsedGatherClicks = Number.isSafeInteger(value.gatherClicks) && (value.gatherClicks as number) >= 0
+      ? value.gatherClicks as number
+      : 0;
     const state: GameState = {
       perfumeRevenue: value.perfumeRevenue,
       lifetimePerfumeRevenue: value.lifetimePerfumeRevenue,
       runPerfumeRevenue: value.runPerfumeRevenue,
+      gatherClicks: parsedGatherClicks,
+      harvestProgress: parsedProgress,
+      ingredients,
+      materialDiscoveries,
+      lastHarvestedMaterial: isMaterialId(value.lastHarvestedMaterial) ? value.lastHarvestedMaterial : null,
       machines,
       rebirths: value.rebirths as number,
       currentWorld: unlockedWorlds.includes(currentWorld) ? currentWorld : 'glass-garden',
@@ -737,6 +880,8 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       state.upgrades.production > 0 ||
       state.upgrades.clickPower > 0 ||
       state.upgrades.discount > 0 ||
+      state.gatherClicks > 0 ||
+      Object.values(state.materialDiscoveries).some((count) => count > 0) ||
       ownedMachineCount > 0;
     // Old prototype saves sometimes recorded an empty starting room as already built.
     // If nothing was ever earned or bought, migrate that false positive back to the real first-run state.
