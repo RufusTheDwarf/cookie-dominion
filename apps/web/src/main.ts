@@ -996,6 +996,7 @@ function formulate(): void {
   state = addPerfumeRevenue(state, manualPerfumeValue(state));
   render();
   atelierScene?.pulsePlayer();
+  atelierScene?.pulseProduction();
   saveSoon();
 }
 
@@ -1150,6 +1151,7 @@ class TycoonScene extends Phaser.Scene {
 
   preload(): void {
     this.load.svg('perfume-emblem', '/assets/perfume-emblem.svg', { width: 120, height: 140 });
+    this.load.svg('bottle-product', '/assets/bottle-product.svg', { width: 80, height: 100 });
     this.load.svg('machine-formulation', '/assets/machine-formulation.svg', { width: 128, height: 128 });
     this.load.svg('machine-still', '/assets/machine-still.svg', { width: 128, height: 128 });
     this.load.svg('machine-bottling', '/assets/machine-bottling.svg', { width: 128, height: 128 });
@@ -1632,14 +1634,10 @@ class TycoonScene extends Phaser.Scene {
 
   private makePacket(x: number, y: number, accent: number): Phaser.GameObjects.Container {
     const ink = 0x453d31;
-    const shadow = this.add.ellipse(0, 10, 18, 5, ink, 0.18);
-    const body = this.add.ellipse(0, 2, 17, 22, accent).setStrokeStyle(1.5, ink);
-    const glass = this.add.ellipse(-3, 0, 4, 13, 0xeee2c6, 0.5);
-    const shoulder = this.add.ellipse(0, -8, 10, 5, accent).setStrokeStyle(1, ink);
-    const neck = this.add.rectangle(0, -12, 6, 6, 0xc6ac7a).setStrokeStyle(1, ink);
-    const cap = this.add.rectangle(0, -16, 8, 4, 0x6e5137).setStrokeStyle(1, ink);
-    const label = this.add.rectangle(2, 3, 8, 6, 0xe9d9b8).setStrokeStyle(1, ink);
-    const packet = this.add.container(x, y, [shadow, body, glass, shoulder, neck, cap, label]).setDepth(15);
+    const shadow = this.add.ellipse(0, 11, 19, 5, ink, 0.18);
+    const bottle = this.add.image(0, -1, 'bottle-product').setDisplaySize(24, 30);
+    const waxSeal = this.add.circle(0, 2, 1.8, accent).setStrokeStyle(0.6, ink);
+    const packet = this.add.container(x, y, [shadow, bottle, waxSeal]).setDepth(15);
     this.packets.add(packet);
     return packet;
   }
@@ -2188,6 +2186,44 @@ class TycoonScene extends Phaser.Scene {
     this.exteriorWalls.fillRect(1027, 475, 8, 125);
     this.exteriorWalls.lineStyle(2, 0x4b5146, 0.72);
     this.exteriorWalls.strokeRect(135, 180, 900, 420);
+  }
+
+  pulseProduction(): void {
+    if (!this.player?.active || gameIsPaused) return;
+    const x = this.player.x + 25;
+    const y = this.player.y - 12;
+    const bottle = this.makePacket(x, y, getWorld(state.currentWorld).accent);
+    bottle.setDepth(this.player.y + 2).setScale(0.84);
+    this.tweens.add({
+      targets: bottle,
+      x: x + 7,
+      y: y - 46,
+      scale: 1.12,
+      angle: -9,
+      alpha: 0,
+      duration: 520,
+      ease: 'Cubic.easeOut',
+      onComplete: () => {
+        this.packets.delete(bottle);
+        bottle.destroy();
+      },
+    });
+
+    const glintColors = [0xb28a4d, 0xe7d5a8, 0x81936c];
+    for (let index = 0; index < 5; index += 1) {
+      const glint = this.add.circle(x, y - 8, index % 2 ? 1.8 : 2.4, glintColors[index % glintColors.length]!)
+        .setDepth(this.player.y + 3);
+      this.tweens.add({
+        targets: glint,
+        x: x + (index - 2) * 11,
+        y: y - 27 - (index % 2) * 8,
+        alpha: 0,
+        scale: 0.2,
+        duration: 330 + (index % 3) * 65,
+        ease: 'Cubic.easeOut',
+        onComplete: () => glint.destroy(),
+      });
+    }
   }
 
   pulsePlayer(): void {
