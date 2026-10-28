@@ -26,7 +26,6 @@ export interface PerfumeRecipe {
 export interface HarvestResult {
   state: GameState;
   materials: MaterialId[];
-  perfumesCreated: number;
 }
 export type MissionId = 'first-machine' | 'industrialist' | 'lifetime-perfumer' | 'world-explorer' | 'galactic-empire' | 'first-order';
 
@@ -81,7 +80,7 @@ export interface GameState {
   runPerfumeRevenue: number;
   /** Number of click actions made while gathering raw materials. */
   gatherClicks: number;
-  /** Ingredients waiting to be blended, always fewer than ten after a harvest. */
+  /** Total raw ingredients currently in stock; field name retained for old saves. */
   harvestProgress: number;
   /** Current raw-material stock; ten units are consumed to make one perfume. */
   ingredients: MaterialStock;
@@ -113,7 +112,7 @@ export interface GameState {
 export const MAX_OFFLINE_SECONDS = 8 * 60 * 60;
 /** The opening plot is a one-time purchase; an empty new game receives this amount. */
 export const STARTING_LAND_COST = 1_000;
-export const INGREDIENTS_PER_PERFUME = 10;
+export const STARTING_LAND_COST = 1_000;
 export const TOTAL_REBIRTH_BASE_LEVEL = 10;
 export const TOTAL_REBIRTH_LEVEL_STEP = 5;
 export const ESSENCE_PRODUCTION_BONUS = 0.75;
@@ -499,34 +498,27 @@ function chooseMaterial(roll: number): MaterialId {
   return 'lavender';
 }
 
-function gatherOneMaterial(state: GameState, material: MaterialId): { state: GameState; crafted: number } {
+function gatherOneMaterial(state: GameState, material: MaterialId): GameState {
   const ingredients: MaterialStock = { ...state.ingredients, [material]: state.ingredients[material] + 1 };
   const materialDiscoveries: MaterialStock = { ...state.materialDiscoveries, [material]: state.materialDiscoveries[material] + 1 };
   const harvestProgress = Object.values(ingredients).reduce((sum, count) => sum + count, 0);
-  return {
-    state: { ...state, ingredients, materialDiscoveries, lastHarvestedMaterial: material, harvestProgress },
-    crafted: 0,
-  };
+  return { ...state, ingredients, materialDiscoveries, lastHarvestedMaterial: material, harvestProgress };
 }
 
 /** Harvest one random material (occasionally two with botanical research). Materials stay in stock until a recipe is crafted. */
 export function harvestIngredient(state: GameState, random: () => number = Math.random): HarvestResult {
   const primary = chooseMaterial(random());
   const nextClick: GameState = { ...state, gatherClicks: state.gatherClicks + 1 };
-  const first = gatherOneMaterial(nextClick, primary);
+  let next = gatherOneMaterial(nextClick, primary);
   const bonusChance = Math.min(0.8, Math.max(0, state.upgrades.clickPower) * 0.08);
   const materials: MaterialId[] = [primary];
-  let next = first.state;
-  let perfumesCreated = first.crafted;
   if (random() < bonusChance) {
     const bonus = chooseMaterial(random());
-    const second = gatherOneMaterial(next, bonus);
-    next = second.state;
+    next = gatherOneMaterial(next, bonus);
     materials.push(bonus);
-    perfumesCreated += second.crafted;
   }
   next = { ...next, lastHarvestedMaterial: materials[materials.length - 1] ?? primary };
-  return { state: next, materials, perfumesCreated };
+  return { state: next, materials };
 }
 
 export function canCraftPerfume(state: GameState, recipeId: RecipeId): boolean {
