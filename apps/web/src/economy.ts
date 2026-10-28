@@ -106,7 +106,7 @@ export const TOTAL_REBIRTH_BASE_LEVEL = 10;
 export const TOTAL_REBIRTH_LEVEL_STEP = 5;
 export const ESSENCE_PRODUCTION_BONUS = 0.75;
 export const ESSENCE_PRESTIGE_VALUE = 1_000_000;
-export const CUSTOMER_ORDER_BASE_COST = 120;
+export const CUSTOMER_ORDER_BASE_COST = 8;
 export const CUSTOMER_ORDER_COST_GROWTH = 1.65;
 export const CUSTOMER_ORDER_REWARD_MULTIPLIER = 1.8;
 export const REBIRTH_BASE_COST = 10000;
@@ -186,12 +186,12 @@ export const UPGRADES: Record<UpgradeId, { name: string; description: string; ba
 };
 
 export const MISSION_DEFINITIONS: MissionDefinition[] = [
-  { id: 'first-machine', name: 'Premier atelier', description: 'Installe ton premier équipement.', target: 1, reward: 75, kind: 'machines' },
-  { id: 'industrialist', name: 'Maison en expansion', description: 'Possède 5 équipements.', target: 5, reward: 400, kind: 'machines' },
+  { id: 'first-machine', name: 'Premier atelier', description: 'Installe ton premier équipement.', target: 1, reward: 2, kind: 'machines' },
+  { id: 'industrialist', name: 'Maison en expansion', description: 'Possède 5 équipements.', target: 5, reward: 15, kind: 'machines' },
   { id: 'lifetime-perfumer', name: 'Mille flacons vendus', description: 'Vends 1 000 parfums au total.', target: 1000, reward: 500, kind: 'lifetime' },
-  { id: 'world-explorer', name: 'Nez voyageur', description: 'Déverrouille un deuxième monde.', target: 2, reward: 1500, kind: 'worlds' },
-  { id: 'galactic-empire', name: 'Grand nez de l’Empire', description: 'Déverrouille les trois mondes.', target: 3, reward: 8000, kind: 'worlds' },
-  { id: 'first-order', name: 'Premier client VIP', description: 'Livre ta première commande au client VIP.', target: 1, reward: 250, kind: 'orders' },
+  { id: 'world-explorer', name: 'Nez voyageur', description: 'Déverrouille un deuxième monde.', target: 2, reward: 150, kind: 'worlds' },
+  { id: 'galactic-empire', name: 'Grand nez de l’Empire', description: 'Déverrouille les trois mondes.', target: 3, reward: 1000, kind: 'worlds' },
+  { id: 'first-order', name: 'Premier client VIP', description: 'Livre ta première commande au client VIP.', target: 1, reward: 8, kind: 'orders' },
 ];
 
 const MISSION_IDS: MissionId[] = MISSION_DEFINITIONS.map((mission) => mission.id);
