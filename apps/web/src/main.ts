@@ -21,6 +21,7 @@ import {
   harvestIngredient,
   perfumeSalePrice,
   PERFUME_RECIPES,
+  sellPerfume,
   MATERIALS,
   MACHINES,
   MAX_UPGRADE_LEVEL,
