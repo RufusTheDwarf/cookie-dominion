@@ -511,28 +511,29 @@ function renderSceneSelection(): void {
     bergamot: 'Bergamotiers', sandalwood: 'Bois de santal', jasmine: 'Jardin de jasmin',
     resin: 'Résine ambrée', laboratory: 'Laboratoire de formulation', counter: 'Comptoir de vente',
   };
-  button.disabled = nearbyStation === null;
-  prompt.textContent = nearbyStation
-    ? stationNames[nearbyStation] + ' · ' + (nearbyStation === 'laboratory' ? 'composer la recette active' : nearbyStation === 'counter' ? 'vendre la recette active' : 'récolter une matière choisie')
-    : 'Marche jusqu’à un poste, puis appuie sur E ou Interagir.';
   const order = getActiveCustomerOrder(state);
   const selectedRecipeIsOrder = selectedRecipeId === order.recipeId;
   const orderReady = selectedRecipeIsOrder && canFulfillCustomerOrder(state);
-  prompt.textContent = nearbyStation
-    ? stationNames[nearbyStation] + ' · ' + (
-      nearbyStation === 'laboratory'
-        ? 'composer la recette active'
-        : nearbyStation === 'counter'
-          ? selectedRecipeIsOrder
-            ? orderReady ? 'livrer la commande de ' + order.customer : 'préparer ' + order.quantity + ' flacon(s) pour ' + order.customer
-            : 'vendre la recette active'
-          : 'récolter une matière choisie'
-    )
-    : 'Marche jusqu’à un poste, puis appuie sur E ou Interagir.';
+  button.disabled = nearbyStation === null;
+  if (!nearbyStation) {
+    prompt.textContent = 'Marche jusqu’à un poste, puis appuie sur E ou Interagir.';
+  } else if (nearbyStation === 'laboratory') {
+    prompt.textContent = stationNames[nearbyStation] + ' · composer la recette active';
+  } else if (nearbyStation === 'counter') {
+    prompt.textContent = stationNames[nearbyStation] + ' · ' + (
+      selectedRecipeIsOrder
+        ? orderReady
+          ? 'livrer la commande de ' + order.customer
+          : 'préparer ' + order.quantity + ' flacon(s) pour ' + order.customer
+        : 'vendre la recette active'
+    );
+  } else {
+    prompt.textContent = stationNames[nearbyStation] + ' · récolter une matière choisie';
+  }
   button.textContent = nearbyStation === 'laboratory'
     ? 'FORMULER · E'
     : nearbyStation === 'counter'
-      ? orderReady ? 'LIVRER · E' : 'VENDRE · E'
+      ? selectedRecipeIsOrder ? (orderReady ? 'LIVRER · E' : 'COMMANDE · E') : 'VENDRE · E'
       : 'INTERAGIR · E';
 }
 
@@ -595,6 +596,7 @@ function interactWithStation(station: WorkshopStation): void {
 
 
 function renderAll(): void {
+  workshopScene?.setTheme(getWorld(state.currentWorld));
   renderStats();
   renderHarvestView();
   renderRecipeWorkshop();
@@ -944,5 +946,6 @@ workshopScene = createWorkshopScene(byId<HTMLCanvasElement>('workshop-canvas'), 
   nearbyStation = station;
   renderSceneSelection();
 });
+workshopScene.setTheme(getWorld(state.currentWorld));
 save();
 requestAnimationFrame(gameTick);

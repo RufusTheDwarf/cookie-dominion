@@ -4,9 +4,17 @@ export type WorkshopStation =
 
 export type MoveDirection = 'up' | 'down' | 'left' | 'right';
 
+export interface WorkshopTheme {
+  background: number;
+  floorColor: number;
+  accent: number;
+  belt: number;
+}
+
 export interface WorkshopScene {
   move(direction: MoveDirection): void;
   interact(): void;
+  setTheme(theme: WorkshopTheme): void;
   destroy(): void;
 }
 
@@ -53,6 +61,21 @@ const STATIONS: Station[] = [
 
 const HERB_COLORS = ['#71885b', '#8ba36a', '#b2b67a', '#d5c99b', '#6e8e70'];
 
+function colorHex(value: number): string {
+  return '#' + Math.max(0, Math.min(0xffffff, Math.round(value))).toString(16).padStart(6, '0');
+}
+
+function blendHex(base: number, overlay: number, amount: number): string {
+  const ratio = Math.max(0, Math.min(1, amount));
+  const channel = (shift: number): number => {
+    const a = (base >> shift) & 0xff;
+    const b = (overlay >> shift) & 0xff;
+    return Math.round(a * (1 - ratio) + b * ratio);
+  };
+  return '#' + [channel(16), channel(8), channel(0)]
+    .map((value) => value.toString(16).padStart(2, '0')).join('');
+}
+
 export function createWorkshopScene(
   canvas: HTMLCanvasElement,
   onInteract: (station: WorkshopStation) => void,
@@ -68,6 +91,12 @@ export function createWorkshopScene(
   let frame = 0;
   let lastFrame = performance.now();
   let nearby: WorkshopStation | null = null;
+  let theme: WorkshopTheme = {
+    background: 0x9da88f,
+    floorColor: 0xe3d5b7,
+    accent: 0x4b5a43,
+    belt: 0xa46f4e,
+  };
   let destroyed = false;
   let lastReported: WorkshopStation | null = null;
   let elapsedWorld = 0;
@@ -321,14 +350,14 @@ export function createWorkshopScene(
 
   function drawGround(): void {
     const c = context!;
-    c.fillStyle = '#cfc5a9';
+    c.fillStyle = colorHex(theme.floorColor);
     c.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-    c.fillStyle = '#a7b292';
+    c.fillStyle = colorHex(theme.background);
     c.fillRect(0, 0, 650, WORLD_HEIGHT);
-    c.fillStyle = '#ddcfad';
+    c.fillStyle = blendHex(theme.floorColor, 0xffffff, 0.10);
     c.fillRect(650, 0, 350, WORLD_HEIGHT);
-    c.fillStyle = '#c8b894';
+    c.fillStyle = blendHex(theme.floorColor, theme.belt, 0.18);
     c.fillRect(1000, 0, WORLD_WIDTH - 1000, WORLD_HEIGHT);
 
     c.fillStyle = 'rgba(248,241,218,.24)';
@@ -349,21 +378,23 @@ export function createWorkshopScene(
     }
 
     // Footpaths and decorative planters give the garden a readable layout.
-    roundedRect(52, 82, 550, 32, 9, '#c9b58b', '#b39c70');
-    roundedRect(52, 625, 550, 28, 8, '#c9b58b', '#b39c70');
-    roundedRect(604, 115, 34, 495, 8, '#c9b58b', '#b39c70');
-    roundedRect(680, 84, 292, 38, 8, '#c9b58b', '#b39c70');
-    roundedRect(680, 605, 292, 34, 8, '#c9b58b', '#b39c70');
-    roundedRect(1030, 84, 370, 38, 8, '#b8a27d', '#a38a62');
-    roundedRect(1030, 605, 370, 34, 8, '#b8a27d', '#a38a62');
+    const pathFill = blendHex(theme.floorColor, theme.belt, 0.22);
+    const pathStroke = blendHex(theme.floorColor, theme.accent, 0.22);
+    roundedRect(52, 82, 550, 32, 9, pathFill, pathStroke);
+    roundedRect(52, 625, 550, 28, 8, pathFill, pathStroke);
+    roundedRect(604, 115, 34, 495, 8, pathFill, pathStroke);
+    roundedRect(680, 84, 292, 38, 8, pathFill, pathStroke);
+    roundedRect(680, 605, 292, 34, 8, pathFill, pathStroke);
+    roundedRect(1030, 84, 370, 38, 8, blendHex(theme.floorColor, theme.belt, 0.30), pathStroke);
+    roundedRect(1030, 605, 370, 34, 8, blendHex(theme.floorColor, theme.belt, 0.30), pathStroke);
 
     // Doorways remain open between the three connected rooms.
-    c.fillStyle = '#8c846e';
+    c.fillStyle = blendHex(theme.accent, 0x000000, 0.22);
     c.fillRect(646, 0, 8, DOOR_TOP);
     c.fillRect(646, DOOR_BOTTOM, 8, WORLD_HEIGHT - DOOR_BOTTOM);
     c.fillRect(996, 0, 8, DOOR_TOP);
     c.fillRect(996, DOOR_BOTTOM, 8, WORLD_HEIGHT - DOOR_BOTTOM);
-    c.fillStyle = '#f0e4c8';
+    c.fillStyle = blendHex(theme.floorColor, 0xffffff, 0.24);
     c.fillRect(648, DOOR_TOP, 4, DOOR_BOTTOM - DOOR_TOP);
     c.fillRect(998, DOOR_TOP, 4, DOOR_BOTTOM - DOOR_TOP);
 
@@ -371,7 +402,7 @@ export function createWorkshopScene(
     roundedRect(36, 20, 330, 44, 7, 'rgba(246,240,226,.92)', '#aaa087');
     roundedRect(676, 20, 300, 44, 7, 'rgba(246,240,226,.92)', '#aaa087');
     roundedRect(1026, 20, 350, 44, 7, 'rgba(246,240,226,.92)', '#aaa087');
-    c.fillStyle = '#344735';
+    c.fillStyle = colorHex(theme.accent);
     c.textAlign = 'left';
     c.font = 'bold 15px system-ui';
     c.fillText('JARDIN BOTANIQUE', 52, 47);
@@ -381,17 +412,17 @@ export function createWorkshopScene(
     // Storage shelves and barrels add depth to the workshop rooms.
     for (let i = 0; i < 4; i++) {
       const x = 1050 + i * 83;
-      roundedRect(x, 145, 62, 35, 4, '#896b4c', '#604a36');
+      roundedRect(x, 145, 62, 35, 4, colorHex(theme.belt), colorHex(theme.accent));
       for (let j = 0; j < 3; j++) {
-        c.fillStyle = ['#a8b99a', '#d1bd91', '#ba8c8b'][j];
+        c.fillStyle = [colorHex(theme.background), colorHex(theme.floorColor), colorHex(theme.accent)][j];
         c.beginPath();
         c.arc(x + 13 + j * 18, 159, 6, 0, Math.PI * 2);
         c.fill();
       }
     }
-    roundedRect(1050, 525, 70, 48, 6, '#9b805b', '#725b41');
-    roundedRect(1134, 525, 70, 48, 6, '#9b805b', '#725b41');
-    roundedRect(1218, 525, 70, 48, 6, '#9b805b', '#725b41');
+    roundedRect(1050, 525, 70, 48, 6, colorHex(theme.belt), colorHex(theme.accent));
+    roundedRect(1134, 525, 70, 48, 6, colorHex(theme.belt), colorHex(theme.accent));
+    roundedRect(1218, 525, 70, 48, 6, colorHex(theme.belt), colorHex(theme.accent));
   }
 
   function draw(): void {
@@ -547,6 +578,15 @@ export function createWorkshopScene(
       onNearbyChange(nearby);
     },
     interact(): void { if (nearby) triggerInteraction(nearby); },
+    setTheme(nextTheme: WorkshopTheme): void {
+      theme = {
+        background: nextTheme.background,
+        floorColor: nextTheme.floorColor,
+        accent: nextTheme.accent,
+        belt: nextTheme.belt,
+      };
+      draw();
+    },
     destroy(): void {
       destroyed = true;
       cancelAnimationFrame(frame);

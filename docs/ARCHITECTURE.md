@@ -4,7 +4,7 @@
 
 - `apps/web/src/main.ts` compose l'interface, met à jour la progression, gère les menus et sauvegarde les données.
 - `apps/web/src/economy.ts` définit les règles du jeu sans dépendre du DOM ni du canvas.
-- `apps/web/src/workshop-scene.ts` dessine le monde 2D, suit le personnage avec la caméra, anime le personnage et les machines, gère les particules et détecte les postes proches.
+- `apps/web/src/workshop-scene.ts` dessine le monde 2D, suit le personnage avec la caméra, anime le personnage et les machines, gère les particules, applique la palette de la collection active et détecte les postes proches.
 - `apps/web/src/style.css` présente l'atelier et les menus sur ordinateur et téléphone.
 - `tests/economy.test.ts` vérifie les règles économiques, la récolte déterministe, les recettes, les ventes et les sauvegardes.
 - `AGENTS.md` fournit une carte pratique pour les prochaines modifications.
@@ -30,6 +30,7 @@ Les commandes clients suivent une rotation déterministe de cinq recettes. La pr
 - Les plantes oscillent légèrement. Les interactions créent des particules temporaires.
 - Les deux murs intérieurs comportent des passages. Le déplacement ne peut pas traverser les murs en dehors de ces passages.
 - Les coordonnées des clics sont converties de l'écran vers le monde, en tenant compte de la caméra.
+- Les collections utilisent leur palette persistée (fond, sol, couleur d'accent et bois) pour différencier visuellement l'atelier sans casser les collisions ou l'économie.
 
 ## Contrôles
 

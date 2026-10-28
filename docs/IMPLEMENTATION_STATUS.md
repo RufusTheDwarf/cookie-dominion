@@ -6,6 +6,7 @@
 |---|---|---|
 | Atelier 2D | Implémenté | Jardin, laboratoire et boutique dans un monde plus grand que l'écran |
 | Caméra | Implémenté | Suit le joueur et reste dans les limites de la carte |
+| Identité visuelle des mondes | Implémenté | Fond, sols, chemins, séparations et mobilier adaptés à la collection active |
 | Animation du personnage | Implémenté | Orientation, marche, mouvement du corps et geste d'interaction |
 | Animation du décor | Implémenté | Plantes animées et particules temporaires lors des interactions |
 | Machines visibles | Implémenté | Laboratoire et comptoir dessinés comme des objets physiques |
