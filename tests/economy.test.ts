@@ -182,7 +182,7 @@ describe('tycoon economy', () => {
     expect(manualPerfumeValue(clickResearch)).toBe(2);
 
     const discounted = buyUpgrade({ ...withMixer, perfumeRevenue: 600 }, 'discount');
-    expect(machineCost(discounted, 'copper-still')).toBe(24);
+    expect(machineCost(discounted, 'copper-still')).toBe(18);
 
     const rareResearch = buyUpgrade({ ...withMixer, perfumeRevenue: 2000 }, 'rareBonus');
     expect(rareResearch.upgrades.rareBonus).toBe(1);
@@ -235,8 +235,8 @@ describe('tycoon economy', () => {
     const secondDelivery = completeCustomerOrder(delivered);
     expect(secondDelivery.ordersCompleted).toBe(2);
     expect(secondDelivery.perfumeRevenue).toBe(27);
-    expect(customerOrderCost(secondDelivery)).toBe(24);
-    expect(customerOrderReward(secondDelivery)).toBe(44);
+    expect(customerOrderCost(secondDelivery)).toBe(22);
+    expect(customerOrderReward(secondDelivery)).toBe(40);
     expect(canClaimMission(delivered, 'first-order')).toBe(true);
 
     const claimed = claimMission(delivered, 'first-order');
