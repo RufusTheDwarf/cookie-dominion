@@ -1,6 +1,10 @@
 export type WorldId = 'cookie-valley' | 'choco-moon' | 'galaxy-oven';
 export type MachineId = 'hand-mixer' | 'brick-oven' | 'conveyor-oven' | 'frosting-lab' | 'quantum-bakery';
 export type UpgradeId = 'production' | 'clickPower' | 'discount';
+export type HerbId = 'lavender' | 'mint' | 'rose';
+export type RecipeId = 'green-whisper' | 'soft-rose' | 'royal-bouquet';
+export type HerbInventory = Record<HerbId, number>;
+export type PerfumeInventory = Record<RecipeId, number>;
 export type MissionId = 'first-machine' | 'industrialist' | 'lifetime-baker' | 'world-explorer' | 'galactic-empire' | 'first-order';
 
 export interface UpgradeLevels {
@@ -63,8 +67,10 @@ export interface GameState {
   totalRebirths: number;
   essences: number;
   rampBuilt: boolean;
-  /** Number of gathered herbs toward the next hand-crafted perfume. */
-  herbClicks: number;
+  /** Raw ingredients gathered from the outdoor garden. */
+  herbInventory: HerbInventory;
+  /** Bottled perfumes awaiting sale, grouped by recipe. */
+  perfumeInventory: PerfumeInventory;
   wallsBuilt: boolean;
   outsideExpansions: number;
   lastSavedAt: number;
@@ -73,7 +79,34 @@ export interface GameState {
 export const MAX_OFFLINE_SECONDS = 8 * 60 * 60;
 /** The opening plot is a one-time purchase; an empty new game receives this amount. */
 export const STARTING_LAND_COST = 1_000;
-export const HERB_CLICKS_PER_PERFUME = 5;
+export const STARTING_PERFUME_SALE_PRICE = 2;
+export const HERB_REGROW_SECONDS = 12;
+
+export const HERB_DEFINITIONS: Record<HerbId, { name: string; label: string; color: number }> = {
+  lavender: { name: 'Lavande', label: 'LAV', color: 0xb7a0d8 },
+  mint: { name: 'Menthe', label: 'MEN', color: 0x78ad7b },
+  rose: { name: 'Rose', label: 'ROS', color: 0xd98591 },
+};
+
+export const PERFUME_RECIPES: Record<RecipeId, {
+  name: string;
+  description: string;
+  ingredients: Partial<HerbInventory>;
+  salePrice: number;
+}> = {
+  'green-whisper': {
+    name: 'Brise verte', description: 'Fraîche et végétale',
+    ingredients: { lavender: 1, mint: 1 }, salePrice: STARTING_PERFUME_SALE_PRICE,
+  },
+  'soft-rose': {
+    name: 'Rose tendre', description: 'Florale et douce',
+    ingredients: { lavender: 1, rose: 1 }, salePrice: 3,
+  },
+  'royal-bouquet': {
+    name: 'Bouquet royal', description: 'Un mélange des trois essences',
+    ingredients: { lavender: 1, mint: 1, rose: 1 }, salePrice: 5,
+  },
+};
 export const TOTAL_REBIRTH_BASE_LEVEL = 10;
 export const TOTAL_REBIRTH_LEVEL_STEP = 5;
 export const ESSENCE_PRODUCTION_BONUS = 0.75;
@@ -258,7 +291,8 @@ export function createInitialState(now = Date.now()): GameState {
     totalRebirths: 0,
     essences: 0,
     rampBuilt: false,
-    herbClicks: 0,
+    herbInventory: { lavender: 0, mint: 0, rose: 0 },
+    perfumeInventory: { 'green-whisper': 0, 'soft-rose': 0, 'royal-bouquet': 0 },
     wallsBuilt: false,
     outsideExpansions: 0,
     lastSavedAt: now,
@@ -330,25 +364,53 @@ export function manualCookieValue(state: Pick<GameState, 'upgrades'>): number {
   return 1 + state.upgrades.clickPower;
 }
 
-export interface HerbCollectionResult {
-  state: GameState;
-  perfumeMade: number;
-  herbClicks: number;
+export function collectHerb(state: GameState, herbId: HerbId): GameState {
+  if (!(herbId in HERB_DEFINITIONS)) return state;
+  return {
+    ...state,
+    herbInventory: {
+      ...state.herbInventory,
+      [herbId]: state.herbInventory[herbId] + 1,
+    },
+  };
 }
 
-/** Gather one herb; after five clicks, compose a perfume batch. */
-export function collectHerb(state: GameState): HerbCollectionResult {
-  const nextClicks = state.herbClicks + 1;
-  if (nextClicks < HERB_CLICKS_PER_PERFUME) {
-    return {
-      state: { ...state, herbClicks: nextClicks },
-      perfumeMade: 0,
-      herbClicks: nextClicks,
-    };
+export function canCraftPerfume(state: GameState, recipeId: RecipeId): boolean {
+  const recipe = PERFUME_RECIPES[recipeId];
+  return Object.entries(recipe.ingredients).every(([herbId, amount]) =>
+    state.herbInventory[herbId as HerbId] >= (amount ?? 0),
+  );
+}
+
+export function craftPerfume(state: GameState, recipeId: RecipeId): GameState {
+  if (!canCraftPerfume(state, recipeId)) return state;
+  const recipe = PERFUME_RECIPES[recipeId];
+  const herbInventory = { ...state.herbInventory };
+  for (const [herbId, amount] of Object.entries(recipe.ingredients)) {
+    const key = herbId as HerbId;
+    herbInventory[key] -= amount ?? 0;
   }
-  const perfumeMade = manualCookieValue(state);
-  const rewarded = addCrumbs({ ...state, herbClicks: 0 }, perfumeMade);
-  return { state: rewarded, perfumeMade, herbClicks: 0 };
+  return {
+    ...state,
+    herbInventory,
+    perfumeInventory: {
+      ...state.perfumeInventory,
+      [recipeId]: state.perfumeInventory[recipeId] + 1,
+    },
+  };
+}
+
+export function sellPerfume(state: GameState, recipeId: RecipeId): GameState {
+  if (!PERFUME_RECIPES[recipeId] || state.perfumeInventory[recipeId] <= 0) return state;
+  const salePrice = Math.ceil(PERFUME_RECIPES[recipeId].salePrice * getWorld(state.currentWorld).incomeMultiplier * rebirthMultiplier(state) * essenceMultiplier(state));
+  const sold = {
+    ...state,
+    perfumeInventory: {
+      ...state.perfumeInventory,
+      [recipeId]: state.perfumeInventory[recipeId] - 1,
+    },
+  };
+  return addCrumbs(sold, salePrice);
 }
 
 export function buyUpgrade(state: GameState, upgradeId: UpgradeId): GameState {
@@ -482,7 +544,8 @@ export function performRebirth(state: GameState): GameState {
     machines: createEmptyMachineSave(),
     rebirths: nextRebirths,
     rampBuilt: true,
-    herbClicks: 0,
+    herbInventory: { lavender: 0, mint: 0, rose: 0 },
+    perfumeInventory: { 'green-whisper': 0, 'soft-rose': 0, 'royal-bouquet': 0 },
     wallsBuilt: false,
     outsideExpansions: 0,
     unlockedFloors: [0],
@@ -634,9 +697,16 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
         ? value.essences as number
         : 0,
       rampBuilt: value.rampBuilt === undefined ? true : value.rampBuilt === true,
-      herbClicks: Number.isSafeInteger(value.herbClicks) && (value.herbClicks as number) >= 0
-        ? Math.min(HERB_CLICKS_PER_PERFUME - 1, value.herbClicks as number)
-        : 0,
+      herbInventory: {
+        lavender: Number.isSafeInteger((value.herbInventory as Record<string, unknown> | undefined)?.lavender) && ((value.herbInventory as Record<string, unknown>).lavender as number) >= 0 ? Math.min(1_000_000, (value.herbInventory as Record<string, unknown>).lavender as number) : 0,
+        mint: Number.isSafeInteger((value.herbInventory as Record<string, unknown> | undefined)?.mint) && ((value.herbInventory as Record<string, unknown>).mint as number) >= 0 ? Math.min(1_000_000, (value.herbInventory as Record<string, unknown>).mint as number) : 0,
+        rose: Number.isSafeInteger((value.herbInventory as Record<string, unknown> | undefined)?.rose) && ((value.herbInventory as Record<string, unknown>).rose as number) >= 0 ? Math.min(1_000_000, (value.herbInventory as Record<string, unknown>).rose as number) : 0,
+      },
+      perfumeInventory: {
+        'green-whisper': Number.isSafeInteger((value.perfumeInventory as Record<string, unknown> | undefined)?.['green-whisper']) && ((value.perfumeInventory as Record<string, unknown>)['green-whisper'] as number) >= 0 ? Math.min(1_000_000, (value.perfumeInventory as Record<string, unknown>)['green-whisper'] as number) : 0,
+        'soft-rose': Number.isSafeInteger((value.perfumeInventory as Record<string, unknown> | undefined)?.['soft-rose']) && ((value.perfumeInventory as Record<string, unknown>)['soft-rose'] as number) >= 0 ? Math.min(1_000_000, (value.perfumeInventory as Record<string, unknown>)['soft-rose'] as number) : 0,
+        'royal-bouquet': Number.isSafeInteger((value.perfumeInventory as Record<string, unknown> | undefined)?.['royal-bouquet']) && ((value.perfumeInventory as Record<string, unknown>)['royal-bouquet'] as number) >= 0 ? Math.min(1_000_000, (value.perfumeInventory as Record<string, unknown>)['royal-bouquet'] as number) : 0,
+      },
       wallsBuilt: value.wallsBuilt === true,
       outsideExpansions: Number.isSafeInteger(value.outsideExpansions) && (value.outsideExpansions as number) >= 0
         ? Math.min(3, value.outsideExpansions as number)
@@ -647,7 +717,8 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       .reduce((sum, machinesInWorld) => sum + Object.values(machinesInWorld).reduce((worldSum, count) => worldSum + count, 0), 0);
     const hasMeaningfulProgress =
       state.crumbs > 0 ||
-      state.herbClicks > 0 ||
+      Object.values(state.herbInventory).some((count) => count > 0) ||
+      Object.values(state.perfumeInventory).some((count) => count > 0) ||
       state.lifetimeCrumbs > 0 ||
       state.runCrumbsEarned > 0 ||
       state.rebirths > 0 ||
