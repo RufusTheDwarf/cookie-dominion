@@ -2,26 +2,27 @@
 
 ## Organisation actuelle
 
-- `apps/web/src/economy.ts` : moteur économique déterministe, dix types de producteurs, cinq recherches, commandes VIP, contrats, collections, rebirths, ascension totale et validation des sauvegardes.
-- `apps/web/src/main.ts` : boucle clicker, état de l'interface, achats, récompenses, événements temporaires, collections, onglets, rendu DOM et autosauvegarde.
-- `apps/web/src/style.css` : structure clicker à trois colonnes, panneaux du bureau, responsive design et mode sombre.
-- `public/assets/*.svg` : illustrations originales du flacon, de la maison et des équipements.
-- `tests/economy.test.ts` : tests unitaires du moteur de jeu et de la persistance.
+- `apps/web/src/economy.ts` : économie déterministe, tirage des matières botaniques, fabrication par lot de dix, dix producteurs, cinq recherches, commandes VIP, contrats, collections, prestige et validation des sauvegardes.
+- `apps/web/src/main.ts` : boucle clicker, révélation de matière, carnet botanique, achats, récompenses, événements temporaires, onglets, contrôles au pointeur et autosauvegarde.
+- `apps/web/src/style.css` : interface fixe en grand écran, grille compacte des dix producteurs, thème clair/sombre et modes responsive.
+- `public/assets/*.svg` : illustrations originales des matières premières, des flacons et des équipements.
+- `tests/economy.test.ts` : tests unitaires de l'économie, de la récolte aléatoire, de la fabrication et de la persistance.
 
 ## Couches
 
-1. **Domaine :** l'économie définit les coûts, les revenus, les multiplicateurs, la progression et les règles de prestige. Elle ne dépend pas du DOM.
-2. **Interface :** TypeScript et HTML pilotent le flacon cliquable, la manufacture, les onglets du bureau et les retours visuels.
-3. **Présentation :** CSS et SVG donnent une identité originale à la parfumerie et gèrent les écrans larges ou étroits.
-4. **Persistance :** LocalStorage et les fichiers JSON gèrent les sauvegardes locales. Le parseur valide et migre les anciens formats.
-5. **Livraison :** Vite pour le serveur de développement et le build ; GitHub Actions pour le typecheck, les tests et la compilation.
+1. **Domaine :** calcul des revenus et des prix, probabilités de récolte, inventaire botanique, fabrication, progression et règles de prestige. Il ne dépend pas du DOM.
+2. **Interface :** TypeScript et HTML pilotent le flacon récoltable, la révélation des objets, la manufacture et le bureau à onglets.
+3. **Présentation :** CSS et SVG fixent une composition de grand écran sans défilement vertical, tout en conservant un repli responsive pour les fenêtres plus étroites.
+4. **Contrôles :** les boutons de jeu sont opérés au pointeur ou au tactile. Les clics synthétiques associés à l'activation clavier sont ignorés, et Tab n'est pas utilisé pour parcourir les contrôles.
+5. **Persistance :** LocalStorage et les fichiers JSON enregistrent la trésorerie, le stock de matières en cours, le carnet de découvertes et le reste de la progression. Les anciens formats sont migrés.
+6. **Livraison :** Vite pour le serveur de développement et le build ; GitHub Actions pour le typecheck, les tests et la compilation.
 
-## Choix de structure
+## Boucle de jeu
 
-La boucle de jeu est organisée comme un clicker incrémental : clic manuel, production passive, achat croissant de producteurs, recherche, commande ponctuelle, honneurs et prestige. Le catalogue affiche les producteurs successifs ; les collections changent le multiplicateur de revenus et conservent chacune leur propre inventaire.
+Un clic récolte une matière aléatoire. Dix matières sont consommées pour fabriquer un parfum. La recherche botanique augmente la probabilité d'une récolte bonus. Les parfums alimentent ensuite les achats de producteurs, les commandes, les recherches et le prestige.
 
-Les anciennes données de déplacement, d'étages et de terrain sont encore présentes dans le format de sauvegarde pour préserver la compatibilité, mais elles ne sont plus nécessaires à l'interface active.
+Les anciennes données de déplacement, d'étages et de terrain restent dans le format de sauvegarde pour éviter une rupture de compatibilité, mais elles ne participent plus à la boucle active.
 
 ## Limites actuelles
 
-Pas de comptes, de multijoueur, de sauvegarde cloud, de backend de validation ou de client mobile natif. La vérification visuelle manuelle doit encore être faite dans un vrai navigateur avant diffusion publique.
+Pas de comptes, de multijoueur, de sauvegarde cloud ou de backend de validation. La CI valide le code et les tests unitaires ; une inspection visuelle manuelle reste nécessaire sur différents écrans avant de considérer l'interface comme définitivement validée.
