@@ -887,21 +887,9 @@ function eraseSave(): void {
   setStatus('Nouvelle partie créée. Ta maison repart de zéro.');
 }
 
-// The game is pointer-operated: keyboard focus must not automate rapid purchases or harvesting.
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'Tab') {
-    event.preventDefault();
-    event.stopPropagation();
-    return;
-  }
-  if ((event.key === 'Enter' || event.key === ' ') && event.target instanceof HTMLButtonElement) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
-}, true);
-
+// Keep native Tab and Enter/Space behavior available to keyboard users.
 app.addEventListener('click', (event) => {
-  if (!(event instanceof MouseEvent) || event.detail === 0) return;
+  if (!(event instanceof MouseEvent)) return;
   const target = event.target instanceof Element ? event.target.closest<HTMLElement>('button') : null;
   if (!target) return;
 

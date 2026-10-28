@@ -10,9 +10,11 @@
 | Étages accessibles | Implémenté | Escalier, coûts et prérequis, sélection, persistance et catalogue limité à l'étage actif |
 | Animation du personnage | Implémenté | Orientation, marche, mouvement du corps et geste d'interaction |
 | Animation du décor | Implémenté | Plantes animées et particules temporaires lors des interactions |
-| Machines visibles | Implémenté | Laboratoire et comptoir dessinés comme des objets physiques |
+| Machines visibles | Implémenté | Laboratoire, comptoir et producteurs achetés dessinés comme des objets physiques |
+| Producteurs matérialisés | Implémenté | Emplacement par étage, animation subtile et badge de quantité installée |
 | Déplacement | Implémenté | Flèches, ZQSD, clic ou toucher pour marcher |
 | Commandes tactiles | Implémenté | Pavé directionnel et bouton Interagir sur petits écrans |
+| Accessibilité clavier | Implémenté | Tab, focus visible, activation native des boutons sans déplacer le personnage par accident |
 | Récolte botanique | Implémenté | Chaque parcelle fournit une matière précise, sans tirage aléatoire |
 | Carnet de formulations | Implémenté | Cinq recettes, sélection d'une formule et stock de flacons |
 | Laboratoire | Implémenté | Consomme les ingrédients nécessaires et crée le flacon choisi |

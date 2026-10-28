@@ -20,7 +20,7 @@
 - [ ] Ajouter des animations de marche et d'interaction, ainsi que des effets sonores originaux.
 - [x] Progression entre étages avec escalier, coûts, prérequis, sélecteur et catalogues séparés.
 - [ ] Développer davantage la géométrie de chaque étage, les portes intérieures et les points d'accès physiques.
-- [ ] Donner à chaque machine un emplacement physique dans l'atelier et une animation de production.
+- [x] Donner à chaque machine achetée un emplacement physique, une animation de production et un compteur de quantité.
 - [ ] Développer la gestion de la maison : réputation, coûts d'exploitation et déblocage de nouvelles parcelles.
 - [ ] Équilibrer les prix et le rythme d'évolution sur une session longue.
 - [ ] Envisager une version serveur si les comptes, les sauvegardes cloud ou l'anti-triche deviennent nécessaires.

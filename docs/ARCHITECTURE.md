@@ -28,6 +28,7 @@ Les commandes clients suivent une rotation déterministe de cinq recettes. La pr
 - Le monde mesure 1440 × 720. La caméra suit le joueur et reste dans les limites du monde.
 - Le personnage change d'orientation, anime son corps pendant la marche et tend le bras pendant une interaction.
 - Les plantes oscillent légèrement. Les interactions créent des particules temporaires.
+- Les producteurs achetés sont transmis à la scène comme données d'affichage et rendus à des emplacements fixes, avec animation de fonctionnement et quantité visible.
 - Les deux murs intérieurs comportent des passages. Le déplacement ne peut pas traverser les murs en dehors de ces passages.
 - Les coordonnées des clics sont converties de l'écran vers le monde, en tenant compte de la caméra.
 - Un escalier dans la scène déclenche les règles d'ouverture des étages. L'état ouvert et l'étage actif sont persistés, tandis que le catalogue n'affiche que les équipements de l'étage actif.
@@ -38,6 +39,7 @@ Les commandes clients suivent une rotation déterministe de cinq recettes. La pr
 - Flèches ou ZQSD pour marcher.
 - Clic ou toucher le sol pour se déplacer vers une position.
 - E ou bouton Interagir à proximité d'un poste.
+- Les commandes de navigation restent accessibles avec Tab et Enter/Space. Les touches de déplacement ne prennent pas le contrôle lorsqu'un bouton ou un champ reçoit le focus.
 - Commandes directionnelles tactiles sur les petits écrans.
 
 ## Sécurité et sauvegardes
