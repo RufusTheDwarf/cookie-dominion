@@ -15,7 +15,7 @@
 
 ## Le jeu
 
-Parfum Empire se déroule dans une maison de parfumerie que le joueur développe étape par étape. La zone principale est un atelier 2D avec un jardin botanique, un laboratoire et un comptoir de vente. Les ingrédients ne tombent pas au hasard. Chaque parcelle fournit une matière précise.
+Parfum Empire se déroule dans une maison de parfumerie que le joueur développe étape par étape. L'atelier est un espace 2D parcourable qui relie un jardin botanique, un laboratoire et une boutique. La caméra suit le personnage dans une carte plus grande que l'écran. Les ingrédients ne tombent pas au hasard : chaque parcelle fournit une matière précise.
 
 ## Boucle de jeu
 
@@ -28,11 +28,13 @@ Parfum Empire se déroule dans une maison de parfumerie que le joueur développe
 
 ## Systèmes
 
-- Atelier 2D avec déplacements au clavier, commandes tactiles et déplacement par toucher.
+- Atelier 2D avec caméra de suivi, déplacement au clavier, commandes tactiles et déplacement par toucher.
+- Animation de marche avec orientation, mouvements du corps et animation d'interaction.
+- Machines et parcelles dessinées dans le monde, effets de particules lors des interactions et végétation animée.
+- Trois pièces reliées par des passages : jardin botanique, laboratoire et boutique.
 - Sept parcelles botaniques à récolte déterministe.
 - Cinq recettes qui utilisent des combinaisons d'ingrédients précises.
 - Inventaire des matières, découvertes, flacons fabriqués et ventes.
-- Laboratoire et comptoir comme postes d'interaction.
 - Dix équipements de production et cinq recherches évolutives.
 - Contrats, honneurs, trois collections, rebirth et ascension totale.
 - Sauvegarde locale, export JSON, import et migration des anciennes sauvegardes.
@@ -44,7 +46,7 @@ Parfum Empire se déroule dans une maison de parfumerie que le joueur développe
 |---|---|
 | `apps/web/src/main.ts` | Interface, progression, sauvegarde et connexion des systèmes |
 | `apps/web/src/economy.ts` | Règles de récolte, recettes, vente, production, recherches et prestige |
-| `apps/web/src/workshop-scene.ts` | Rendu 2D, déplacement, proximité des postes et contrôles |
+| `apps/web/src/workshop-scene.ts` | Monde 2D, caméra, déplacement, animations, particules, proximité des postes et contrôles |
 | `apps/web/src/style.css` | Interface responsive et commandes tactiles |
 | `public/assets/*.svg` | Illustrations des matières, flacons et équipements |
 | `tests/economy.test.ts` | Tests du moteur économique et des sauvegardes |
