@@ -28,7 +28,7 @@ const STATIONS: Station[] = [
   { id: 'bergamot', x: 218, y: 300, title: 'BERGAMOTE', detail: 'Parcelle 04', color: '#b5a849' },
   { id: 'sandalwood', x: 338, y: 145, title: 'SANTAL', detail: 'Parcelle 05', color: '#a66b4c' },
   { id: 'jasmine', x: 338, y: 300, title: 'JASMIN', detail: 'Parcelle 06', color: '#d8c99b' },
-  { id: 'resin', x: 438, y: 145, title: 'RÉSINE', detail: 'Parcelle 07', color: '#c28a42' },
+  { id: 'resin', x: 438, y: 300, title: 'RÉSINE', detail: 'Parcelle 07', color: '#c28a42' },
   { id: 'laboratory', x: 590, y: 220, title: 'LABORATOIRE', detail: 'Formuler un parfum', color: '#b28a4d' },
   { id: 'counter', x: 830, y: 220, title: 'COMPTOIR', detail: 'Vendre un flacon', color: '#53694c' },
 ];
@@ -217,6 +217,17 @@ export function createWorkshopScene(
     return result;
   }
 
+  function movePlayer(dx: number, dy: number): void {
+    const nextX = Math.max(24, Math.min(WIDTH - 24, player.x + dx));
+    const nextY = Math.max(72, Math.min(HEIGHT - 24, player.y + dy));
+    const crossesWall = [470, 720].some((wall) =>
+      ((player.x < wall && nextX >= wall) || (player.x > wall && nextX <= wall)) &&
+      (nextY < 150 || nextY > 270),
+    );
+    if (!crossesWall) player.x = nextX;
+    player.y = nextY;
+  }
+
   function update(now: number): void {
     if (destroyed) return;
     const elapsed = Math.min(.05, Math.max(0, (now - lastFrame) / 1000));
@@ -237,8 +248,7 @@ export function createWorkshopScene(
     }
     if (dx !== 0 || dy !== 0) {
       const length = Math.hypot(dx, dy);
-      player.x = Math.max(24, Math.min(WIDTH - 24, player.x + dx / length * 175 * elapsed));
-      player.y = Math.max(72, Math.min(HEIGHT - 24, player.y + dy / length * 175 * elapsed));
+      movePlayer(dx / length * 175 * elapsed, dy / length * 175 * elapsed);
     }
     nearby = nearestStation()?.id ?? null;
     if (nearby !== lastReported) {
@@ -265,7 +275,7 @@ export function createWorkshopScene(
     const x = (event.clientX - bounds.left) / bounds.width * WIDTH;
     const y = (event.clientY - bounds.top) / bounds.height * HEIGHT;
     const station = STATIONS.find((item) => Math.hypot(item.x - x, item.y - y) < 54);
-    destination = station ? { x: station.x + (station.x > WIDTH - 120 ? -48 : 48), y: station.y + 8 } : { x, y };
+    destination = station ? { x: station.x + ((station.x > 380 && station.x < 470) || station.x > WIDTH - 120 ? -48 : 48), y: station.y + 8 } : { x, y };
   };
   const observer = new ResizeObserver(resize);
   observer.observe(canvas);
@@ -278,10 +288,10 @@ export function createWorkshopScene(
   return {
     move(direction: MoveDirection): void {
       const distance = 54;
-      if (direction === 'up') player.y = Math.max(72, player.y - distance);
-      if (direction === 'down') player.y = Math.min(HEIGHT - 24, player.y + distance);
-      if (direction === 'left') player.x = Math.max(24, player.x - distance);
-      if (direction === 'right') player.x = Math.min(WIDTH - 24, player.x + distance);
+      if (direction === 'up') movePlayer(0, -distance);
+      if (direction === 'down') movePlayer(0, distance);
+      if (direction === 'left') movePlayer(-distance, 0);
+      if (direction === 'right') movePlayer(distance, 0);
       destination = null;
       draw();
       nearby = nearestStation()?.id ?? null;
