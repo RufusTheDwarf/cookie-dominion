@@ -223,9 +223,9 @@ export function createWorkshopScene(
     lastFrame = now;
     let dx = 0;
     let dy = 0;
-    if (keys.has('arrowleft') || keys.has('a')) dx -= 1;
+    if (keys.has('arrowleft') || keys.has('a') || keys.has('q')) dx -= 1;
     if (keys.has('arrowright') || keys.has('d')) dx += 1;
-    if (keys.has('arrowup') || keys.has('w')) dy -= 1;
+    if (keys.has('arrowup') || keys.has('w') || keys.has('z')) dy -= 1;
     if (keys.has('arrowdown') || keys.has('s')) dy += 1;
     if (dx !== 0 || dy !== 0) destination = null;
     if (destination) {
@@ -252,7 +252,7 @@ export function createWorkshopScene(
   const keydown = (event: KeyboardEvent): void => {
     if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
     const key = event.key.toLowerCase();
-    if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'w', 'a', 's', 'd'].includes(key)) {
+    if (['arrowleft', 'arrowright', 'arrowup', 'arrowdown', 'w', 'a', 's', 'd', 'z', 'q'].includes(key)) {
       keys.add(key);
       event.preventDefault();
     } else if (key === 'e' || key === ' ') {
@@ -265,7 +265,7 @@ export function createWorkshopScene(
     const x = (event.clientX - bounds.left) / bounds.width * WIDTH;
     const y = (event.clientY - bounds.top) / bounds.height * HEIGHT;
     const station = STATIONS.find((item) => Math.hypot(item.x - x, item.y - y) < 54);
-    destination = station ? { x: station.x, y: station.y + 44 } : { x, y };
+    destination = station ? { x: station.x + (station.x > WIDTH - 120 ? -48 : 48), y: station.y + 8 } : { x, y };
   };
   const observer = new ResizeObserver(resize);
   observer.observe(canvas);
