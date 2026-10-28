@@ -24,7 +24,7 @@ La structure est désormais celle d'un **clicker tycoon** : le flacon est le poi
 ## Structure de l'interface
 
 - **Le parfumeur :** zone de récolte aléatoire, animation de la matière découverte, progression de 0 à 10, carnet botanique, flacon mythique et commandes VIP.
-- **La manufacture :** catalogue vertical de 10 types d'équipements, quantité possédée, coût du prochain exemplaire et rendement par seconde.
+- **La manufacture :** grille compacte des dix équipements, quantité possédée, coût du prochain exemplaire et rendement par seconde.
 - **Le bureau :** six onglets dédiés aux recherches, contrats, honneurs, collections, prestige et sauvegardes.
 - **Barre économique :** trésorerie, production par seconde, progression des matières pour la prochaine fragrance et cumul du run.
 
@@ -35,7 +35,7 @@ L'interface utilise des illustrations SVG originales pour la maison, les flacons
 1. **Récolte des matières** : chaque clic révèle un objet aléatoire. Les neuf premiers clics ne donnent pas directement de parfum.
 2. **Assemble une fragrance** après dix matières récoltées. Les matières sont consommées pour produire un parfum.
 3. **Investis dans les producteurs** : commence par la table de formulation, puis achète des équipements plus coûteux qui génèrent des parfums automatiquement.
-4. **Achète des recherches** pour augmenter la production, renforcer les clics, réduire les coûts, prolonger les bonus rares et améliorer les paiements VIP.
+4. **Achète des recherches** pour augmenter la production, améliorer la chance de récolte bonus, réduire les coûts, prolonger les bonus rares et augmenter les paiements VIP.
 5. **Livre des commandes VIP** depuis le panneau dédié ; les coûts et les paiements progressent avec chaque livraison.
 6. **Réclame les contrats** et complète le registre des honneurs.
 7. **Ouvre de nouvelles collections** en effectuant des rebirths.
@@ -45,6 +45,7 @@ L'interface utilise des illustrations SVG originales pour la maison, les flacons
 
 - **Dix producteurs :** table de formulation, alambic de cuivre, ligne d'embouteillage, atelier de parfumeur, extracteur astral, serre botanique, presse à enfleurage, atelier haute parfumerie, distillateur de cristal et manufacture orbitale.
 - **Production incrémentale :** coûts croissants à chaque achat, revenu passif calculé par seconde et multiplication du rendement selon la collection active.
+- **Récolte botanique :** sept matières à probabilités différentes, dix ingrédients consommés par fragrance et carnet de découvertes sauvegardé.
 - **Cinq recherches :** production globale, chance de récolter une matière bonus, réduction du prix des équipements, durée du bonus mythique et paiement des commandes VIP. Chaque recherche possède dix niveaux.
 - **Flacon mythique :** apparaît temporairement, rapporte une récompense immédiate et double la production pendant une durée améliorée par la recherche correspondante.
 - **Commandes VIP :** dépense de préparation, paiement croissant, marge améliorée par la recherche commerciale et progression sauvegardée.
@@ -99,7 +100,7 @@ npm run build
 | `public/assets/*.svg` | Illustrations originales des flacons et équipements |
 | `tests/economy.test.ts` | Tests unitaires de l'économie, du prestige et de la persistance |
 
-Le rendu est réalisé en HTML/CSS/TypeScript avec SVG ; Phaser n'est plus nécessaire pour la boucle de jeu actuelle. Les actions de jeu sont opérées au pointeur ou au tactile : Tab ne parcourt pas les boutons et Entrée/Espace ne déclenchent pas les actions répétitivement.
+Le rendu est réalisé en HTML/CSS/TypeScript avec SVG ; Phaser n'est plus nécessaire pour la boucle de jeu actuelle. Sur grand écran, l'interface reste dans la hauteur du viewport, sans défilement vertical. Les actions de jeu sont opérées au pointeur ou au tactile : Tab ne parcourt pas les boutons et Entrée/Espace ne déclenchent pas les actions.
 
 ## État du projet
 
