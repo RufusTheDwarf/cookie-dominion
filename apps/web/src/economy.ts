@@ -8,7 +8,6 @@ export interface MaterialDefinition {
   name: string;
   shortName: string;
   rarity: 'Commune' | 'Inhabituelle' | 'Rare' | 'Très rare';
-  weight: number;
   color: string;
   asset: string;
 }
@@ -124,13 +123,13 @@ export const MACHINE_COST_GROWTH = 1.35;
 export const MAX_UPGRADE_LEVEL = 10;
 
 export const MATERIALS: MaterialDefinition[] = [
-  { id: 'lavender', name: 'Lavande', shortName: 'LAVANDE', rarity: 'Commune', weight: 0.30, color: '#798e64', asset: '/assets/material-lavender.svg' },
-  { id: 'mint', name: 'Menthe', shortName: 'MENTHE', rarity: 'Commune', weight: 0.25, color: '#6f9c77', asset: '/assets/material-mint.svg' },
-  { id: 'rose', name: 'Pétales de rose', shortName: 'ROSE', rarity: 'Inhabituelle', weight: 0.18, color: '#b96e7b', asset: '/assets/material-rose.svg' },
-  { id: 'bergamot', name: 'Bergamote', shortName: 'BERGAMOTE', rarity: 'Inhabituelle', weight: 0.14, color: '#b5a849', asset: '/assets/material-bergamot.svg' },
-  { id: 'sandalwood', name: 'Bois de santal', shortName: 'SANTAL', rarity: 'Rare', weight: 0.075, color: '#a66b4c', asset: '/assets/material-sandalwood.svg' },
-  { id: 'jasmine', name: 'Jasmin', shortName: 'JASMIN', rarity: 'Rare', weight: 0.04, color: '#e0cfa1', asset: '/assets/material-jasmine.svg' },
-  { id: 'resin', name: 'Résine ambrée', shortName: 'RÉSINE', rarity: 'Très rare', weight: 0.015, color: '#c28a42', asset: '/assets/material-resin.svg' },
+  { id: 'lavender', name: 'Lavande', shortName: 'LAVANDE', rarity: 'Commune', color: '#798e64', asset: '/assets/material-lavender.svg' },
+  { id: 'mint', name: 'Menthe', shortName: 'MENTHE', rarity: 'Commune', color: '#6f9c77', asset: '/assets/material-mint.svg' },
+  { id: 'rose', name: 'Pétales de rose', shortName: 'ROSE', rarity: 'Inhabituelle', color: '#b96e7b', asset: '/assets/material-rose.svg' },
+  { id: 'bergamot', name: 'Bergamote', shortName: 'BERGAMOTE', rarity: 'Inhabituelle', color: '#b5a849', asset: '/assets/material-bergamot.svg' },
+  { id: 'sandalwood', name: 'Bois de santal', shortName: 'SANTAL', rarity: 'Rare', color: '#a66b4c', asset: '/assets/material-sandalwood.svg' },
+  { id: 'jasmine', name: 'Jasmin', shortName: 'JASMIN', rarity: 'Rare', color: '#e0cfa1', asset: '/assets/material-jasmine.svg' },
+  { id: 'resin', name: 'Résine ambrée', shortName: 'RÉSINE', rarity: 'Très rare', color: '#c28a42', asset: '/assets/material-resin.svg' },
 ];
 
 const MATERIAL_IDS = MATERIALS.map((material) => material.id);
