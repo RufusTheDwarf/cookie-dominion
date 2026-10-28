@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
-import { getFloorTransitionLanding, isWorkshopPositionBlocked } from '../apps/web/src/workshop-scene';
+import { getFloorTransitionLanding, isClosedWallCrossingBlocked, isWorkshopPositionBlocked } from '../apps/web/src/workshop-scene';
 
+
+describe('workshop wall crossings', () => {
+  it('blocks solid wall sections and leaves the doorway opening passable', () => {
+    expect(isClosedWallCrossingBlocked(630, 670, 250)).toBe(true);
+    expect(isClosedWallCrossingBlocked(630, 670, 290)).toBe(true);
+    expect(isClosedWallCrossingBlocked(630, 670, 350)).toBe(false);
+    expect(isClosedWallCrossingBlocked(630, 635, 250)).toBe(false);
+  });
+});
 
 describe('workshop collision boundaries', () => {
   it('blocks visible garden beds, the laboratory, and the counter', () => {
