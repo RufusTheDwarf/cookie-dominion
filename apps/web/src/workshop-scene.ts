@@ -22,9 +22,7 @@ export interface WorkshopMachineVisual {
 export interface WorkshopScene {
   move(direction: MoveDirection): void;
   interact(): void;
-  setTheme(theme: WorkshopTheme): void;
-  setFloor(floor: number): void;
-  setMachines(machines: WorkshopMachineVisual[]): void;
+  setEnvironment(theme: WorkshopTheme, floor: number, machines: WorkshopMachineVisual[]): void;
   destroy(): void;
 }
 
@@ -745,20 +743,14 @@ export function createWorkshopScene(
       onNearbyChange(nearby);
     },
     interact(): void { if (nearby) triggerInteraction(nearby); },
-    setTheme(nextTheme: WorkshopTheme): void {
+    setEnvironment(nextTheme: WorkshopTheme, floor: number, nextMachines: WorkshopMachineVisual[]): void {
       theme = {
         background: nextTheme.background,
         floorColor: nextTheme.floorColor,
         accent: nextTheme.accent,
         belt: nextTheme.belt,
       };
-      draw();
-    },
-    setFloor(floor: number): void {
       currentFloor = Number.isInteger(floor) ? Math.max(0, Math.min(2, floor)) : 0;
-      draw();
-    },
-    setMachines(nextMachines: WorkshopMachineVisual[]): void {
       placedMachines = nextMachines.map((machine) => ({ ...machine }));
       draw();
     },

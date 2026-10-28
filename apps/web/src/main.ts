@@ -686,9 +686,7 @@ function interactWithStation(station: WorkshopStation): void {
 
 
 function renderAll(): void {
-  workshopScene?.setTheme(getWorld(state.currentWorld));
-  workshopScene?.setFloor(state.currentFloor);
-  workshopScene?.setMachines(MACHINES.map((machine) => ({
+  workshopScene?.setEnvironment(getWorld(state.currentWorld), state.currentFloor, MACHINES.map((machine) => ({
     id: machine.id, short: machine.short, name: machine.name, floor: machine.floor,
     count: state.machines[state.currentWorld][machine.id],
   })));
@@ -1053,9 +1051,7 @@ workshopScene = createWorkshopScene(byId<HTMLCanvasElement>('workshop-canvas'), 
   nearbyStation = station;
   renderSceneSelection();
 });
-workshopScene.setTheme(getWorld(state.currentWorld));
-workshopScene.setFloor(state.currentFloor);
-workshopScene.setMachines(MACHINES.map((machine) => ({
+workshopScene.setEnvironment(getWorld(state.currentWorld), state.currentFloor, MACHINES.map((machine) => ({
   id: machine.id, short: machine.short, name: machine.name, floor: machine.floor,
   count: state.machines[state.currentWorld][machine.id],
 })));
