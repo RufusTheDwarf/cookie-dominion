@@ -88,6 +88,15 @@ export function getFloorTransitionLanding(previousFloor: number, nextFloor: numb
     : { x: FLOOR_UP_STAIR.x, y: FLOOR_UP_STAIR.y };
 }
 
+/** Keeps the player's full body clear of closed wall sections while allowing doorway traversal. */
+export function isClosedWallCrossingBlocked(fromX: number, toX: number, y: number): boolean {
+  return WALLS.some((wall) =>
+    ((fromX < wall - PLAYER_RADIUS && toX >= wall - PLAYER_RADIUS) ||
+      (fromX > wall + PLAYER_RADIUS && toX <= wall + PLAYER_RADIUS)) &&
+    (y < DOOR_TOP + PLAYER_RADIUS || y > DOOR_BOTTOM - PLAYER_RADIUS),
+  );
+}
+
 const STATIONS: Station[] = [
   { id: 'lavender', x: 112, y: 172, title: 'LAVANDE', detail: 'Parcelle 01', color: '#798e64' },
   { id: 'mint', x: 292, y: 172, title: 'MENTHE', detail: 'Parcelle 02', color: '#6f9c77' },
@@ -911,10 +920,7 @@ export function createWorkshopScene(
     const startX = player.x;
     const startY = player.y;
     const nextX = Math.max(22, Math.min(WORLD_WIDTH - 22, player.x + dx));
-    const crossesWall = WALLS.some((wall) =>
-      ((player.x < wall && nextX >= wall) || (player.x > wall && nextX <= wall)) &&
-      (player.y < DOOR_TOP + PLAYER_RADIUS || player.y > DOOR_BOTTOM - PLAYER_RADIUS),
-    );
+    const crossesWall = isClosedWallCrossingBlocked(player.x, nextX, player.y);
     if (!crossesWall &&
         !isWorkshopPositionBlocked(nextX, player.y, currentFloor, placedMachines, unlockedBotanicalExpansions)) {
       player.x = nextX;
