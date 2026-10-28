@@ -370,9 +370,13 @@ function save(): void {
   state = { ...state, lastSavedAt: now, rampBuilt: true };
   try {
     const previous = localStorage.getItem(SAVE_KEY);
-    if (previous !== null && parseImportedSave(previous) !== null) {
+    const previousIsValid = previous !== null && parseImportedSave(previous) !== null;
+    if (previousIsValid || saveRecoveryMessage !== null) {
       try {
-        localStorage.setItem(BACKUP_SAVE_KEY, previous);
+        // Normally keep the previous valid save as a rollback point. After recovery,
+        // refresh the backup from the recovered state to avoid replaying old offline time.
+        const backupPayload = previousIsValid ? previous : JSON.stringify(state);
+        localStorage.setItem(BACKUP_SAVE_KEY, backupPayload);
       } catch {
         // Keep attempting the primary save even when there is no room for a backup.
       }
