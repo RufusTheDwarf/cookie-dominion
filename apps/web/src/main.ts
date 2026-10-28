@@ -16,6 +16,9 @@ import {
   essenceMultiplier,
   exportSaveFile,
   getWorld,
+  harvestIngredient,
+  INGREDIENTS_PER_PERFUME,
+  MATERIALS,
   MACHINES,
   MAX_UPGRADE_LEVEL,
   MISSION_DEFINITIONS,
@@ -33,6 +36,7 @@ import {
   UPGRADES,
   WORLDS,
   type GameState,
+  type MaterialId,
   type MachineId,
   type MissionId,
   type UpgradeId,
@@ -48,7 +52,6 @@ if (!app) throw new Error('Missing app root');
 type StoreTab = 'upgrades' | 'contracts' | 'honours' | 'worlds' | 'prestige' | 'save';
 let activeTab: StoreTab = 'upgrades';
 let statusMessage = 'Ta première fragrance t’attend. Clique sur le flacon pour commencer.';
-let clickCount = 0;
 let lastTick = performance.now();
 let lastPassiveUiSecond = -1;
 let autoSaveElapsed = 0;
@@ -90,10 +93,10 @@ app.innerHTML = `
         <div class="headline-money">
           <span>TRÉSORERIE</span>
           <strong id="header-money">0</strong>
-          <small>fragrances en stock</small>
+          <small>parfums disponibles</small>
         </div>
         <div class="header-stat"><span>PRODUCTION</span><strong id="header-cps">0</strong><small>par seconde</small></div>
-        <div class="header-stat"><span>PAR CLIC</span><strong id="header-click">5</strong><small>création manuelle</small></div>
+        <div class="header-stat"><span>RÉCOLTE</span><strong id="header-click">0/10</strong><small>notes pour un flacon</small></div>
         <div class="header-stat"><span>VIE DU RUN</span><strong id="header-run">0</strong><small>produits cumulés</small></div>
         <button id="open-settings" class="icon-button" type="button" title="Paramètres et sauvegarde" aria-label="Paramètres et sauvegarde">☷</button>
       </div>
@@ -115,25 +118,31 @@ app.innerHTML = `
           <span class="stamped-tag">ATELIER</span>
         </div>
         <div class="click-card">
-          <div class="click-card-topline"><span>FORMULE SIGNATURE</span><span id="click-multiplier">×1,00</span></div>
+          <div class="click-card-topline"><span>RÉCOLTE BOTANIQUE</span><span id="click-multiplier">BUTIN ALÉATOIRE</span></div>
           <div class="clicker-stage" id="clicker-stage">
             <div class="bottle-halo" aria-hidden="true"></div>
             <div class="bottle-orbit orbit-one" aria-hidden="true"></div>
             <div class="bottle-orbit orbit-two" aria-hidden="true"></div>
-            <button id="perfume-clicker" class="perfume-clicker" type="button" aria-label="Formuler un parfum">
-              <img src="/assets/bottle-product.svg" alt="Flacon de parfum" draggable="false" />
+            <button id="perfume-clicker" class="perfume-clicker" type="button" aria-label="Récolter une matière botanique aléatoire">
+              <img src="/assets/material-unknown.svg" alt="Matière inconnue" draggable="false" />
             </button>
-            <span class="stage-caption">EAU DE PARFUM · N° 001</span>
+            <div class="crafted-flacon-pop" id="crafted-flacon-pop" aria-hidden="true"><img src="/assets/bottle-product.svg" alt="" /></div>
+            <span class="stage-caption">10 MATIÈRES = 1 FRAGRANCE</span>
           </div>
+          <div class="harvest-summary" aria-live="polite">
+            <span class="last-drop-icon"><img id="harvest-last-icon" src="/assets/material-unknown.svg" alt="" /></span>
+            <span class="last-drop-copy"><small>DERNIÈRE DÉCOUVERTE</small><strong id="harvest-last-name">Objet inconnu</strong><em id="harvest-last-rarity">La nature réserve une surprise.</em></span>
+            <span class="harvest-counter"><strong id="harvest-progress">0/10</strong><small>notes</small></span>
+          </div>
+          <div class="harvest-progress-track"><i id="harvest-progress-bar"></i></div>
           <div class="click-instructions">
-            <strong>Crée une fragrance</strong>
-            <span>Chaque clic génère <b id="click-value-label">5</b> parfums.</span>
+            <strong>Récolte des matières premières</strong>
+            <span>Chaque clic révèle un objet. Dix matières sont assemblées en une fragrance.</span>
           </div>
-          <button id="manual-create" class="primary-button" type="button">
-            <span>FORMULER UN FLACON</span><strong>+<i id="button-click-value">5</i></strong>
-          </button>
+          <div class="material-codex-heading"><span>CARNET BOTANIQUE</span><span id="material-discovered-count">0 découvertes</span></div>
+          <div id="material-inventory" class="material-inventory"></div>
           <div class="click-card-footer">
-            <span>CRÉATIONS DE CETTE SESSION</span><strong id="session-clicks">0</strong>
+            <span>RÉCOLTES EFFECTUÉES</span><strong id="session-clicks">0</strong>
           </div>
         </div>
 
@@ -277,21 +286,19 @@ function save(): void {
 function renderStats(): void {
   const world = getWorld(state.currentWorld);
   const cps = productionPerSecond(state);
-  const clickValue = manualPerfumeValue(state);
   byId('header-money').textContent = format(state.perfumeRevenue);
   byId('header-money').title = formatExact(state.perfumeRevenue) + ' parfums';
   byId('header-cps').textContent = format(cps);
-  byId('header-click').textContent = format(clickValue);
+  byId('header-click').textContent = state.harvestProgress + '/' + INGREDIENTS_PER_PERFUME;
   byId('header-run').textContent = format(state.runPerfumeRevenue);
   byId('factory-cps').textContent = format(cps);
-  byId('click-value-label').textContent = format(clickValue);
-  byId('button-click-value').textContent = format(clickValue);
-  byId('session-clicks').textContent = format(clickCount, 0);
+  byId('click-value-label').textContent = state.harvestProgress + '/' + INGREDIENTS_PER_PERFUME;
+  byId('session-clicks').textContent = format(state.gatherClicks, 0);
   byId('lifetime-sales').textContent = format(state.lifetimePerfumeRevenue);
   byId('rare-count').textContent = format(state.rareFlaconsClaimed, 0);
   byId('current-world-line').textContent = world.name.toUpperCase();
   byId('current-rank').textContent = 'Maison indépendante · Rang ' + (1 + state.rebirths + state.totalRebirths * 10);
-  byId('click-multiplier').textContent = '×' + (1 + state.upgrades.clickPower).toFixed(2).replace('.', ',');
+  byId('click-multiplier').textContent = state.upgrades.clickPower > 0 ? '+' + (state.upgrades.clickPower * 8) + '% BUTIN BONUS' : 'BUTIN ALÉATOIRE';
   byId('global-status').textContent = statusMessage;
   byId('order-count').textContent = format(state.ordersCompleted, 0);
   byId('order-cost').textContent = format(customerOrderCost(state));
@@ -313,12 +320,8 @@ function renderStats(): void {
 function renderMachines(): void {
   const list = byId('machine-list');
   const current = state.machines[state.currentWorld];
-  const unlocked = MACHINES.filter((machine, index) =>
-    current[machine.id] > 0 ||
-    index === 0 ||
-    state.perfumeRevenue >= machineCost(state, machine.id) * 0.72,
-  );
-  list.innerHTML = unlocked.map((machine) => {
+  const catalog = MACHINES;
+  list.innerHTML = catalog.map((machine, index) => {
     const owned = current[machine.id];
     const cost = machineCost(state, machine.id);
     const canAfford = state.perfumeRevenue >= cost;
@@ -327,8 +330,9 @@ function renderMachines(): void {
       (1 + state.upgrades.production * 0.2) *
       (1.6 ** state.rebirths) *
       essenceMultiplier(state);
+    const locked = owned === 0 && !canAfford && index > 1;
     return `
-      <article class="building-row ${owned > 0 ? 'is-owned' : ''} ${canAfford ? 'can-buy' : 'is-expensive'}">
+      <article class="building-row ${owned > 0 ? 'is-owned' : ''} ${canAfford ? 'can-buy' : 'is-expensive'} ${locked ? 'is-locked' : ''}">
         <div class="building-portrait"><img src="${machineIcon(machine.id)}" alt="" loading="lazy" /></div>
         <div class="building-info">
           <div class="building-title-line"><h3>${machine.name}</h3><span class="building-tier">${tierName(machine.floor)}</span></div>
@@ -344,7 +348,7 @@ function renderMachines(): void {
         </div>
       </article>`;
   }).join('');
-  if (unlocked.length === 0) list.innerHTML = '<p class="empty-note">Les premiers équipements apparaîtront à mesure que tu développes ta trésorerie.</p>';
+
 }
 
 function renderUpgrades(): string {
@@ -532,6 +536,7 @@ function renderRareFlacon(now: number): void {
 
 function renderAll(): void {
   renderStats();
+  renderHarvestView();
   renderMachines();
   renderStore();
 }
@@ -555,16 +560,29 @@ function floatReward(amount: number, event?: MouseEvent): void {
 }
 
 function formulate(event?: MouseEvent): void {
-  const amount = manualPerfumeValue(state);
-  state = addPerfumeRevenue(state, amount);
-  clickCount += 1;
-  floatReward(amount, event);
+  const result = harvestIngredient(state);
+  state = result.state;
+  const lastId = result.materials[result.materials.length - 1] ?? 'lavender';
+  const material = MATERIALS.find((item) => item.id === lastId)!;
+  if (result.perfumesCreated > 0) {
+    floatReward(result.perfumesCreated, event, result.perfumesCreated === 1 ? 'parfum' : 'parfums');
+    const pop = byId('crafted-flacon-pop');
+    pop.classList.remove('is-visible');
+    void pop.offsetWidth;
+    pop.classList.add('is-visible');
+    window.setTimeout(() => pop.classList.remove('is-visible'), 760);
+    setStatus('Fragrance assemblée ! +' + format(result.perfumesCreated) + ' parfum(s). La prochaine formule repart de zéro.');
+  } else {
+    floatText('+' + material.name, event);
+    setStatus('Découverte : ' + material.name + ' · ' + material.rarity + '. ' + state.harvestProgress + '/' + INGREDIENTS_PER_PERFUME + ' matières avant la prochaine fragrance.');
+  }
   const clicker = byId('perfume-clicker');
   clicker.classList.remove('is-clicking');
   void clicker.offsetWidth;
   clicker.classList.add('is-clicking');
   window.setTimeout(() => clicker.classList.remove('is-clicking'), 220);
   renderStats();
+  renderHarvestView();
   renderMachines();
   saveSoon();
 }
@@ -712,7 +730,6 @@ function applyImportedSave(raw: string): void {
 function eraseSave(): void {
   if (!window.confirm('Effacer définitivement la progression locale et recommencer depuis zéro ?')) return;
   state = normalizeClickerState(createInitialState());
-  clickCount = 0;
   rareExpiresAt = 0;
   rareBoostUntil = 0;
   rareNextAt = performance.now() + 24_000;
@@ -731,7 +748,7 @@ app.addEventListener('click', (event) => {
   const target = event.target instanceof Element ? event.target.closest<HTMLElement>('button') : null;
   if (!target) return;
 
-  if (target.id === 'perfume-clicker' || target.id === 'manual-create') {
+  if (target.id === 'perfume-clicker') {
     formulate(event instanceof MouseEvent ? event : undefined);
     return;
   }
