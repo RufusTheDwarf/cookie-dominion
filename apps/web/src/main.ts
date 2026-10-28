@@ -11,16 +11,13 @@ import {
   canTotalRebirth,
   claimMission,
   createInitialState,
-  craftPerfume,
   enterWorld,
   ESSENCE_PRESTIGE_VALUE,
   essenceMultiplier,
   exportSaveFile,
   getWorld,
   harvestMaterial,
-  perfumeSalePrice,
   PERFUME_RECIPES,
-  sellPerfume,
   MATERIALS,
   MACHINES,
   MAX_UPGRADE_LEVEL,
@@ -312,7 +309,7 @@ function renderStats(): void {
   byId('lifetime-sales').textContent = format(state.lifetimePerfumeRevenue);
   byId('current-world-line').textContent = world.name.toUpperCase();
   byId('current-rank').textContent = 'Maison indépendante · Rang ' + (1 + state.rebirths + state.totalRebirths * 10);
-  byId('click-multiplier').textContent = state.upgrades.clickPower > 0 ? '+' + (state.upgrades.clickPower * 8) + '% BUTIN BONUS' : 'BUTIN ALÉATOIRE';
+  byId('click-multiplier').textContent = 'RÉCOLTE MANUELLE';
   byId('global-status').textContent = statusMessage;
   byId('factory-status').textContent = currentWorldMachineTotal() === 0
     ? 'La première ligne attend son équipement.'
@@ -402,7 +399,7 @@ function achievements() {
     { name: 'Petite manufacture', description: 'Posséder 10 équipements au total.', unlocked: machines >= 10 },
     { name: 'Ligne industrielle', description: 'Posséder 50 équipements au total.', unlocked: machines >= 50 },
     { name: 'Recherche appliquée', description: 'Acheter une première amélioration.', unlocked: Object.values(state.upgrades).some((level) => level > 0) },
-    { name: 'Client satisfait', description: 'Terminer une commande VIP.', unlocked: state.ordersCompleted >= 1 },
+    { name: 'Première vente', description: 'Vendre un flacon au comptoir.', unlocked: state.perfumesSold >= 1 },
     { name: 'Pièce de collection', description: 'Récupérer un flacon mythique.', unlocked: state.rareFlaconsClaimed >= 1 },
     { name: 'Maison internationale', description: 'Ouvrir une deuxième collection.', unlocked: state.unlockedWorlds.length >= 2 },
     { name: 'Nouvelle génération', description: 'Effectuer un rebirth normal.', unlocked: state.rebirths >= 1 },
