@@ -5,6 +5,7 @@ import {
   canClaimMission,
   canCraftPerfume,
   canFulfillCustomerOrder,
+  canUnlockFloor,
   craftPerfume,
   fulfillCustomerOrder,
   getActiveCustomerOrder,
@@ -15,6 +16,9 @@ import {
   claimMission,
   createInitialState,
   enterWorld,
+  enterFloor,
+  floorUnlockCost,
+  unlockFloor,
   ESSENCE_PRESTIGE_VALUE,
   essenceMultiplier,
   exportSaveFile,
@@ -67,11 +71,18 @@ let nearbyStation: WorkshopStation | null = null;
 let state: GameState;
 
 function normalizeGameState(value: GameState): GameState {
+  const unlockedFloors = [...new Set([
+    0,
+    ...value.unlockedFloors.filter((floor) => Number.isInteger(floor) && floor >= 0 && floor <= 2),
+  ])].sort((a, b) => a - b);
+  const requestedFloor = Number.isInteger(value.currentFloor) && value.currentFloor >= 0 && value.currentFloor <= 2
+    ? value.currentFloor
+    : 0;
   return {
     ...value,
     rampBuilt: true,
-    currentFloor: 0,
-    unlockedFloors: [0],
+    currentFloor: unlockedFloors.includes(requestedFloor) ? requestedFloor : 0,
+    unlockedFloors,
     lastSavedAt: Date.now(),
   };
 }
@@ -129,6 +140,11 @@ app.innerHTML = `
             <div class="scene-help"><span id="scene-prompt">Déplace-toi vers une parcelle pour récolter.</span><button id="scene-interact" type="button" disabled>INTERAGIR · E</button></div>
             <div class="scene-touch-controls" aria-label="Commandes tactiles"><div class="scene-pad"><button type="button" data-scene-move="up" aria-label="Avancer">↑</button><button type="button" data-scene-move="left" aria-label="Aller à gauche">←</button><button type="button" data-scene-move="down" aria-label="Reculer">↓</button><button type="button" data-scene-move="right" aria-label="Aller à droite">→</button></div><small>Commandes tactiles</small></div>
           </div>
+          <section class="floor-navigation" aria-label="Étages de la maison">
+            <div class="floor-navigation-heading"><span class="eyebrow">ATELIER VERTICAL</span><strong id="active-floor-label">Artisanat · étage 0</strong></div>
+            <div id="floor-buttons" class="floor-buttons"></div>
+            <small id="floor-navigation-hint">Approche l'escalier pour ouvrir le prochain étage.</small>
+          </section>
           <div class="harvest-summary" aria-live="polite">
             <span class="last-drop-icon"><img id="harvest-last-icon" src="/assets/material-unknown.svg" alt="" /></span>
             <span class="last-drop-copy"><small>DERNIÈRE DÉCOUVERTE</small><strong id="harvest-last-name">Objet inconnu</strong><em id="harvest-last-rarity">La nature réserve une surprise.</em></span>
@@ -262,7 +278,7 @@ function setStatus(message: string): void {
 
 function save(): void {
   const now = Date.now();
-  state = { ...state, lastSavedAt: now, currentFloor: 0, unlockedFloors: [0], rampBuilt: true };
+  state = { ...state, lastSavedAt: now, rampBuilt: true };
   try {
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
     byId('save-indicator').textContent = 'SAUVEGARDÉ · ' + new Date(now).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' });
@@ -329,8 +345,8 @@ function renderStats(): void {
 function renderMachines(): void {
   const list = byId('machine-list');
   const current = state.machines[state.currentWorld];
-  const catalog = MACHINES;
-  list.innerHTML = catalog.map((machine, index) => {
+  const catalog = MACHINES.filter((machine) => machine.floor === state.currentFloor);
+  list.innerHTML = catalog.map((machine) => {
     const owned = current[machine.id];
     const cost = machineCost(state, machine.id);
     const canAfford = state.perfumeRevenue >= cost;
@@ -339,9 +355,8 @@ function renderMachines(): void {
       (1 + state.upgrades.production * 0.2) *
       (1.6 ** state.rebirths) *
       essenceMultiplier(state);
-    const locked = owned === 0 && !canAfford && index > 1;
     return `
-      <article class="building-row ${owned > 0 ? 'is-owned' : ''} ${canAfford ? 'can-buy' : 'is-expensive'} ${locked ? 'is-locked' : ''}">
+      <article class="building-row ${owned > 0 ? 'is-owned' : ''} ${canAfford ? 'can-buy' : 'is-expensive'}">
         <div class="building-portrait"><img src="${machineIcon(machine.id)}" alt="" loading="lazy" /></div>
         <div class="building-info">
           <div class="building-title-line"><h3>${machine.name}</h3><span class="building-tier">${tierName(machine.floor)}</span></div>
@@ -484,6 +499,42 @@ function renderSavePanel(): string {
     <p class="save-warning">Importer remplace la partie actuelle. Vérifie que tu as exporté tes progrès avant de réinitialiser.</p>`;
 }
 
+function renderFloorNavigation(): void {
+  const names = ['Artisanat', 'Manufacture', 'Essences rares'];
+  const shortNames = ['ÉTAGE 0', 'ÉTAGE 1', 'ÉTAGE 2'];
+  byId('active-floor-label').textContent = names[state.currentFloor] + ' · étage ' + state.currentFloor;
+  byId('floor-buttons').innerHTML = names.map((name, floor) => {
+    const unlocked = state.unlockedFloors.includes(floor);
+    const active = state.currentFloor === floor;
+    const cost = floor === 0 ? 0 : floorUnlockCost(floor);
+    const label = active || unlocked ? name.toUpperCase() : name.toUpperCase() + ' · ' + format(cost);
+    return '<button type="button" data-enter-floor="' + floor + '" class="floor-choice ' +
+      (active ? 'is-active' : '') + (unlocked ? '' : ' is-locked') + '"' +
+      (unlocked && !active ? '' : ' disabled') + ' aria-current="' + (active ? 'true' : 'false') + '">' +
+      '<span>' + shortNames[floor] + '</span><strong>' + label + '</strong></button>';
+  }).join('');
+  const nextFloor = state.currentFloor + 1;
+  if (nextFloor > 2) {
+    byId('floor-navigation-hint').textContent = 'Dernier étage atteint. Tu peux redescendre avec les boutons ci-dessus.';
+    return;
+  }
+  if (state.unlockedFloors.includes(nextFloor)) {
+    byId('floor-navigation-hint').textContent = 'L’escalier permet de monter à l’étage suivant. Les revenus automatisés continuent dans les étages non actifs.';
+    return;
+  }
+  const requiredMachines = nextFloor === 1 ? 2 : 1;
+  const installed = MACHINES.filter((machine) => machine.floor === state.currentFloor)
+    .reduce((total, machine) => total + state.machines[state.currentWorld][machine.id], 0);
+  const missingMachines = Math.max(0, requiredMachines - installed);
+  const cost = floorUnlockCost(nextFloor);
+  const missingCash = Math.max(0, cost - state.perfumeRevenue);
+  const requirements: string[] = [];
+  if (missingMachines > 0) requirements.push(missingMachines + ' équipement(s) supplémentaire(s)');
+  if (missingCash > 0) requirements.push(format(missingCash) + ' pièces');
+  byId('floor-navigation-hint').textContent = 'Près de l’escalier : ouvre ' + names[nextFloor] +
+    (requirements.length ? ' après avoir obtenu ' + requirements.join(' et ') + '.' : ' dès maintenant.');
+}
+
 function renderStore(): void {
   const content = byId('store-content');
   const panels: Record<StoreTab, () => string> = {
@@ -510,6 +561,7 @@ function renderSceneSelection(): void {
     lavender: 'Parcelle de lavande', mint: 'Parcelle de menthe', rose: 'Roseraie',
     bergamot: 'Bergamotiers', sandalwood: 'Bois de santal', jasmine: 'Jardin de jasmin',
     resin: 'Résine ambrée', laboratory: 'Laboratoire de formulation', counter: 'Comptoir de vente',
+    stairs: 'Escalier de la maison',
   };
   const order = getActiveCustomerOrder(state);
   const selectedRecipeIsOrder = selectedRecipeId === order.recipeId;
@@ -527,6 +579,8 @@ function renderSceneSelection(): void {
           : 'préparer ' + order.quantity + ' flacon(s) pour ' + order.customer
         : 'vendre la recette active'
     );
+  } else if (nearbyStation === 'stairs') {
+    prompt.textContent = stationNames[nearbyStation] + ' · ouvrir ou rejoindre l’étage suivant';
   } else {
     prompt.textContent = stationNames[nearbyStation] + ' · récolter une matière choisie';
   }
@@ -534,7 +588,9 @@ function renderSceneSelection(): void {
     ? 'FORMULER · E'
     : nearbyStation === 'counter'
       ? selectedRecipeIsOrder ? (orderReady ? 'LIVRER · E' : 'COMMANDE · E') : 'VENDRE · E'
-      : 'INTERAGIR · E';
+      : nearbyStation === 'stairs'
+        ? 'MONTER · E'
+        : 'INTERAGIR · E';
 }
 
 function interactWithStation(station: WorkshopStation): void {
@@ -564,6 +620,40 @@ function interactWithStation(station: WorkshopStation): void {
     state = craftPerfume(state, selectedRecipeId);
     renderAll();
     setStatus(recipe.name + ' formulé au laboratoire. Le flacon attend au comptoir.');
+    saveSoon();
+    return;
+  }
+  if (station === 'stairs') {
+    const targetFloor = state.currentFloor + 1;
+    if (targetFloor > 2) {
+      setStatus('Tu es au dernier étage. Utilise le sélecteur des étages pour redescendre.');
+      return;
+    }
+    if (!state.unlockedFloors.includes(targetFloor)) {
+      const requiredMachines = targetFloor === 1 ? 2 : 1;
+      const installed = MACHINES.filter((machine) => machine.floor === state.currentFloor)
+        .reduce((total, machine) => total + state.machines[state.currentWorld][machine.id], 0);
+      if (installed < requiredMachines) {
+        setStatus('Pour ouvrir l’étage ' + targetFloor + ', installe encore ' +
+          (requiredMachines - installed) + ' équipement(s) à l’étage actuel.');
+        return;
+      }
+      const cost = floorUnlockCost(targetFloor);
+      if (state.perfumeRevenue < cost) {
+        setStatus('L’accès à l’étage ' + targetFloor + ' coûte ' + format(cost) +
+          ' pièces. Il t’en manque ' + format(cost - state.perfumeRevenue) + '.');
+        return;
+      }
+      if (!canUnlockFloor(state, targetFloor)) {
+        setStatus('Cet étage ne peut pas encore être ouvert depuis l’escalier.');
+        return;
+      }
+      state = unlockFloor(state, targetFloor);
+    }
+    state = enterFloor(state, targetFloor);
+    renderAll();
+    setStatus('Étage ouvert : ' + ['Artisanat', 'Manufacture', 'Essences rares'][targetFloor] +
+      '. Les machines de cet étage sont maintenant accessibles.');
     saveSoon();
     return;
   }
@@ -597,7 +687,9 @@ function interactWithStation(station: WorkshopStation): void {
 
 function renderAll(): void {
   workshopScene?.setTheme(getWorld(state.currentWorld));
+  workshopScene?.setFloor(state.currentFloor);
   renderStats();
+  renderFloorNavigation();
   renderHarvestView();
   renderRecipeWorkshop();
   renderSceneSelection();
@@ -848,6 +940,17 @@ app.addEventListener('click', (event) => {
     claimContract(target.dataset.claimMission as MissionId);
     return;
   }
+  if (target.dataset.enterFloor !== undefined) {
+    const floor = Number(target.dataset.enterFloor);
+    if (Number.isInteger(floor) && state.unlockedFloors.includes(floor)) {
+      state = enterFloor(state, floor);
+      renderAll();
+      setStatus('Tu es maintenant à l’étage ' + floor + ' : ' +
+        ['Artisanat', 'Manufacture', 'Essences rares'][floor] + '.');
+      saveSoon();
+    }
+    return;
+  }
   if (target.dataset.enterWorld) {
     switchWorld(target.dataset.enterWorld as WorldId);
     return;
@@ -947,5 +1050,7 @@ workshopScene = createWorkshopScene(byId<HTMLCanvasElement>('workshop-canvas'), 
   renderSceneSelection();
 });
 workshopScene.setTheme(getWorld(state.currentWorld));
+workshopScene.setFloor(state.currentFloor);
+renderFloorNavigation();
 save();
 requestAnimationFrame(gameTick);

@@ -15,6 +15,7 @@ export interface WorkshopScene {
   move(direction: MoveDirection): void;
   interact(): void;
   setTheme(theme: WorkshopTheme): void;
+  setFloor(floor: number): void;
   destroy(): void;
 }
 
@@ -56,10 +57,21 @@ const STATIONS: Station[] = [
   { id: 'jasmine', x: 472, y: 365, title: 'JASMIN', detail: 'Parcelle 06', color: '#d8c99b' },
   { id: 'resin', x: 472, y: 545, title: 'RÉSINE', detail: 'Parcelle 07', color: '#c28a42' },
   { id: 'laboratory', x: 820, y: 355, title: 'LABORATOIRE', detail: 'Formuler un parfum', color: '#b28a4d' },
+  { id: 'stairs', x: 925, y: 520, title: 'ESCALIER', detail: 'Ouvrir un étage', color: '#8e7051' },
   { id: 'counter', x: 1225, y: 355, title: 'COMPTOIR', detail: 'Vendre un flacon', color: '#53694c' },
 ];
 
 const HERB_COLORS = ['#71885b', '#8ba36a', '#b2b67a', '#d5c99b', '#6e8e70'];
+
+function blendColor(base: number, overlay: number, amount: number): number {
+  const ratio = Math.max(0, Math.min(1, amount));
+  const channel = (shift: number): number => {
+    const a = (base >> shift) & 0xff;
+    const b = (overlay >> shift) & 0xff;
+    return Math.round(a * (1 - ratio) + b * ratio);
+  };
+  return (channel(16) << 16) | (channel(8) << 8) | channel(0);
+}
 
 function colorHex(value: number): string {
   return '#' + Math.max(0, Math.min(0xffffff, Math.round(value))).toString(16).padStart(6, '0');
@@ -97,6 +109,7 @@ export function createWorkshopScene(
     accent: 0x4b5a43,
     belt: 0xa46f4e,
   };
+  let currentFloor = 0;
   let destroyed = false;
   let lastReported: WorkshopStation | null = null;
   let elapsedWorld = 0;
@@ -225,7 +238,25 @@ export function createWorkshopScene(
     c.ellipse(0, 31, 52, 12, 0, 0, Math.PI * 2);
     c.fill();
 
-    if (station.id === 'laboratory') {
+    if (station.id === 'stairs') {
+      if (active) {
+        c.shadowColor = '#dfc28c';
+        c.shadowBlur = 14 + glow;
+      }
+      roundedRect(-38, -8, 76, 35, 5, '#6f5a42', '#47382a');
+      c.shadowBlur = 0;
+      roundedRect(-31, -31, 62, 56, 4, '#bba37e', '#72583d');
+      for (let step = 0; step < 4; step++) {
+        const y = -24 + step * 12;
+        roundedRect(-25 + step * 3, y, 50 - step * 6, 9, 2,
+          step % 2 === 0 ? '#e3d1ac' : '#c7ad80', '#8a6e48');
+      }
+      c.strokeStyle = '#6d5537';
+      c.lineWidth = 2;
+      c.beginPath(); c.moveTo(-30, -28); c.lineTo(30, -28); c.stroke();
+      c.fillStyle = '#f2e7ce';
+      c.beginPath(); c.moveTo(0, -39); c.lineTo(-6, -32); c.lineTo(6, -32); c.closePath(); c.fill();
+    } else if (station.id === 'laboratory') {
       if (active) {
         c.shadowColor = '#d7b96f';
         c.shadowBlur = 18 + glow;
@@ -350,14 +381,25 @@ export function createWorkshopScene(
 
   function drawGround(): void {
     const c = context!;
-    c.fillStyle = colorHex(theme.floorColor);
+    const palette: WorkshopTheme = currentFloor === 0 ? theme : currentFloor === 1 ? {
+      background: blendColor(theme.background, 0x526b7b, 0.55),
+      floorColor: blendColor(theme.floorColor, 0xbac7ce, 0.35),
+      accent: blendColor(theme.accent, 0x42515a, 0.30),
+      belt: blendColor(theme.belt, 0x697f8b, 0.35),
+    } : {
+      background: blendColor(theme.background, 0x252e64, 0.65),
+      floorColor: blendColor(theme.floorColor, 0x9badd2, 0.30),
+      accent: blendColor(theme.accent, 0x302c65, 0.50),
+      belt: blendColor(theme.belt, 0x8a74ba, 0.45),
+    };
+    c.fillStyle = colorHex(palette.floorColor);
     c.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
-    c.fillStyle = colorHex(theme.background);
+    c.fillStyle = colorHex(palette.background);
     c.fillRect(0, 0, 650, WORLD_HEIGHT);
-    c.fillStyle = blendHex(theme.floorColor, 0xffffff, 0.10);
+    c.fillStyle = blendHex(palette.floorColor, 0xffffff, 0.10);
     c.fillRect(650, 0, 350, WORLD_HEIGHT);
-    c.fillStyle = blendHex(theme.floorColor, theme.belt, 0.18);
+    c.fillStyle = blendHex(palette.floorColor, palette.belt, 0.18);
     c.fillRect(1000, 0, WORLD_WIDTH - 1000, WORLD_HEIGHT);
 
     c.fillStyle = 'rgba(248,241,218,.24)';
@@ -378,23 +420,23 @@ export function createWorkshopScene(
     }
 
     // Footpaths and decorative planters give the garden a readable layout.
-    const pathFill = blendHex(theme.floorColor, theme.belt, 0.22);
-    const pathStroke = blendHex(theme.floorColor, theme.accent, 0.22);
+    const pathFill = blendHex(palette.floorColor, palette.belt, 0.22);
+    const pathStroke = blendHex(palette.floorColor, palette.accent, 0.22);
     roundedRect(52, 82, 550, 32, 9, pathFill, pathStroke);
     roundedRect(52, 625, 550, 28, 8, pathFill, pathStroke);
     roundedRect(604, 115, 34, 495, 8, pathFill, pathStroke);
     roundedRect(680, 84, 292, 38, 8, pathFill, pathStroke);
     roundedRect(680, 605, 292, 34, 8, pathFill, pathStroke);
-    roundedRect(1030, 84, 370, 38, 8, blendHex(theme.floorColor, theme.belt, 0.30), pathStroke);
-    roundedRect(1030, 605, 370, 34, 8, blendHex(theme.floorColor, theme.belt, 0.30), pathStroke);
+    roundedRect(1030, 84, 370, 38, 8, blendHex(palette.floorColor, palette.belt, 0.30), pathStroke);
+    roundedRect(1030, 605, 370, 34, 8, blendHex(palette.floorColor, palette.belt, 0.30), pathStroke);
 
     // Doorways remain open between the three connected rooms.
-    c.fillStyle = blendHex(theme.accent, 0x000000, 0.22);
+    c.fillStyle = blendHex(palette.accent, 0x000000, 0.22);
     c.fillRect(646, 0, 8, DOOR_TOP);
     c.fillRect(646, DOOR_BOTTOM, 8, WORLD_HEIGHT - DOOR_BOTTOM);
     c.fillRect(996, 0, 8, DOOR_TOP);
     c.fillRect(996, DOOR_BOTTOM, 8, WORLD_HEIGHT - DOOR_BOTTOM);
-    c.fillStyle = blendHex(theme.floorColor, 0xffffff, 0.24);
+    c.fillStyle = blendHex(palette.floorColor, 0xffffff, 0.24);
     c.fillRect(648, DOOR_TOP, 4, DOOR_BOTTOM - DOOR_TOP);
     c.fillRect(998, DOOR_TOP, 4, DOOR_BOTTOM - DOOR_TOP);
 
@@ -408,21 +450,25 @@ export function createWorkshopScene(
     c.fillText('JARDIN BOTANIQUE', 52, 47);
     c.fillText('LABORATOIRE', 692, 47);
     c.fillText('BOUTIQUE', 1042, 47);
+    roundedRect(1210, 672, 195, 28, 6, 'rgba(246,240,226,.92)', '#aaa087');
+    c.textAlign = 'center';
+    c.font = 'bold 11px system-ui';
+    c.fillText('ÉTAGE ' + currentFloor + ' · ' + ['ARTISANAT', 'MANUFACTURE', 'ESSENCES RARES'][currentFloor], 1307, 690);
 
     // Storage shelves and barrels add depth to the workshop rooms.
     for (let i = 0; i < 4; i++) {
       const x = 1050 + i * 83;
-      roundedRect(x, 145, 62, 35, 4, colorHex(theme.belt), colorHex(theme.accent));
+      roundedRect(x, 145, 62, 35, 4, colorHex(palette.belt), colorHex(palette.accent));
       for (let j = 0; j < 3; j++) {
-        c.fillStyle = [colorHex(theme.background), colorHex(theme.floorColor), colorHex(theme.accent)][j];
+        c.fillStyle = [colorHex(palette.background), colorHex(palette.floorColor), colorHex(palette.accent)][j];
         c.beginPath();
         c.arc(x + 13 + j * 18, 159, 6, 0, Math.PI * 2);
         c.fill();
       }
     }
-    roundedRect(1050, 525, 70, 48, 6, colorHex(theme.belt), colorHex(theme.accent));
-    roundedRect(1134, 525, 70, 48, 6, colorHex(theme.belt), colorHex(theme.accent));
-    roundedRect(1218, 525, 70, 48, 6, colorHex(theme.belt), colorHex(theme.accent));
+    roundedRect(1050, 525, 70, 48, 6, colorHex(palette.belt), colorHex(palette.accent));
+    roundedRect(1134, 525, 70, 48, 6, colorHex(palette.belt), colorHex(palette.accent));
+    roundedRect(1218, 525, 70, 48, 6, colorHex(palette.belt), colorHex(palette.accent));
   }
 
   function draw(): void {
@@ -432,10 +478,10 @@ export function createWorkshopScene(
     c.save();
     c.translate(-cameraX, -cameraY);
     drawGround();
-    STATIONS.filter((station) => !['laboratory', 'counter'].includes(station.id)).forEach((station, i) => {
+    STATIONS.filter((station) => !['laboratory', 'counter', 'stairs'].includes(station.id)).forEach((station, i) => {
       drawHerbBed(station, i);
     });
-    STATIONS.filter((station) => station.id === 'laboratory' || station.id === 'counter').forEach(drawMachine);
+    STATIONS.filter((station) => station.id === 'laboratory' || station.id === 'counter' || station.id === 'stairs').forEach(drawMachine);
 
     for (const particle of particles) {
       c.globalAlpha = Math.max(0, particle.life / particle.maxLife);
@@ -551,7 +597,7 @@ export function createWorkshopScene(
     const y = (event.clientY - bounds.top) / bounds.height * VIEW_HEIGHT + cameraY;
     const station = STATIONS.find((item) => Math.hypot(item.x - x, item.y - y) < 58);
     if (station) {
-      const offset = station.id === 'counter' || station.id === 'laboratory' ? -72 : 64;
+      const offset = station.id === 'counter' || station.id === 'laboratory' ? -72 : station.id === 'stairs' ? -64 : 64;
       destination = { x: station.x + offset, y: station.y + 48 };
     } else {
       destination = { x, y };
@@ -585,6 +631,10 @@ export function createWorkshopScene(
         accent: nextTheme.accent,
         belt: nextTheme.belt,
       };
+      draw();
+    },
+    setFloor(floor: number): void {
+      currentFloor = Number.isInteger(floor) ? Math.max(0, Math.min(2, floor)) : 0;
       draw();
     },
     destroy(): void {

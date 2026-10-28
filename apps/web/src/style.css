@@ -826,3 +826,29 @@ body.theme-dark{
   .customer-order-data>span:first-child{grid-column:1/-1}
   .customer-order-payout strong{font-size:10px}
 }
+
+
+/* Floor access is persistent progression, surfaced beside the walkable workshop. */
+.floor-navigation{display:grid;gap:8px;padding:11px 12px;border-top:1px solid var(--line);background:var(--paper-mid)}
+.floor-navigation-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.floor-navigation-heading .eyebrow{font-size:8px;letter-spacing:.8px;color:var(--ink-soft)}
+.floor-navigation-heading strong{font-family:Georgia,"Times New Roman",serif;font-size:13px;color:var(--moss-dark);text-align:right}
+.floor-buttons{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.floor-choice{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;min-width:0;min-height:49px;padding:7px;border:1px solid #c5b795;background:var(--paper-hi);color:var(--ink);text-align:left;touch-action:manipulation}
+.floor-choice span{font-size:7px;font-weight:900;letter-spacing:.45px;color:var(--ink-soft)}
+.floor-choice strong{font-size:9px;line-height:1.25;overflow-wrap:anywhere}
+.floor-choice.is-active{border-color:var(--moss);background:#e1e8d7;box-shadow:inset 0 -3px 0 var(--moss)}
+.floor-choice.is-locked{background:#e7decb;color:#807763}
+.floor-choice:disabled{opacity:1}
+.floor-navigation>small{font-size:9px;line-height:1.45;color:var(--ink-soft)}
+.theme-dark .floor-navigation{background:#29281f;border-color:#55503f}
+.theme-dark .floor-navigation-heading strong{color:#c6d2b5}
+.theme-dark .floor-choice{background:#343126;border-color:#61583f;color:#eee3ca}
+.theme-dark .floor-choice.is-active{background:#34402e;border-color:#788c68}
+.theme-dark .floor-choice.is-locked{background:#2b2922;color:#89816d}
+@media(max-width:420px){
+  .floor-navigation{padding:9px}
+  .floor-choice{padding:6px 5px;min-height:53px}
+  .floor-choice strong{font-size:8px}
+  .floor-navigation-heading{align-items:flex-start;flex-direction:column}
+}

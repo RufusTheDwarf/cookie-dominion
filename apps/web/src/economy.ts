@@ -689,6 +689,8 @@ export function addPerfumeRevenue(state: GameState, amount: number): GameState {
 }
 
 export function buyMachine(state: GameState, machineId: MachineId): GameState {
+  const machine = MACHINES.find((item) => item.id === machineId);
+  if (!machine || machine.floor !== state.currentFloor || !state.unlockedFloors.includes(machine.floor)) return state;
   const cost = machineCost(state, machineId);
   if (state.perfumeRevenue < cost) return state;
   return {

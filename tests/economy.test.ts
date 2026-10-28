@@ -316,13 +316,17 @@ describe('tycoon economy', () => {
     expect(enterFloor(opened, 2)).toBe(opened);
   });
 
-  it('allows all production tiers to be purchased directly from the clicker catalog', () => {
+  it('only allows equipment that belongs to the currently active, unlocked floor', () => {
     const starter = { ...createInitialState(100), perfumeRevenue: 5000 };
-    const firstHighTier = buyMachine(starter, 'bottling-line');
+    expect(buyMachine(starter, 'bottling-line')).toBe(starter);
+
+    const firstUpperFloor = { ...starter, currentFloor: 1, unlockedFloors: [0, 1] };
+    const firstHighTier = buyMachine(firstUpperFloor, 'bottling-line');
     expect(firstHighTier.perfumeRevenue).toBe(4860);
     expect(firstHighTier.machines['glass-garden']['bottling-line']).toBe(1);
+    expect(buyMachine(firstUpperFloor, 'astral-extractor')).toBe(firstUpperFloor);
 
-    const funded = { ...starter, perfumeRevenue: 100_000_000 };
+    const funded = { ...starter, perfumeRevenue: 100_000_000, currentFloor: 2, unlockedFloors: [0, 1, 2] };
     const advanced = buyMachine(funded, 'astral-extractor');
     expect(advanced.machines['glass-garden']['astral-extractor']).toBe(1);
     expect(advanced.perfumeRevenue).toBeLessThan(funded.perfumeRevenue);
