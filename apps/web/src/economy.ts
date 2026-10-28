@@ -702,6 +702,7 @@ export function claimMission(state: GameState, missionId: MissionId): GameState 
   return { ...rewarded, claimedMissions: [...rewarded.claimedMissions, missionId] };
 }
 
+/** Gross machine output before the maintenance cost of the active collection. */
 export function productionPerSecond(
   state: Pick<GameState, 'machines' | 'currentWorld' | 'rebirths' | 'upgrades' | 'essences'>,
   worldId: WorldId = state.currentWorld,
@@ -713,6 +714,24 @@ export function productionPerSecond(
   }, 0);
   const productionUpgrade = 1 + state.upgrades.production * 0.2;
   return base * world.incomeMultiplier * REBIRTH_MULTIPLIER ** state.rebirths * productionUpgrade * essenceMultiplier(state);
+}
+
+/** Machines cost 1/600 of their base purchase price each second to operate. */
+export function operatingCostsPerSecond(
+  state: Pick<GameState, 'machines' | 'currentWorld'>,
+): number {
+  const world = getWorld(state.currentWorld);
+  return MACHINES.reduce((total, machine) => {
+    const count = state.machines[state.currentWorld][machine.id];
+    return total + count * machine.cost * world.costMultiplier / 600;
+  }, 0);
+}
+
+/** Net cashflow after paying the running costs of machines in the active collection. */
+export function netProductionPerSecond(
+  state: Pick<GameState, 'machines' | 'currentWorld' | 'rebirths' | 'upgrades' | 'essences'>,
+): number {
+  return Math.max(0, productionPerSecond(state) - operatingCostsPerSecond(state));
 }
 
 export function addPerfumeRevenue(state: GameState, amount: number): GameState {
@@ -822,7 +841,7 @@ export function applyOfflineProgress(state: GameState, now: number): GameState {
     MAX_OFFLINE_SECONDS,
     Math.max(0, (now - state.lastSavedAt) / 1000),
   );
-  return addPerfumeRevenue(state, productionPerSecond(state) * elapsedSeconds);
+  return addPerfumeRevenue(state, netProductionPerSecond(state) * elapsedSeconds);
 }
 
 function isFiniteNonNegative(value: unknown): value is number {

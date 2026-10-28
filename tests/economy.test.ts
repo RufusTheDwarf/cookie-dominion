@@ -30,6 +30,8 @@ import {
   performRebirth,
   performTotalRebirth,
   productionPerSecond,
+  operatingCostsPerSecond,
+  netProductionPerSecond,
   PERFUME_RECIPES,
   perfumeSalePrice,
   sellPerfume,
@@ -497,7 +499,43 @@ describe('tycoon economy', () => {
     expect(canTotalRebirth(noRun)).toBe(false);
   });
 
-  it('caps offline production at eight hours', () => {
+  it('charges operating costs for installed machines and reports net cashflow', () => {
+    const initial = createInitialState(100);
+    expect(operatingCostsPerSecond(initial)).toBe(0);
+    expect(netProductionPerSecond(initial)).toBe(0);
+
+    const installed = {
+      ...initial,
+      machines: {
+        ...initial.machines,
+        'glass-garden': {
+          ...initial.machines['glass-garden'],
+          'formulation-table': 2,
+          'copper-still': 1,
+        },
+      },
+    };
+    const expectedUpkeep = (2 * 3 + 18) / 600;
+    expect(operatingCostsPerSecond(installed)).toBeCloseTo(expectedUpkeep);
+    expect(netProductionPerSecond(installed)).toBeCloseTo(
+      productionPerSecond(installed) - expectedUpkeep,
+    );
+
+    const otherWorld = {
+      ...installed,
+      currentWorld: 'amber-house' as WorldId,
+      machines: {
+        ...installed.machines,
+        'amber-house': {
+          ...installed.machines['amber-house'],
+          'formulation-table': 1,
+        },
+      },
+    };
+    expect(operatingCostsPerSecond(otherWorld)).toBeCloseTo((3 * 5) / 600);
+  });
+
+  it('caps offline production at eight hours after operating costs', () => {
     const initial = createInitialState(0);
     const state = {
       ...initial,
@@ -508,8 +546,9 @@ describe('tycoon economy', () => {
       lastSavedAt: 0,
     };
     const next = applyOfflineProgress(state, (MAX_OFFLINE_SECONDS + 100) * 1000);
-    expect(next.perfumeRevenue).toBeCloseTo((6 / 3.5) * MAX_OFFLINE_SECONDS);
-    expect(next.runPerfumeRevenue).toBeCloseTo((6 / 3.5) * MAX_OFFLINE_SECONDS);
+    const expectedNetProduction = netProductionPerSecond(state) * MAX_OFFLINE_SECONDS;
+    expect(next.perfumeRevenue).toBeCloseTo(expectedNetProduction);
+    expect(next.runPerfumeRevenue).toBeCloseTo(expectedNetProduction);
   });
 
   it('migrates the older alambic-only save', () => {
