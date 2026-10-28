@@ -120,7 +120,7 @@ app.innerHTML = `
           <span class="stamped-tag">ATELIER</span>
         </div>
         <div class="click-card">
-          <div class="click-card-topline"><span>RÉCOLTE BOTANIQUE</span><span id="click-multiplier">RÉCOLTE MANUELLE</span></div>
+          <div class="click-card-topline"><span>ATELIER 2D</span><span id="click-multiplier">RÉCOLTE MANUELLE</span></div>
           <div class="clicker-stage workshop-stage" id="clicker-stage">
             <canvas id="workshop-canvas" aria-label="Atelier 2D. Déplace-toi avec ZQSD ou les flèches. Clique au sol pour marcher. Appuie sur E près d'un poste pour interagir." role="img"></canvas>
             <div class="scene-help"><span id="scene-prompt">Déplace-toi vers une parcelle pour récolter.</span><button id="scene-interact" type="button" disabled>INTERAGIR · E</button></div>
@@ -133,14 +133,15 @@ app.innerHTML = `
           </div>
           <div class="harvest-progress-track"><i id="harvest-progress-bar"></i></div>
           <div class="click-instructions">
-            <strong>Récolte des matières premières</strong>
-            <span>Chaque clic donne une matière. Combine les ingrédients dans une recette, puis vends le flacon.</span>
+            <strong>Travaille à chaque poste</strong>
+            <span>Approche les parcelles pour récolter une matière précise. Choisis une recette, formule-la au laboratoire et vends le flacon au comptoir.</span>
           </div>
           <div class="material-codex-heading"><span>CARNET BOTANIQUE</span><span id="material-discovered-count">0 découvertes</span></div>
           <div id="material-inventory" class="material-inventory"></div>
           <section class="recipe-workshop" aria-labelledby="recipe-workshop-title">
-            <div class="recipe-workshop-heading"><div><span class="eyebrow">FORMULATION ARTISANALE</span><h2 id="recipe-workshop-title">Combinaisons & ventes</h2></div><span id="perfume-stock-count">0 flacon</span></div>
-            <p class="recipe-workshop-intro">Les premiers parfums valent peu. Récolte les matières, compose une recette et vends les flacons pour financer la manufacture.</p>
+            <div class="recipe-workshop-heading"><div><span class="eyebrow">FORMULATION ARTISANALE</span><h2 id="recipe-workshop-title">Carnet de formulations</h2></div><span id="perfume-stock-count">0 flacon</span></div>
+            <p class="recipe-workshop-intro">Choisis une recette, récolte les ingrédients dans le jardin, puis rejoins le laboratoire pour la composer. Le comptoir sert à vendre les flacons.</p>
+            <p class="selected-recipe-note">Recette active : <strong id="selected-recipe-name">Brise verte</strong></p>
             <div id="recipe-list" class="recipe-list"></div>
           </section>
           <div class="click-card-footer">
