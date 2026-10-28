@@ -307,7 +307,6 @@ function renderStats(): void {
   byId('complete-order').title = canCompleteCustomerOrder(state)
     ? 'Livrer cette commande et recevoir ' + formatExact(customerOrderReward(state)) + ' parfums.'
     : 'Il manque ' + formatExact(Math.max(0, customerOrderCost(state) - state.perfumeRevenue)) + ' parfums pour préparer le lot.';
-  byId('save-indicator').textContent = 'SAUVEGARDE LOCALE';
   renderRareFlacon(performance.now());
 }
 
@@ -511,6 +510,9 @@ function renderRareFlacon(now: number): void {
   }
 
   boostPanel.hidden = true;
+  if (rareExpiresAt === 0 && now >= rareNextAt) {
+    rareExpiresAt = now + 12_000;
+  }
   if (rareExpiresAt > 0 && now < rareExpiresAt) {
     button.disabled = false;
     button.classList.add('is-ready');
