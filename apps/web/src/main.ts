@@ -39,7 +39,6 @@ import {
   type MissionId,
   type RecipeId,
   type MaterialId,
-  type MaterialId,
   type UpgradeId,
   type WorldId,
 } from './economy';
@@ -402,7 +401,7 @@ function achievements() {
     { name: 'Ligne industrielle', description: 'Posséder 50 équipements au total.', unlocked: machines >= 50 },
     { name: 'Recherche appliquée', description: 'Acheter une première amélioration.', unlocked: Object.values(state.upgrades).some((level) => level > 0) },
     { name: 'Première vente', description: 'Vendre un flacon au comptoir.', unlocked: state.perfumesSold >= 1 },
-    { name: 'Pièce de collection', description: 'Récupérer un flacon mythique.', unlocked: state.rareFlaconsClaimed >= 1 },
+    { name: 'Première collection', description: 'Vendre ton premier flacon.', unlocked: state.perfumesSold >= 1 },
     { name: 'Maison internationale', description: 'Ouvrir une deuxième collection.', unlocked: state.unlockedWorlds.length >= 2 },
     { name: 'Nouvelle génération', description: 'Effectuer un rebirth normal.', unlocked: state.rebirths >= 1 },
     { name: 'Un million de notes', description: 'Produire un million de parfums.', unlocked: state.lifetimePerfumeRevenue >= 1_000_000 },
