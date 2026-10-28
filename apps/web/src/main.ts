@@ -54,7 +54,7 @@ if (!app) throw new Error('Missing app root');
 
 type StoreTab = 'upgrades' | 'contracts' | 'honours' | 'worlds' | 'prestige' | 'save';
 let activeTab: StoreTab = 'upgrades';
-let statusMessage = 'Ta première fragrance t’attend. Clique sur le flacon pour commencer.';
+let statusMessage = 'Récolte ta première matière, puis compose ta fragrance.';
 let lastTick = performance.now();
 let lastStatsUpdate = 0;
 let lastPassiveUiSecond = -1;
@@ -111,7 +111,7 @@ app.innerHTML = `
       <span id="current-world-line">JARDIN DE VERRE</span>
       <span class="progress-separator">/</span>
       <span id="current-rank">Maison indépendante · Rang 1</span>
-      <span id="global-status" role="status">Ta première fragrance t’attend.</span>
+      <span id="global-status" role="status">Récolte ta première matière, puis compose ta fragrance.</span>
       <span id="save-indicator">SAUVEGARDE LOCALE</span>
     </div>
 
