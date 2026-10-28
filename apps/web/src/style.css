@@ -104,12 +104,12 @@ button:not(:disabled){cursor:pointer}
 .order-numbers>span{display:flex;flex-direction:column;gap:4px;padding:7px;border:1px solid #c4b28d;border-radius:1px;background:#f1e7ce;color:#7d6846;font-size:7px;font-weight:700;letter-spacing:.7px}
 .order-numbers strong{font-family:Georgia,"Times New Roman",serif;font-size:10px;line-height:1.2;color:#354334;letter-spacing:0;overflow-wrap:anywhere}
 .customer-order-card>small{display:block;margin-top:8px;color:#857250;font-size:9px;line-height:1.4}
-.golden-cookie-button{display:flex;align-items:center;gap:10px;width:100%;margin:10px 0;padding:9px;border:1px solid var(--soft-line);border-radius:2px;background:#eee3c7;text-align:left}
-.golden-cookie-icon{font-family:Georgia,"Times New Roman",serif;color:var(--rust);font-size:22px}
-.golden-cookie-copy{display:flex;min-width:0;flex:1;flex-direction:column;gap:4px}
-.golden-cookie-copy strong{font-family:Georgia,"Times New Roman",serif;font-size:10px;letter-spacing:.5px}
-.golden-cookie-copy small{font-size:9px;line-height:1.4;color:var(--ink-soft)}
-.golden-cookie-mark{font-family:Georgia,"Times New Roman",serif;font-size:14px;color:var(--rust)}
+.rare-flacon-button{display:flex;align-items:center;gap:10px;width:100%;margin:10px 0;padding:9px;border:1px solid var(--soft-line);border-radius:2px;background:#eee3c7;text-align:left}
+.rare-flacon-icon{font-family:Georgia,"Times New Roman",serif;color:var(--rust);font-size:22px}
+.rare-flacon-copy{display:flex;min-width:0;flex:1;flex-direction:column;gap:4px}
+.rare-flacon-copy strong{font-family:Georgia,"Times New Roman",serif;font-size:10px;letter-spacing:.5px}
+.rare-flacon-copy small{font-size:9px;line-height:1.4;color:var(--ink-soft)}
+.rare-flacon-mark{font-family:Georgia,"Times New Roman",serif;font-size:14px;color:var(--rust)}
 .prestige-card{margin:12px 0;padding:12px;border:1px solid var(--ink);border-radius:2px;background:#e9dfc7}
 .prestige-heading{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .prestige-heading .eyebrow{color:var(--rust-dark)}
@@ -172,7 +172,7 @@ button:not(:disabled){cursor:pointer}
 .map-legend{display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:8px 3px;border-bottom:1px solid var(--soft-line);font-size:9px;color:var(--ink-soft)}
 .map-legend span{display:inline-flex;align-items:center;gap:5px}
 .map-legend i{display:inline-block;width:8px;height:8px;border:1px solid var(--ink)}
-.legend-cookie{background:var(--rust)}.legend-player{background:var(--moss)}
+.legend-parfum{background:var(--rust)}.legend-player{background:var(--moss)}
 #map-hint{margin-left:auto;font-family:Georgia,"Times New Roman",serif;font-style:italic;color:var(--rust-dark)}
 .nav-block{margin-top:13px}
 .nav-heading{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:7px}
@@ -584,7 +584,7 @@ body{
   border:1px solid #b5a47e;
   border-left:3px solid var(--brass);
 }
-.golden-cookie-button{
+.rare-flacon-button{
   border-radius:0!important;
   box-shadow:none!important;
   border:1px solid #a4834b!important;
