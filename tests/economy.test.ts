@@ -26,6 +26,8 @@ import {
   floorUnlockCost,
   enterWorld,
   exportSaveFile,
+  MACHINES,
+  WORLDS,
   machineCost,
   missionProgress,
   MAX_OFFLINE_SECONDS,
@@ -572,6 +574,37 @@ describe('tycoon economy', () => {
       },
     };
     expect(operatingCostsPerSecond(otherWorld)).toBeCloseTo((3 * 5) / 600);
+  });
+
+  it('keeps every first machine purchase net-positive across all three worlds', () => {
+    const initial = createInitialState(100);
+
+    for (const world of WORLDS) {
+      const emptyWorld = {
+        ...initial,
+        currentWorld: world.id,
+        unlockedWorlds: WORLDS.map((entry) => entry.id),
+      };
+
+      for (const machine of MACHINES) {
+        const installed = {
+          ...emptyWorld,
+          machines: {
+            ...emptyWorld.machines,
+            [world.id]: {
+              ...emptyWorld.machines[world.id],
+              [machine.id]: 1,
+            },
+          },
+        };
+        const netPerSecond = netProductionPerSecond(installed);
+        const firstCost = machineCost(emptyWorld, machine.id);
+
+        expect(netPerSecond).toBeGreaterThan(0);
+        expect(operatingCostsPerSecond(installed)).toBeLessThan(productionPerSecond(installed));
+        expect(firstCost / netPerSecond).toBeLessThan(120);
+      }
+    }
   });
 
   it('caps offline production at eight hours after operating costs', () => {

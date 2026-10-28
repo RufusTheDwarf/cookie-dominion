@@ -24,6 +24,7 @@
 - [x] Donner à chaque machine achetée un emplacement physique, une animation de production et un compteur de quantité.
 - [x] Réputation de la maison liée aux livraisons, rangs et prime de commande croissante.
 - [x] Coûts d'exploitation des machines, rendement net et calcul hors ligne cohérent.
+- [x] Test de santé économique sur les dix machines dans les trois mondes : cashflow positif après entretien et retour théorique de la première unité sous deux minutes.
 - [x] Débloquer trois parcelles bonus de lavande, menthe et rose avec des prix progressifs.
 - [ ] Équilibrer les prix, l'entretien et le rythme d'évolution sur une session longue.
 - [ ] Envisager une version serveur si les comptes, les sauvegardes cloud ou l'anti-triche deviennent nécessaires.

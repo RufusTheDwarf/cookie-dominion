@@ -45,7 +45,7 @@ Les champs historiques liés à d'anciennes mécaniques peuvent rester dans le f
 - TypeScript, tests unitaires et build Vite : vérifier le statut GitHub Actions du commit candidat avant toute fusion.
 - Tests unitaires de la destination d'arrivée aux étages : ajoutés dans `tests/workshop-scene.test.ts`.
 - Inspection visuelle dans un navigateur réel : à effectuer sur ordinateur et téléphone, notamment la proximité des nouveaux escaliers.
-- Équilibrage sur une session longue, notamment la montée de quantité des commandes, la prime maximale de réputation et l'entretien : à effectuer.
+- Test de santé économique des 30 combinaisons machine/monde ajouté; équilibrage sur une session longue, notamment la montée de quantité des commandes, la prime maximale de réputation et l'entretien : à effectuer.
 
 ## Limites
 
