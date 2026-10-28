@@ -537,17 +537,17 @@ function renderContracts(): string {
 function achievements() {
   const machines = totalMachinesOwned();
   const criteria = [
-    { name: 'Première note', description: 'Créer ou vendre ton premier parfum.', unlocked: state.lifetimePerfumeRevenue >= 1 },
-    { name: 'Le nez se forme', description: 'Produire 100 parfums cumulés.', unlocked: state.lifetimePerfumeRevenue >= 100 },
+    { name: 'Première note', description: 'Récolter une première matière botanique.', unlocked: state.gatherClicks >= 1 },
+    { name: 'Le nez se forme', description: 'Générer 100 pièces de revenus cumulés.', unlocked: state.lifetimePerfumeRevenue >= 100 },
     { name: 'Premier investissement', description: 'Installer un premier équipement.', unlocked: machines >= 1 },
     { name: 'Petite manufacture', description: 'Posséder 10 équipements au total.', unlocked: machines >= 10 },
     { name: 'Ligne industrielle', description: 'Posséder 50 équipements au total.', unlocked: machines >= 50 },
     { name: 'Recherche appliquée', description: 'Acheter une première amélioration.', unlocked: Object.values(state.upgrades).some((level) => level > 0) },
     { name: 'Première vente', description: 'Vendre un flacon au comptoir.', unlocked: state.perfumesSold >= 1 },
-    { name: 'Première collection', description: 'Vendre ton premier flacon.', unlocked: state.perfumesSold >= 1 },
-    { name: 'Maison internationale', description: 'Ouvrir une deuxième collection.', unlocked: state.unlockedWorlds.length >= 2 },
+    { name: 'Première collection', description: 'Ouvrir une deuxième collection.', unlocked: state.unlockedWorlds.length >= 2 },
+    { name: 'Maison internationale', description: 'Ouvrir la troisième collection.', unlocked: state.unlockedWorlds.length >= 3 },
     { name: 'Nouvelle génération', description: 'Effectuer un rebirth normal.', unlocked: state.rebirths >= 1 },
-    { name: 'Un million de notes', description: 'Produire un million de parfums.', unlocked: state.lifetimePerfumeRevenue >= 1_000_000 },
+    { name: 'Un million de notes', description: 'Générer un million de pièces de revenus cumulés.', unlocked: state.lifetimePerfumeRevenue >= 1_000_000 },
     { name: 'Essence originelle', description: 'Gagner une première Essence permanente.', unlocked: state.essences >= 1 },
   ];
   return criteria;
