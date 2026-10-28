@@ -34,7 +34,7 @@ Les commandes clients suivent une rotation déterministe de cinq recettes. La pr
 - Les deux murs intérieurs comportent des passages avec encadrement visuel; la collision bloque le passage hors des ouvertures.
 - Les étages de manufacture affichent des lignes de conditionnement; l’étage rare affiche des chambres circulaires d’extraction.
 - Deux escaliers physiques assurent la montée et la descente; un escalier n’est visible et interactif que si sa direction correspond à l’étage actif.
-- Lors d’un changement d’étage, le personnage est replacé près de l’escalier opposé, les commandes de déplacement sont réinitialisées et la caméra est recentrée sur le point d’arrivée.
+- Lors d’un changement d’étage, le personnage est replacé près de l’escalier opposé, les commandes de déplacement sont réinitialisées et la caméra est recentrée sur le point d’arrivée. Cette logique est isolée dans `getFloorTransitionLanding` et couverte par un test unitaire.
 - Les coordonnées des clics sont converties de l'écran vers le monde, en tenant compte de la caméra.
 - Un escalier dans la scène déclenche les règles d'ouverture des étages. L'état ouvert et l'étage actif sont persistés, tandis que le catalogue n'affiche que les équipements de l'étage actif.
 - Les collections utilisent leur palette persistée (fond, sol, couleur d'accent et bois) pour différencier visuellement l'atelier sans casser les collisions ou l'économie.

@@ -69,6 +69,24 @@ const DOOR_TOP = 285;
 const DOOR_BOTTOM = 425;
 const PLAYER_SPEED = 190;
 
+export interface FloorLanding {
+  readonly x: number;
+  readonly y: number;
+}
+
+const FLOOR_UP_STAIR: FloorLanding = { x: 925, y: 520 };
+const FLOOR_DOWN_STAIR: FloorLanding = { x: 720, y: 520 };
+
+/** Return the landing beside the opposite staircase, or null when no floor change occurs. */
+export function getFloorTransitionLanding(previousFloor: number, nextFloor: number): FloorLanding | null {
+  if (!Number.isInteger(previousFloor) || !Number.isInteger(nextFloor) ||
+      previousFloor < 0 || previousFloor > 2 || nextFloor < 0 || nextFloor > 2 ||
+      previousFloor === nextFloor) return null;
+  return nextFloor > previousFloor
+    ? { x: FLOOR_DOWN_STAIR.x, y: FLOOR_DOWN_STAIR.y }
+    : { x: FLOOR_UP_STAIR.x, y: FLOOR_UP_STAIR.y };
+}
+
 const STATIONS: Station[] = [
   { id: 'lavender', x: 112, y: 172, title: 'LAVANDE', detail: 'Parcelle 01', color: '#798e64' },
   { id: 'mint', x: 292, y: 172, title: 'MENTHE', detail: 'Parcelle 02', color: '#6f9c77' },
@@ -81,8 +99,8 @@ const STATIONS: Station[] = [
   { id: 'mint-plot-2', x: 292, y: 545, title: 'MENTHE II', detail: 'Parcelle agrandie 09', color: '#6f9c77' },
   { id: 'rose-plot-2', x: 590, y: 172, title: 'ROSIER II', detail: 'Parcelle agrandie 10', color: '#b96e7b' },
   { id: 'laboratory', x: 820, y: 355, title: 'LABORATOIRE', detail: 'Formuler un parfum', color: '#b28a4d' },
-  { id: 'stairs', x: 925, y: 520, title: 'ESCALIER ↑', detail: 'Monter d’un étage', color: '#8e7051' },
-  { id: 'stairs-down', x: 720, y: 520, title: 'ESCALIER ↓', detail: 'Descendre d’un étage', color: '#657f87' },
+  { id: 'stairs', x: FLOOR_UP_STAIR.x, y: FLOOR_UP_STAIR.y, title: 'ESCALIER ↑', detail: 'Monter d’un étage', color: '#8e7051' },
+  { id: 'stairs-down', x: FLOOR_DOWN_STAIR.x, y: FLOOR_DOWN_STAIR.y, title: 'ESCALIER ↓', detail: 'Descendre d’un étage', color: '#657f87' },
   { id: 'counter', x: 1225, y: 355, title: 'COMPTOIR', detail: 'Vendre un flacon', color: '#53694c' },
 ];
 
@@ -938,10 +956,10 @@ export function createWorkshopScene(
       };
       const previousFloor = currentFloor;
       const nextFloor = Number.isInteger(floor) ? Math.max(0, Math.min(2, floor)) : 0;
-      if (nextFloor !== previousFloor) {
-        // Arrive beside the opposite staircase so the next floor remains physically navigable.
-        player.x = nextFloor > previousFloor ? 720 : 925;
-        player.y = 520;
+      const landing = getFloorTransitionLanding(previousFloor, nextFloor);
+      if (landing) {
+        player.x = landing.x;
+        player.y = landing.y;
         destination = null;
         keys.clear();
         actionStation = null;
@@ -956,7 +974,7 @@ export function createWorkshopScene(
         : 0;
       placedMachines = nextMachines.map((machine) => ({ ...machine }));
       customerOrder = nextCustomerOrder ? { ...nextCustomerOrder } : null;
-      if (nextFloor !== previousFloor) {
+      if (landing) {
         nearby = nearestStation()?.id ?? null;
         lastReported = nearby;
         onNearbyChange(nearby);
