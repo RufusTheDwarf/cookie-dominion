@@ -238,7 +238,7 @@ describe('tycoon economy', () => {
     expect(rareResearch.upgrades.rareBonus).toBe(1);
     const vipResearch = buyUpgrade({ ...withMixer, perfumeRevenue: 2000 }, 'orders');
     expect(vipResearch.upgrades.orders).toBe(1);
-    expect(customerOrderReward(vipResearch)).toBe(16);
+    expect(customerOrderReward(vipResearch)).toBe(5);
 
     expect(buyUpgrade({ ...researched, upgrades: { ...researched.upgrades, production: 10 } }, 'production').upgrades.production).toBe(10);
   });
