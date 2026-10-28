@@ -13,8 +13,8 @@ import {
   canTotalRebirth,
   claimMission,
   completeCustomerOrder,
+  currentCustomerOrder,
   createInitialState,
-  customerOrderCost,
   customerOrderReward,
   craftPerfume,
   harvestIngredient,
@@ -263,36 +263,56 @@ describe('tycoon economy', () => {
     expect(claimMission(rewarded, 'first-machine')).toBe(rewarded);
   });
 
-  it('delivers scalable VIP perfume orders and pays the player', () => {
+  it('requires the requested bottles for VIP orders and pays a premium on delivery', () => {
     const initial = createInitialState(100);
     expect(initial.ordersCompleted).toBe(0);
-    expect(customerOrderCost(initial)).toBe(8);
-    expect(customerOrderReward(initial)).toBe(15);
+    expect(currentCustomerOrder(initial)).toEqual({ recipeId: 'green-whisper', quantity: 1 });
+    expect(customerOrderReward(initial)).toBe(4);
     expect(canCompleteCustomerOrder(initial)).toBe(false);
     expect(completeCustomerOrder(initial)).toBe(initial);
 
-    const underfunded = { ...initial, perfumeRevenue: 7 };
-    expect(completeCustomerOrder(underfunded)).toBe(underfunded);
+    // Currency alone cannot satisfy a customer: a crafted bottle is required.
+    const funded = { ...initial, perfumeRevenue: 1000 };
+    expect(canCompleteCustomerOrder(funded)).toBe(false);
+    expect(completeCustomerOrder(funded)).toBe(funded);
 
-    const funded = { ...initial, perfumeRevenue: 8 };
-    const delivered = completeCustomerOrder(funded);
-    expect(delivered.perfumeRevenue).toBe(15);
+    const bottled = {
+      ...funded,
+      perfumeStock: { ...funded.perfumeStock, 'green-whisper': 1 },
+    };
+    const delivered = completeCustomerOrder(bottled);
+    expect(delivered.perfumeRevenue).toBe(1004);
     expect(delivered.ordersCompleted).toBe(1);
-    expect(delivered.lifetimePerfumeRevenue).toBe(15);
-    expect(delivered.runPerfumeRevenue).toBe(15);
-    expect(customerOrderCost(delivered)).toBe(14);
-    expect(customerOrderReward(delivered)).toBe(26);
-    const secondDelivery = completeCustomerOrder(delivered);
-    expect(secondDelivery.ordersCompleted).toBe(2);
-    expect(secondDelivery.perfumeRevenue).toBe(27);
-    expect(customerOrderCost(secondDelivery)).toBe(22);
-    expect(customerOrderReward(secondDelivery)).toBe(40);
-    expect(canClaimMission(delivered, 'first-order')).toBe(true);
+    expect(delivered.lifetimePerfumeRevenue).toBe(4);
+    expect(delivered.runPerfumeRevenue).toBe(4);
+    expect(delivered.perfumeStock['green-whisper']).toBe(0);
+    expect(delivered.perfumesSold).toBe(1);
 
-    const claimed = claimMission(delivered, 'first-order');
-    expect(claimed.claimedMissions).toContain('first-order');
-    expect(claimed.perfumeRevenue).toBe(23);
-    expect(claimMission(claimed, 'first-order')).toBe(claimed);
+    expect(currentCustomerOrder(delivered)).toEqual({ recipeId: 'soft-rose', quantity: 1 });
+    expect(customerOrderReward(delivered)).toBe(6);
+    const roseOrder = {
+      ...delivered,
+      perfumeStock: { ...delivered.perfumeStock, 'soft-rose': 1 },
+    };
+    const secondDelivery = completeCustomerOrder(roseOrder);
+    expect(secondDelivery.ordersCompleted).toBe(2);
+    expect(secondDelivery.perfumeStock['soft-rose']).toBe(0);
+    expect(secondDelivery.perfumesSold).toBe(2);
+    expect(currentCustomerOrder(secondDelivery)).toEqual({ recipeId: 'citrus-dawn', quantity: 1 });
+
+    const thirdDelivery = {
+      ...secondDelivery,
+      perfumeStock: { ...secondDelivery.perfumeStock, 'citrus-dawn': 1 },
+    };
+    expect(completeCustomerOrder(thirdDelivery).ordersCompleted).toBe(3);
+    expect(currentCustomerOrder({ ...thirdDelivery, ordersCompleted: 3 })).toEqual({ recipeId: 'green-whisper', quantity: 2 });
+    expect(canClaimMission({ ...delivered, ordersCompleted: 1 }, 'first-order')).toBe(true);
+
+    const researched = {
+      ...bottled,
+      upgrades: { ...bottled.upgrades, orders: 1 },
+    };
+    expect(customerOrderReward(researched)).toBe(5);
   });
 
   it('locks floors until the player builds enough machines and pays for stairs', () => {
