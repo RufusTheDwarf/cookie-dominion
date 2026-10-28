@@ -23,7 +23,6 @@ import {
   MAX_UPGRADE_LEVEL,
   MISSION_DEFINITIONS,
   machineCost,
-  manualPerfumeValue,
   missionProgress,
   parseImportedSave,
   parseSavedState,
@@ -36,7 +35,6 @@ import {
   UPGRADES,
   WORLDS,
   type GameState,
-  type MaterialId,
   type MachineId,
   type MissionId,
   type UpgradeId,
@@ -540,6 +538,7 @@ function renderRareFlacon(now: number): void {
   if (now < rareBoostUntil) {
     const remaining = rareBoostUntil - now;
     button.disabled = true;
+    button.hidden = true;
     button.classList.remove('is-ready');
     byId('rare-event-title').textContent = 'Production doublée';
     status.textContent = 'Bonus actif · ' + Math.ceil(remaining / 1000) + ' s restantes';
@@ -550,6 +549,7 @@ function renderRareFlacon(now: number): void {
   }
 
   boostPanel.hidden = true;
+  button.hidden = false;
   if (rareExpiresAt === 0 && now >= rareNextAt) {
     rareExpiresAt = now + 12_000;
   }
