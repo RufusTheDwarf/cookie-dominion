@@ -143,6 +143,22 @@ describe('tycoon economy', () => {
     expect(bonusDrop.state.gatherClicks).toBe(1);
   });
 
+  it('persists partial botanical harvests and the discovery journal', () => {
+    let state = createInitialState(100);
+    for (let click = 0; click < 4; click += 1) {
+      state = harvestIngredient(state, () => 0.01).state;
+    }
+
+    const encoded = exportSaveFile(state, 1000);
+    const restored = parseImportedSave(encoded, 1000);
+    expect(restored).not.toBeNull();
+    expect(restored?.gatherClicks).toBe(4);
+    expect(restored?.harvestProgress).toBe(4);
+    expect(restored?.ingredients.lavender).toBe(4);
+    expect(restored?.materialDiscoveries.lavender).toBe(4);
+    expect(restored?.lastHarvestedMaterial).toBe('lavender');
+  });
+
   it('rejects invalid earning amounts', () => {
     const initial = createInitialState(100);
     expect(addPerfumeRevenue(initial, Number.NaN)).toBe(initial);
