@@ -46,7 +46,7 @@ Parfum Empire se déroule dans une maison de parfumerie que le joueur développe
 - Dix équipements de production, cinq recherches évolutives, entretien calculé par machine et rendement net après coûts.
 - Contrats, honneurs, trois collections, rebirth et ascension totale.
 - Sauvegarde locale avec copie de secours, restauration automatique si la copie principale est illisible, export JSON, import et migration des anciennes sauvegardes.
-- Production hors ligne limitée à huit heures.
+- Production hors ligne limitée à huit heures, y compris lors du retour sur un onglet resté en arrière-plan.
 
 ## Architecture
 

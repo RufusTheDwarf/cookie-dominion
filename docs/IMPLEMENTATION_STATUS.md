@@ -30,7 +30,7 @@
 | Collections | Implémenté | Jardin de Verre, Maison d'Ambre et Palais Astral |
 | Rebirth et ascension | Implémenté | Réinitialisations de progression avec bonus persistants |
 | Sauvegarde | Implémenté | LocalStorage, copie de secours, restauration de secours, export/import JSON, validation et migration |
-| Production hors ligne | Implémenté | Plafond de huit heures |
+| Production hors ligne | Implémenté | Plafond de huit heures, au chargement et au retour sur un onglet en arrière-plan |
 | Comptes, cloud, multijoueur | Non implémenté | Aucun backend distant |
 
 ## Persistance et compatibilité
