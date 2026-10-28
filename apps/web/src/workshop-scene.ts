@@ -11,11 +11,20 @@ export interface WorkshopTheme {
   belt: number;
 }
 
+export interface WorkshopMachineVisual {
+  id: string;
+  short: string;
+  name: string;
+  floor: number;
+  count: number;
+}
+
 export interface WorkshopScene {
   move(direction: MoveDirection): void;
   interact(): void;
   setTheme(theme: WorkshopTheme): void;
   setFloor(floor: number): void;
+  setMachines(machines: WorkshopMachineVisual[]): void;
   destroy(): void;
 }
 
@@ -62,6 +71,27 @@ const STATIONS: Station[] = [
 ];
 
 const HERB_COLORS = ['#71885b', '#8ba36a', '#b2b67a', '#d5c99b', '#6e8e70'];
+const MATERIAL_STATION_IDS = new Set<WorkshopStation>([
+  'lavender', 'mint', 'rose', 'bergamot', 'sandalwood', 'jasmine', 'resin',
+]);
+const MACHINE_POSITIONS: Record<number, Record<string, { x: number; y: number }>> = {
+  0: {
+    'formulation-table': { x: 730, y: 230 },
+    'copper-still': { x: 1125, y: 230 },
+  },
+  1: {
+    'bottling-line': { x: 170, y: 180 },
+    'perfumer-studio': { x: 420, y: 180 },
+    'botanical-garden': { x: 170, y: 520 },
+    'enfleurage-press': { x: 420, y: 520 },
+    'luxury-atelier': { x: 790, y: 170 },
+  },
+  2: {
+    'astral-extractor': { x: 180, y: 180 },
+    'crystal-distiller': { x: 420, y: 180 },
+    'orbital-manufactory': { x: 300, y: 520 },
+  },
+};
 
 function blendColor(base: number, overlay: number, amount: number): number {
   const ratio = Math.max(0, Math.min(1, amount));
@@ -110,6 +140,7 @@ export function createWorkshopScene(
     belt: 0xa46f4e,
   };
   let currentFloor = 0;
+  let placedMachines: WorkshopMachineVisual[] = [];
   let destroyed = false;
   let lastReported: WorkshopStation | null = null;
   let elapsedWorld = 0;
@@ -447,9 +478,14 @@ export function createWorkshopScene(
     c.fillStyle = colorHex(theme.accent);
     c.textAlign = 'left';
     c.font = 'bold 15px system-ui';
-    c.fillText('JARDIN BOTANIQUE', 52, 47);
-    c.fillText('LABORATOIRE', 692, 47);
-    c.fillText('BOUTIQUE', 1042, 47);
+    const roomTitles = currentFloor === 0
+      ? ['JARDIN BOTANIQUE', 'LABORATOIRE', 'BOUTIQUE']
+      : currentFloor === 1
+        ? ['PRODUCTION', 'CONDITIONNEMENT', 'EXPÉDITION']
+        : ['EXTRACTION RARE', 'DISTILLATION', 'RÉSERVE D’ESSENCES'];
+    c.fillText(roomTitles[0], 52, 47);
+    c.fillText(roomTitles[1], 692, 47);
+    c.fillText(roomTitles[2], 1042, 47);
     roundedRect(1210, 672, 195, 28, 6, 'rgba(246,240,226,.92)', '#aaa087');
     c.textAlign = 'center';
     c.font = 'bold 11px system-ui';
@@ -471,6 +507,87 @@ export function createWorkshopScene(
     roundedRect(1218, 525, 70, 48, 6, colorHex(palette.belt), colorHex(palette.accent));
   }
 
+  function drawPlacedMachines(): void {
+    const c = context!;
+    const positions = MACHINE_POSITIONS[currentFloor] ?? {};
+    placedMachines.forEach((machine, index) => {
+      if (machine.floor !== currentFloor || machine.count <= 0) return;
+      const position = positions[machine.id];
+      if (!position) return;
+      const { x, y } = position;
+      const pulse = 0.5 + (Math.sin(elapsedWorld * 2.8 + index * 1.7) + 1) * 0.5;
+      const isBottling = machine.id === 'bottling-line';
+      const isDistiller = machine.id.includes('still') || machine.id.includes('extractor') || machine.id.includes('distiller');
+      const isGarden = machine.id === 'botanical-garden';
+      const isPress = machine.id === 'enfleurage-press';
+      const metal = currentFloor === 2 ? '#514b83' : currentFloor === 1 ? '#596d78' : '#73553c';
+      const trim = currentFloor === 2 ? '#b7a4ef' : currentFloor === 1 ? '#c3d3d6' : '#c9a66d';
+      c.save();
+      c.translate(x, y);
+      c.fillStyle = 'rgba(30,34,29,.23)';
+      c.beginPath(); c.ellipse(0, 24, 43, 10, 0, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = 0.12 + pulse * 0.12;
+      c.fillStyle = trim;
+      c.beginPath(); c.ellipse(0, 0, 43 + pulse * 3, 28 + pulse * 2, 0, 0, Math.PI * 2); c.fill();
+      c.globalAlpha = 1;
+      if (isGarden) {
+        roundedRect(-38, -10, 76, 35, 5, '#765840', '#4c3a2c');
+        roundedRect(-33, -20, 66, 20, 4, '#637b4d', '#405538');
+        for (let plant = 0; plant < 5; plant++) {
+          const px = -25 + plant * 12;
+          const sway = Math.sin(elapsedWorld * 2.3 + plant) * 2;
+          c.strokeStyle = '#334c31'; c.lineWidth = 2;
+          c.beginPath(); c.moveTo(px, -18); c.lineTo(px + sway, -34); c.stroke();
+          c.fillStyle = ['#a5bb78', '#7fa66d', '#d1bf80'][plant % 3];
+          c.beginPath(); c.ellipse(px + sway - 4, -29, 5, 2.8, -0.35, 0, Math.PI * 2); c.fill();
+          c.beginPath(); c.ellipse(px + sway + 4, -24, 5, 2.8, 0.3, 0, Math.PI * 2); c.fill();
+        }
+      } else if (isBottling) {
+        roundedRect(-43, 5, 86, 17, 4, metal, '#343b39');
+        c.fillStyle = '#384a4d'; c.fillRect(-34, -1, 68, 9);
+        c.fillStyle = trim; c.fillRect(-37, 1 + Math.sin(elapsedWorld * 4) * 2, 74, 3);
+        for (let bottle = 0; bottle < 3; bottle++) {
+          const bx = -23 + bottle * 23 + Math.sin(elapsedWorld * 1.3 + bottle) * 2;
+          roundedRect(bx - 6, -21, 12, 21, 3, '#b6d4c4', '#607d70');
+          c.fillStyle = '#e9d6a4'; c.fillRect(bx - 3, -26, 6, 6);
+        }
+        c.fillStyle = trim; c.fillRect(-7, -34, 14, 10);
+      } else if (isDistiller) {
+        roundedRect(-30, -1, 60, 25, 5, metal, '#343b39');
+        roundedRect(-20, -28, 40, 28, 8, '#b6d0d2', '#4c777d');
+        c.fillStyle = currentFloor === 2 ? '#a99bea' : '#d8bd7d';
+        c.globalAlpha = 0.55 + pulse * 0.3;
+        c.beginPath(); c.ellipse(0, -13, 15, 8 + pulse * 2, 0, 0, Math.PI * 2); c.fill();
+        c.globalAlpha = 1; c.strokeStyle = trim; c.lineWidth = 4;
+        c.beginPath(); c.moveTo(0, -28); c.lineTo(0, -39); c.lineTo(18, -39); c.lineTo(18, -27); c.stroke();
+        c.fillStyle = trim; c.beginPath(); c.arc(18, -26, 4 + pulse * 1.5, 0, Math.PI * 2); c.fill();
+        c.fillStyle = '#e9e5d6'; c.fillRect(-16, 7, 32, 4);
+      } else if (isPress) {
+        roundedRect(-32, -2, 64, 29, 4, metal, '#343b39');
+        roundedRect(-24, -39, 48, 7, 2, trim, '#604d3a');
+        c.fillStyle = trim; c.fillRect(-20, -32, 5, 31); c.fillRect(15, -32, 5, 31);
+        c.fillRect(-22, -11 + Math.sin(elapsedWorld * 2.4) * 2, 44, 5);
+        c.fillStyle = '#8eae9b'; c.beginPath(); c.arc(0, 7, 10, 0, Math.PI * 2); c.fill();
+      } else {
+        roundedRect(-39, -3, 78, 27, 5, metal, '#343b39');
+        roundedRect(-32, -18, 64, 16, 3, trim, '#6e573a');
+        for (let vial = 0; vial < 3; vial++) {
+          const vx = -22 + vial * 22;
+          const bob = Math.sin(elapsedWorld * 2 + vial) * 1.5;
+          roundedRect(vx - 5, -34 - bob, 10, 17, 3, ['#b3d0c1', '#d2b8a0', '#b2bde0'][vial], '#665d4e');
+          c.fillStyle = '#e9d9b4'; c.fillRect(vx - 2, -38 - bob, 4, 5);
+        }
+      }
+      roundedRect(-39, 31, 78, 17, 4, 'rgba(248,241,218,.94)', '#a28c64');
+      c.fillStyle = '#3f4938'; c.textAlign = 'center'; c.font = 'bold 8px system-ui';
+      c.fillText(machine.short.toUpperCase(), 0, 42);
+      roundedRect(22, -40, 28, 17, 5, '#344735', trim);
+      c.fillStyle = '#fff6df'; c.font = 'bold 9px system-ui';
+      c.fillText('×' + machine.count, 36, -28);
+      c.restore();
+    });
+  }
+
   function draw(): void {
     const c = context!;
     c.setTransform(canvas.width / VIEW_WIDTH, 0, 0, canvas.height / VIEW_HEIGHT, 0, 0);
@@ -478,10 +595,13 @@ export function createWorkshopScene(
     c.save();
     c.translate(-cameraX, -cameraY);
     drawGround();
-    STATIONS.filter((station) => !['laboratory', 'counter', 'stairs'].includes(station.id)).forEach((station, i) => {
-      drawHerbBed(station, i);
-    });
+    if (currentFloor === 0) {
+      STATIONS.filter((station) => !['laboratory', 'counter', 'stairs'].includes(station.id)).forEach((station, i) => {
+        drawHerbBed(station, i);
+      });
+    }
     STATIONS.filter((station) => station.id === 'laboratory' || station.id === 'counter' || station.id === 'stairs').forEach(drawMachine);
+    drawPlacedMachines();
 
     for (const particle of particles) {
       c.globalAlpha = Math.max(0, particle.life / particle.maxLife);
@@ -508,6 +628,7 @@ export function createWorkshopScene(
     let result: Station | null = null;
     let best = 68;
     for (const station of STATIONS) {
+      if (currentFloor > 0 && MATERIAL_STATION_IDS.has(station.id)) continue;
       const distance = Math.hypot(player.x - station.x, player.y - station.y);
       if (distance < best) {
         best = distance;
@@ -635,6 +756,10 @@ export function createWorkshopScene(
     },
     setFloor(floor: number): void {
       currentFloor = Number.isInteger(floor) ? Math.max(0, Math.min(2, floor)) : 0;
+      draw();
+    },
+    setMachines(nextMachines: WorkshopMachineVisual[]): void {
+      placedMachines = nextMachines.map((machine) => ({ ...machine }));
       draw();
     },
     destroy(): void {

@@ -688,6 +688,10 @@ function interactWithStation(station: WorkshopStation): void {
 function renderAll(): void {
   workshopScene?.setTheme(getWorld(state.currentWorld));
   workshopScene?.setFloor(state.currentFloor);
+  workshopScene?.setMachines(MACHINES.map((machine) => ({
+    id: machine.id, short: machine.short, name: machine.name, floor: machine.floor,
+    count: state.machines[state.currentWorld][machine.id],
+  })));
   renderStats();
   renderFloorNavigation();
   renderHarvestView();
@@ -1051,6 +1055,10 @@ workshopScene = createWorkshopScene(byId<HTMLCanvasElement>('workshop-canvas'), 
 });
 workshopScene.setTheme(getWorld(state.currentWorld));
 workshopScene.setFloor(state.currentFloor);
+workshopScene.setMachines(MACHINES.map((machine) => ({
+  id: machine.id, short: machine.short, name: machine.name, floor: machine.floor,
+  count: state.machines[state.currentWorld][machine.id],
+})));
 renderFloorNavigation();
 save();
 requestAnimationFrame(gameTick);
