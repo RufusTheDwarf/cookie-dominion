@@ -15,6 +15,8 @@ import {
   createInitialState,
   customerOrderCost,
   customerOrderReward,
+  harvestIngredient,
+  INGREDIENTS_PER_PERFUME,
   enterFloor,
   floorUnlockCost,
   enterWorld,
@@ -101,6 +103,47 @@ describe('tycoon economy', () => {
     expect(state.runPerfumeRevenue).toBe(10);
   });
 
+  it('requires ten random botanical ingredients before the first perfume is made', () => {
+    let state = createInitialState(100);
+    expect(INGREDIENTS_PER_PERFUME).toBe(10);
+
+    for (let click = 1; click <= 9; click += 1) {
+      state = harvestIngredient(state, () => 0.01).state;
+      expect(state.perfumeRevenue).toBe(0);
+      expect(state.harvestProgress).toBe(click);
+    }
+
+    state = harvestIngredient(state, () => 0.01).state;
+    expect(state.perfumeRevenue).toBe(1);
+    expect(state.lifetimePerfumeRevenue).toBe(1);
+    expect(state.gatherClicks).toBe(10);
+    expect(state.harvestProgress).toBe(0);
+    expect(Object.values(state.ingredients).reduce((sum, count) => sum + count, 0)).toBe(0);
+    expect(state.materialDiscoveries.lavender).toBe(10);
+    expect(state.lastHarvestedMaterial).toBe('lavender');
+  });
+
+  it('reveals random materials and lets botanical research find a bonus item', () => {
+    const initial = createInitialState(100);
+    const rareDrop = harvestIngredient(initial, () => 0.995);
+    expect(rareDrop.materials).toEqual(['resin']);
+    expect(rareDrop.state.lastHarvestedMaterial).toBe('resin');
+    expect(rareDrop.state.materialDiscoveries.resin).toBe(1);
+    expect(rareDrop.state.perfumeRevenue).toBe(0);
+
+    const trained = {
+      ...initial,
+      upgrades: { ...initial.upgrades, clickPower: 1 },
+    };
+    const rolls = [0.1, 0.05, 0.7];
+    const bonusDrop = harvestIngredient(trained, () => rolls.shift() ?? 0.5);
+    expect(bonusDrop.materials).toEqual(['lavender', 'rose']);
+    expect(bonusDrop.state.harvestProgress).toBe(2);
+    expect(bonusDrop.state.ingredients.lavender).toBe(1);
+    expect(bonusDrop.state.ingredients.rose).toBe(1);
+    expect(bonusDrop.state.gatherClicks).toBe(1);
+  });
+
   it('rejects invalid earning amounts', () => {
     const initial = createInitialState(100);
     expect(addPerfumeRevenue(initial, Number.NaN)).toBe(initial);
@@ -110,10 +153,10 @@ describe('tycoon economy', () => {
   it('lets the player buy a machine and raises passive output', () => {
     const state = { ...createInitialState(100), perfumeRevenue: 100 };
     const next = buyMachine(state, 'formulation-table');
-    expect(next.perfumeRevenue).toBe(65);
+    expect(next.perfumeRevenue).toBe(97);
     expect(next.machines['glass-garden']['formulation-table']).toBe(1);
     expect(productionPerSecond(next)).toBeCloseTo(3 / 3.5);
-    expect(machineCost(next, 'formulation-table')).toBe(48);
+    expect(machineCost(next, 'formulation-table')).toBe(5);
   });
 
   it('buys permanent research upgrades and applies their effects', () => {
@@ -126,7 +169,7 @@ describe('tycoon economy', () => {
         'glass-garden': { ...initial.machines['glass-garden'], 'formulation-table': 1 },
       },
     };
-    expect(manualPerfumeValue(withMixer)).toBe(5);
+    expect(manualPerfumeValue(withMixer)).toBe(1);
     expect(productionPerSecond(withMixer)).toBeCloseTo(3 / 3.5);
 
     const researched = buyUpgrade(withMixer, 'production');
@@ -136,16 +179,16 @@ describe('tycoon economy', () => {
     expect(upgradeCost(researched, 'production')).toBe(555);
 
     const clickResearch = buyUpgrade({ ...withMixer, perfumeRevenue: 200 }, 'clickPower');
-    expect(manualPerfumeValue(clickResearch)).toBe(10);
+    expect(manualPerfumeValue(clickResearch)).toBe(2);
 
     const discounted = buyUpgrade({ ...withMixer, perfumeRevenue: 600 }, 'discount');
-    expect(machineCost(discounted, 'copper-still')).toBe(209);
+    expect(machineCost(discounted, 'copper-still')).toBe(24);
 
     const rareResearch = buyUpgrade({ ...withMixer, perfumeRevenue: 2000 }, 'rareBonus');
     expect(rareResearch.upgrades.rareBonus).toBe(1);
     const vipResearch = buyUpgrade({ ...withMixer, perfumeRevenue: 2000 }, 'orders');
     expect(vipResearch.upgrades.orders).toBe(1);
-    expect(customerOrderReward(vipResearch)).toBe(238);
+    expect(customerOrderReward(vipResearch)).toBe(16);
 
     expect(buyUpgrade({ ...researched, upgrades: { ...researched.upgrades, production: 10 } }, 'production').upgrades.production).toBe(10);
   });
@@ -165,7 +208,7 @@ describe('tycoon economy', () => {
     })).toBe(1);
     expect(canClaimMission(built, 'first-machine')).toBe(true);
     const rewarded = claimMission(built, 'first-machine');
-    expect(rewarded.perfumeRevenue).toBe(75);
+    expect(rewarded.perfumeRevenue).toBe(2);
     expect(rewarded.claimedMissions).toContain('first-machine');
     expect(claimMission(rewarded, 'first-machine')).toBe(rewarded);
   });
@@ -173,32 +216,32 @@ describe('tycoon economy', () => {
   it('delivers scalable VIP perfume orders and pays the player', () => {
     const initial = createInitialState(100);
     expect(initial.ordersCompleted).toBe(0);
-    expect(customerOrderCost(initial)).toBe(120);
-    expect(customerOrderReward(initial)).toBe(216);
+    expect(customerOrderCost(initial)).toBe(8);
+    expect(customerOrderReward(initial)).toBe(15);
     expect(canCompleteCustomerOrder(initial)).toBe(false);
     expect(completeCustomerOrder(initial)).toBe(initial);
 
-    const underfunded = { ...initial, perfumeRevenue: 119 };
+    const underfunded = { ...initial, perfumeRevenue: 7 };
     expect(completeCustomerOrder(underfunded)).toBe(underfunded);
 
-    const funded = { ...initial, perfumeRevenue: 120 };
+    const funded = { ...initial, perfumeRevenue: 8 };
     const delivered = completeCustomerOrder(funded);
-    expect(delivered.perfumeRevenue).toBe(216);
+    expect(delivered.perfumeRevenue).toBe(15);
     expect(delivered.ordersCompleted).toBe(1);
-    expect(delivered.lifetimePerfumeRevenue).toBe(216);
-    expect(delivered.runPerfumeRevenue).toBe(216);
-    expect(customerOrderCost(delivered)).toBe(198);
-    expect(customerOrderReward(delivered)).toBe(357);
+    expect(delivered.lifetimePerfumeRevenue).toBe(15);
+    expect(delivered.runPerfumeRevenue).toBe(15);
+    expect(customerOrderCost(delivered)).toBe(14);
+    expect(customerOrderReward(delivered)).toBe(26);
     const secondDelivery = completeCustomerOrder(delivered);
     expect(secondDelivery.ordersCompleted).toBe(2);
-    expect(secondDelivery.perfumeRevenue).toBe(375);
-    expect(customerOrderCost(secondDelivery)).toBe(327);
-    expect(customerOrderReward(secondDelivery)).toBe(589);
+    expect(secondDelivery.perfumeRevenue).toBe(27);
+    expect(customerOrderCost(secondDelivery)).toBe(24);
+    expect(customerOrderReward(secondDelivery)).toBe(44);
     expect(canClaimMission(delivered, 'first-order')).toBe(true);
 
     const claimed = claimMission(delivered, 'first-order');
     expect(claimed.claimedMissions).toContain('first-order');
-    expect(claimed.perfumeRevenue).toBe(466);
+    expect(claimed.perfumeRevenue).toBe(23);
     expect(claimMission(claimed, 'first-order')).toBe(claimed);
   });
 
@@ -228,7 +271,7 @@ describe('tycoon economy', () => {
   it('allows all production tiers to be purchased directly from the clicker catalog', () => {
     const starter = { ...createInitialState(100), perfumeRevenue: 5000 };
     const firstHighTier = buyMachine(starter, 'bottling-line');
-    expect(firstHighTier.perfumeRevenue).toBe(3400);
+    expect(firstHighTier.perfumeRevenue).toBe(4860);
     expect(firstHighTier.machines['glass-garden']['bottling-line']).toBe(1);
 
     const funded = { ...starter, perfumeRevenue: 100_000_000 };
