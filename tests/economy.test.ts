@@ -601,6 +601,7 @@ describe('tycoon economy', () => {
       currentWorld: 'amber-house' as WorldId,
       currentFloor: 1,
       unlockedFloors: [0, 1],
+      outsideExpansions: 2,
       unlockedWorlds: ['glass-garden', 'amber-house'] as WorldId[],
       rareFlaconsClaimed: 3,
       ordersCompleted: 4,
@@ -613,6 +614,7 @@ describe('tycoon economy', () => {
     expect(loaded?.rebirths).toBe(1);
     expect(loaded?.currentWorld).toBe('amber-house');
     expect(loaded?.currentFloor).toBe(1);
+    expect(loaded?.outsideExpansions).toBe(2);
     expect(loaded?.machines['amber-house']['bottling-line']).toBe(2);
     expect(loaded?.upgrades).toEqual({ production: 0, clickPower: 0, discount: 0, rareBonus: 0, orders: 0 });
     expect(loaded?.claimedMissions).toEqual([]);

@@ -61,6 +61,7 @@ import { createWorkshopScene, type WorkshopScene, type WorkshopStation, type Mov
 
 
 const SAVE_KEY = 'parfum-empire-save-v1';
+const BACKUP_SAVE_KEY = 'parfum-empire-save-backup-v1';
 const LEGACY_SAVE_KEY = 'cookie-dominion-save-v1';
 const SOUND_KEY = 'parfum-empire-sound-enabled-v1';
 
@@ -88,6 +89,7 @@ let selectedRecipeId: RecipeId = 'green-whisper';
 let workshopScene: WorkshopScene | null = null;
 let nearbyStation: WorkshopStation | null = null;
 let state: GameState;
+let saveRecoveryMessage: string | null = null;
 let soundEnabled = readSoundPreference();
 let soundContext: AudioContext | null = null;
 
@@ -154,10 +156,30 @@ function normalizeGameState(value: GameState): GameState {
 }
 
 try {
-  const saved = localStorage.getItem(SAVE_KEY) ?? localStorage.getItem(LEGACY_SAVE_KEY);
-  state = normalizeGameState(parseSavedState(saved));
+  const primary = localStorage.getItem(SAVE_KEY);
+  const backup = localStorage.getItem(BACKUP_SAVE_KEY);
+  const legacy = localStorage.getItem(LEGACY_SAVE_KEY);
+  const primaryIsValid = primary !== null && parseImportedSave(primary) !== null;
+  const backupIsValid = backup !== null && parseImportedSave(backup) !== null;
+  const legacyIsValid = legacy !== null && parseImportedSave(legacy) !== null;
+
+  if (primaryIsValid) {
+    state = normalizeGameState(parseSavedState(primary));
+  } else if (backupIsValid) {
+    state = normalizeGameState(parseSavedState(backup));
+    saveRecoveryMessage = 'La sauvegarde principale était illisible. La copie de secours a été restaurée.';
+  } else if (legacyIsValid) {
+    state = normalizeGameState(parseSavedState(legacy));
+    saveRecoveryMessage = 'Une ancienne sauvegarde a été récupérée. Exporte une copie après vérification.';
+  } else {
+    state = normalizeGameState(createInitialState());
+    if (primary !== null || backup !== null || legacy !== null) {
+      saveRecoveryMessage = 'Les sauvegardes existantes sont illisibles. Une nouvelle partie a été créée; vérifie tes exports avant de continuer.';
+    }
+  }
 } catch {
   state = normalizeGameState(createInitialState());
+  saveRecoveryMessage = 'Le stockage local est indisponible. La progression peut ne pas être conservée.';
 }
 
 app.innerHTML = `
@@ -347,6 +369,14 @@ function save(): void {
   const now = Date.now();
   state = { ...state, lastSavedAt: now, rampBuilt: true };
   try {
+    const previous = localStorage.getItem(SAVE_KEY);
+    if (previous !== null && parseImportedSave(previous) !== null) {
+      try {
+        localStorage.setItem(BACKUP_SAVE_KEY, previous);
+      } catch {
+        // Keep attempting the primary save even when there is no room for a backup.
+      }
+    }
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
     byId('save-indicator').textContent = 'SAUVEGARDÉ · ' + new Date(now).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' });
   } catch {
@@ -992,6 +1022,7 @@ function eraseSave(): void {
   state = normalizeGameState(createInitialState());
   try {
     localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem(BACKUP_SAVE_KEY);
     localStorage.removeItem(LEGACY_SAVE_KEY);
   } catch {
     // The game remains playable without persistent storage.
@@ -1183,4 +1214,5 @@ workshopScene.setEnvironment(getWorld(state.currentWorld), state.currentFloor, M
 })), state.outsideExpansions);
 renderFloorNavigation();
 save();
+if (saveRecoveryMessage) setStatus(saveRecoveryMessage);
 requestAnimationFrame(gameTick);
