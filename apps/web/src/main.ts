@@ -51,6 +51,7 @@ type StoreTab = 'upgrades' | 'contracts' | 'honours' | 'worlds' | 'prestige' | '
 let activeTab: StoreTab = 'upgrades';
 let statusMessage = 'Ta première fragrance t’attend. Clique sur le flacon pour commencer.';
 let lastTick = performance.now();
+let lastStatsUpdate = 0;
 let lastPassiveUiSecond = -1;
 let autoSaveElapsed = 0;
 let rareNextAt = performance.now() + 24_000;
@@ -932,14 +933,16 @@ function gameTick(now: number): void {
     const cps = productionPerSecond(state);
     const activeProductionMultiplier = now < rareBoostUntil ? 2 : 1;
     if (cps > 0) state = addPerfumeRevenue(state, cps * elapsed * activeProductionMultiplier);
-    state = { ...state, lastSavedAt: Date.now(), currentFloor: 0, unlockedFloors: [0], rampBuilt: true };
     autoSaveElapsed += elapsed;
     if (autoSaveElapsed >= 10) {
       save();
       autoSaveElapsed = 0;
     }
-    renderStats();
     const second = Math.floor(now / 1000);
+    if (now - lastStatsUpdate >= 100 || second !== lastPassiveUiSecond) {
+      renderStats();
+      lastStatsUpdate = now;
+    }
     if (second !== lastPassiveUiSecond) {
       lastPassiveUiSecond = second;
       renderMachines();
