@@ -89,10 +89,6 @@ img{max-width:100%;display:block}
 .bottle-orbit{position:absolute;border:1px solid rgba(83,105,76,.22);border-radius:50%;transform:rotate(-26deg);pointer-events:none}
 .orbit-one{width:210px;height:75px}
 .orbit-two{width:188px;height:68px;transform:rotate(34deg);border-color:rgba(178,138,77,.35)}
-.perfume-clicker{position:relative;z-index:1;display:grid;place-items:center;width:190px;height:190px;border:0;background:transparent;padding:7px;transition:transform .15s ease;touch-action:manipulation}
-.perfume-clicker img{width:157px;height:175px;object-fit:contain;filter:drop-shadow(0 11px 8px rgba(48,45,32,.17));user-select:none;pointer-events:none;transition:filter .15s ease}
-.perfume-clicker:hover img{filter:drop-shadow(0 13px 12px rgba(48,45,32,.24))}
-.perfume-clicker:active,.perfume-clicker.is-clicking{transform:scale(.92) rotate(-2deg)}
 .stage-caption{position:absolute;bottom:11px;font-size:8px;font-weight:800;letter-spacing:1.55px;color:#6d674e}
 .floating-reward{position:absolute;z-index:4;pointer-events:none;color:var(--rust-dark);font-family:Georgia,"Times New Roman",serif;font-size:20px;font-weight:800;text-shadow:0 1px #fff8e5;white-space:nowrap;animation:float-reward .9s ease-out forwards}
 @keyframes float-reward{0%{opacity:0;transform:translate(-20%,-4px) scale(.75)}15%{opacity:1}100%{opacity:0;transform:translate(6%,-72px) scale(1.08)}}
@@ -507,9 +503,7 @@ body.theme-dark{
   .bottle-halo{width:clamp(95px,10vw,145px);height:clamp(95px,10vw,145px)}
   .orbit-one{width:clamp(112px,14vw,165px);height:49px}
   .orbit-two{width:clamp(108px,13vw,150px);height:43px}
-  .perfume-clicker{width:clamp(100px,10vw,134px);height:clamp(98px,15vh,130px);padding:3px}
-  .perfume-clicker img{width:clamp(82px,8vw,112px);height:clamp(88px,13vh,118px)}
-  .stage-caption{bottom:4px;font-size:6px;letter-spacing:1px}
+      .stage-caption{bottom:4px;font-size:6px;letter-spacing:1px}
   .crafted-flacon-pop{width:58px;height:67px}
   .harvest-summary{grid-template-columns:32px minmax(0,1fr) auto;gap:5px;padding:4px 6px 3px}
   .last-drop-icon{width:31px;height:31px}
@@ -683,9 +677,7 @@ body.theme-dark{
   .brand-text>strong{font-size:21px}
   .game-shell{gap:4px;padding:5px 7px}
   .workshop-stage-frame{height:104px;min-height:104px}
-  .perfume-clicker{height:96px;width:96px}
-  .perfume-clicker img{height:83px;width:78px}
-  .harvest-summary{grid-template-columns:28px minmax(0,1fr) auto;padding:3px 5px 2px}
+      .harvest-summary{grid-template-columns:28px minmax(0,1fr) auto;padding:3px 5px 2px}
   .last-drop-icon{width:27px;height:27px}
   .last-drop-icon img{width:23px;height:23px}
   .material-chip{min-height:31px}
