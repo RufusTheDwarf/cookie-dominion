@@ -689,7 +689,8 @@ export function createWorkshopScene(
       });
     }
     STATIONS.filter((station) =>
-      ['laboratory', 'counter', 'stairs', 'stairs-down'].includes(station.id) &&
+      (station.id === 'laboratory' || station.id === 'counter' ||
+        station.id === 'stairs' || station.id === 'stairs-down') &&
       isStationAvailable(station.id),
     ).forEach(drawMachine);
     drawPlacedMachines();
