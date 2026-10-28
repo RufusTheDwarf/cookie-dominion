@@ -10,8 +10,10 @@ import {
   canCompleteCustomerOrder,
   canRebirth,
   canTotalRebirth,
+  canCraftPerfume,
   claimMission,
   collectHerb,
+  craftPerfume,
   completeCustomerOrder,
   createInitialState,
   customerOrderCost,
@@ -29,7 +31,8 @@ import {
   performRebirth,
   performTotalRebirth,
   productionPerSecond,
-  HERB_CLICKS_PER_PERFUME,
+  PERFUME_RECIPES,
+  sellPerfume,
   STARTING_LAND_COST,
   rebirthCost,
   rebirthMultiplier,
@@ -109,33 +112,39 @@ describe('tycoon economy', () => {
     expect(addCrumbs(initial, -1)).toBe(initial);
   });
 
-  it('requires five herb clicks to make one perfume and saves partial progress', () => {
+  it('gathers herbs, crafts combinations, and sells the first perfume cheaply', () => {
     let state = createInitialState(100);
-    expect(state.herbClicks).toBe(0);
-    for (let click = 1; click < HERB_CLICKS_PER_PERFUME; click += 1) {
-      const result = collectHerb(state);
-      expect(result.perfumeMade).toBe(0);
-      state = result.state;
-      expect(state.herbClicks).toBe(click);
-      expect(state.crumbs).toBe(0);
-    }
+    state = collectHerb(state, 'lavender');
+    expect(state.herbInventory.lavender).toBe(1);
+    expect(state.crumbs).toBe(0);
+    expect(canCraftPerfume(state, 'green-whisper')).toBe(false);
 
-    const fifthClick = collectHerb(state);
-    state = fifthClick.state;
-    expect(fifthClick.perfumeMade).toBe(1);
-    expect(state.herbClicks).toBe(0);
-    expect(state.crumbs).toBe(1);
-    expect(state.lifetimeCrumbs).toBe(1);
-    expect(state.runCrumbsEarned).toBe(1);
+    state = collectHerb(state, 'mint');
+    expect(canCraftPerfume(state, 'green-whisper')).toBe(true);
+    expect(canCraftPerfume(state, 'soft-rose')).toBe(false);
+    expect(PERFUME_RECIPES['green-whisper'].salePrice).toBe(2);
 
-    const upgraded = { ...createInitialState(100), upgrades: { production: 0, clickPower: 1, discount: 0 } };
-    let upgradedState = upgraded;
-    for (let click = 1; click < HERB_CLICKS_PER_PERFUME; click += 1) {
-      upgradedState = collectHerb(upgradedState).state;
-    }
-    const improvedRecipe = collectHerb(upgradedState);
-    expect(improvedRecipe.perfumeMade).toBe(2);
-    expect(improvedRecipe.state.crumbs).toBe(2);
+    const crafted = craftPerfume(state, 'green-whisper');
+    expect(crafted.herbInventory.lavender).toBe(0);
+    expect(crafted.herbInventory.mint).toBe(0);
+    expect(crafted.perfumeInventory['green-whisper']).toBe(1);
+    expect(crafted.crumbs).toBe(0);
+    expect(craftPerfume(crafted, 'royal-bouquet')).toBe(crafted);
+
+    const sold = sellPerfume(crafted, 'green-whisper');
+    expect(sold.crumbs).toBe(2);
+    expect(sold.lifetimeCrumbs).toBe(2);
+    expect(sold.runCrumbsEarned).toBe(2);
+    expect(sold.perfumeInventory['green-whisper']).toBe(0);
+    expect(sellPerfume(sold, 'green-whisper')).toBe(sold);
+
+    let floral = collectHerb(collectHerb(createInitialState(100), 'lavender'), 'rose');
+    floral = craftPerfume(floral, 'soft-rose');
+    expect(floral.perfumeInventory['soft-rose']).toBe(1);
+
+    let bouquet = collectHerb(collectHerb(collectHerb(createInitialState(100), 'lavender'), 'mint'), 'rose');
+    bouquet = craftPerfume(bouquet, 'royal-bouquet');
+    expect(bouquet.perfumeInventory['royal-bouquet']).toBe(1);
   });
 
   it('lets the player buy a machine and raises passive output', () => {
@@ -427,7 +436,8 @@ describe('tycoon economy', () => {
       unlockedWorlds: ['cookie-valley', 'choco-moon'] as WorldId[],
       goldenCookiesClaimed: 3,
       ordersCompleted: 4,
-      herbClicks: 3,
+      herbInventory: { lavender: 3, mint: 1, rose: 0 },
+      perfumeInventory: { 'green-whisper': 2, 'soft-rose': 0, 'royal-bouquet': 1 },
     };
     state.machines['choco-moon']['conveyor-oven'] = 2;
     const encoded = exportSaveFile(state, 1000);
@@ -442,7 +452,10 @@ describe('tycoon economy', () => {
     expect(loaded?.claimedMissions).toEqual([]);
     expect(loaded?.goldenCookiesClaimed).toBe(3);
     expect(loaded?.ordersCompleted).toBe(4);
-    expect(loaded?.herbClicks).toBe(3);
+    expect(loaded?.herbInventory.lavender).toBe(3);
+    expect(loaded?.herbInventory.mint).toBe(1);
+    expect(loaded?.perfumeInventory['green-whisper']).toBe(2);
+    expect(loaded?.perfumeInventory['royal-bouquet']).toBe(1);
     expect(loaded?.totalRebirths).toBe(0);
     expect(loaded?.essences).toBe(0);
     expect(loaded?.unlockedFloors).toEqual([0, 1]);
