@@ -283,6 +283,43 @@ function save(): void {
   }
 }
 
+function renderHarvestView(): void {
+  const latest = MATERIALS.find((material) => material.id === state.lastHarvestedMaterial);
+  const unknownAsset = '/assets/material-unknown.svg';
+  const source = latest?.asset ?? unknownAsset;
+  const lastIcon = byId<HTMLImageElement>('harvest-last-icon');
+  lastIcon.src = source;
+  lastIcon.alt = latest?.name ?? 'Matière inconnue';
+  byId('harvest-last-name').textContent = latest?.name ?? 'Objet inconnu';
+  byId('harvest-last-rarity').textContent = latest
+    ? latest.rarity + ' · nouvelle trouvaille'
+    : 'Le prochain clic révélera une matière.';
+  byId('harvest-progress').textContent = state.harvestProgress + '/' + INGREDIENTS_PER_PERFUME;
+  byId('harvest-progress-bar').style.width = (state.harvestProgress / INGREDIENTS_PER_PERFUME * 100) + '%';
+
+  const mainButton = byId<HTMLButtonElement>('perfume-clicker');
+  const mainImage = mainButton.querySelector<HTMLImageElement>('img');
+  if (mainImage) {
+    mainImage.src = source;
+    mainImage.alt = latest ? latest.name : 'Matière botanique inconnue';
+  }
+  mainButton.setAttribute('aria-label', 'Récolter une matière botanique aléatoire');
+
+  const discoveries = MATERIALS.reduce((sum, material) => sum + state.materialDiscoveries[material.id], 0);
+  byId('material-discovered-count').textContent = format(discoveries, 0) + ' trouvaille' + (discoveries === 1 ? '' : 's');
+  byId('material-inventory').innerHTML = MATERIALS.map((material) => {
+    const count = state.materialDiscoveries[material.id];
+    const known = count > 0;
+    const latestClass = material.id === state.lastHarvestedMaterial ? ' is-latest' : '';
+    return `
+      <div class="material-chip ${known ? 'is-known' : 'is-unknown'}${latestClass}" title="${known ? material.name + ' · ' + material.rarity : 'Matière encore inconnue'}">
+        <img src="${known ? material.asset : unknownAsset}" alt="" />
+        <span>${known ? material.shortName : '???'}</span>
+        <strong>${format(count, 0)}</strong>
+      </div>`;
+  }).join('');
+}
+
 function renderStats(): void {
   const world = getWorld(state.currentWorld);
   const cps = productionPerSecond(state);
@@ -292,7 +329,6 @@ function renderStats(): void {
   byId('header-click').textContent = state.harvestProgress + '/' + INGREDIENTS_PER_PERFUME;
   byId('header-run').textContent = format(state.runPerfumeRevenue);
   byId('factory-cps').textContent = format(cps);
-  byId('click-value-label').textContent = state.harvestProgress + '/' + INGREDIENTS_PER_PERFUME;
   byId('session-clicks').textContent = format(state.gatherClicks, 0);
   byId('lifetime-sales').textContent = format(state.lifetimePerfumeRevenue);
   byId('rare-count').textContent = format(state.rareFlaconsClaimed, 0);
@@ -545,16 +581,30 @@ function saveSoon(): void {
   autoSaveElapsed = Math.max(autoSaveElapsed, 8);
 }
 
-function floatReward(amount: number, event?: MouseEvent): void {
+function floatReward(amount: number, event?: MouseEvent, noun = 'parfums'): void {
   const stage = byId('clicker-stage');
   const rect = stage.getBoundingClientRect();
   const floating = document.createElement('span');
   floating.className = 'floating-reward';
-  floating.textContent = '+' + format(amount);
+  floating.textContent = '+' + format(amount) + ' ' + noun;
   const x = event ? event.clientX - rect.left : rect.width * 0.56;
   const y = event ? event.clientY - rect.top : rect.height * 0.48;
   floating.style.left = Math.max(18, Math.min(rect.width - 80, x)) + 'px';
   floating.style.top = Math.max(15, Math.min(rect.height - 35, y)) + 'px';
+  stage.appendChild(floating);
+  window.setTimeout(() => floating.remove(), 950);
+}
+
+function floatText(label: string, event?: MouseEvent): void {
+  const stage = byId('clicker-stage');
+  const rect = stage.getBoundingClientRect();
+  const floating = document.createElement('span');
+  floating.className = 'floating-reward floating-material';
+  floating.textContent = label;
+  const x = event ? event.clientX - rect.left : rect.width * 0.54;
+  const y = event ? event.clientY - rect.top : rect.height * 0.5;
+  floating.style.left = Math.max(12, Math.min(rect.width - 130, x)) + 'px';
+  floating.style.top = Math.max(12, Math.min(rect.height - 28, y)) + 'px';
   stage.appendChild(floating);
   window.setTimeout(() => floating.remove(), 950);
 }
@@ -642,7 +692,7 @@ function deliverOrder(): void {
 function collectRareFlacon(): void {
   const now = performance.now();
   if (rareExpiresAt <= now || now < rareBoostUntil) return;
-  const reward = Math.max(50, productionPerSecond(state) * 10 + manualPerfumeValue(state) * 10);
+  const reward = Math.max(1, Math.ceil(productionPerSecond(state) * 5 + state.lifetimePerfumeRevenue * 0.1));
   state = addPerfumeRevenue(state, reward);
   state = { ...state, rareFlaconsClaimed: state.rareFlaconsClaimed + 1 };
   rareExpiresAt = 0;
@@ -744,7 +794,21 @@ function eraseSave(): void {
   setStatus('Nouvelle partie créée. Ta maison repart de zéro.');
 }
 
+// The game is pointer-operated: keyboard focus must not automate rapid purchases or harvesting.
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Tab') {
+    event.preventDefault();
+    event.stopPropagation();
+    return;
+  }
+  if ((event.key === 'Enter' || event.key === ' ') && event.target instanceof HTMLButtonElement) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+}, true);
+
 app.addEventListener('click', (event) => {
+  if (!(event instanceof MouseEvent) || event.detail === 0) return;
   const target = event.target instanceof Element ? event.target.closest<HTMLElement>('button') : null;
   if (!target) return;
 
@@ -763,7 +827,6 @@ app.addEventListener('click', (event) => {
   if (target.id === 'open-settings') {
     activeTab = 'save';
     renderStore();
-    byId('store-content').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     return;
   }
   if (target.dataset.tab) {
