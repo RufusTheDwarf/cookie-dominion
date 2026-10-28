@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 90 110" fill="none">
+  <defs><linearGradient id="amethyst" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#9c8bb3"/><stop offset=".45" stop-color="#594d72"/><stop offset="1" stop-color="#30263d"/></linearGradient><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f0d58c"/><stop offset="1" stop-color="#99713d"/></linearGradient></defs>
+  <ellipse cx="45" cy="102" rx="25" ry="5" fill="#302f27" opacity=".2"/>
+  <path d="M34 17h22v13l7 7c5 5 8 11 8 19v32c0 6-5 11-11 11H30c-6 0-11-5-11-11V56c0-8 3-14 8-19l7-7V17Z" fill="url(#amethyst)" stroke="#302f27" stroke-width="2.8"/>
+  <path d="M34 17h22v13l7 7c3 4 5 7 6 12H22c1-5 3-8 6-12l7-7V17Z" fill="#c9c1d8" fill-opacity=".36"/>
+  <path d="M35 13h20l4 4-4 4H35l-4-4 4-4Z" fill="url(#gold)" stroke="#302f27" stroke-width="2.4"/>
+  <path d="M36 9h18v4H36z" fill="#604333" stroke="#302f27" stroke-width="2"/>
+  <path d="M27 61h36v25c0 5-4 8-9 8H36c-5 0-9-3-9-8V61Z" fill="#d2b778" stroke="#302f27" stroke-width="2"/>
+  <path d="M32 67h26M32 72h26" stroke="#8a6943" stroke-width="1.5"/>
+  <path d="M45 63l8 10-8 10-8-10 8-10Z" fill="#594d72" stroke="#302f27" stroke-width="1.6"/>
+  <path d="M45 66v14M38 73h14" stroke="#f0d58c" stroke-width="1.5"/>
+  <path d="M29 43c-3 8-3 15-2 22v20" stroke="#f8f2df" stroke-width="3" stroke-linecap="round" opacity=".76"/>
+  <path d="M68 31c7-4 11-10 11-18M74 21h-8M74 21l-1-7" stroke="#53694c" stroke-width="2"/>
+  <path d="M77 14c-7 2-11-2-11-8 7-1 11 2 11 8ZM75 21c1-7 5-10 11-10-1 7-5 10-11 10Z" fill="#82966d" stroke="#302f27" stroke-width="1.5"/>
+</svg>
