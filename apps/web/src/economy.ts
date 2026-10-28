@@ -129,11 +129,11 @@ export const UPGRADES: Record<UpgradeId, { name: string; description: string; ba
     effect: '+20 % parfums / niveau',
   },
   clickPower: {
-    name: 'Gestuelle du maître',
-    description: 'Chaque niveau ajoute un parfum à la recette terminée après cinq récoltes d’herbes.',
+    name: 'Négociation fine',
+    description: 'Chaque niveau ajoute une pièce au prix de vente de chaque flacon.',
     baseCost: 120,
     growth: 1.8,
-    effect: '+1 parfum / recette',
+    effect: '+1 pièce / flacon',
   },
   discount: {
     name: 'Contrats verriers',
@@ -402,7 +402,7 @@ export function craftPerfume(state: GameState, recipeId: RecipeId): GameState {
 
 export function sellPerfume(state: GameState, recipeId: RecipeId): GameState {
   if (!PERFUME_RECIPES[recipeId] || state.perfumeInventory[recipeId] <= 0) return state;
-  const salePrice = Math.ceil(PERFUME_RECIPES[recipeId].salePrice * getWorld(state.currentWorld).incomeMultiplier * rebirthMultiplier(state) * essenceMultiplier(state));
+  const salePrice = Math.ceil((PERFUME_RECIPES[recipeId].salePrice + state.upgrades.clickPower) * getWorld(state.currentWorld).incomeMultiplier * rebirthMultiplier(state) * essenceMultiplier(state));
   const sold = {
     ...state,
     perfumeInventory: {
