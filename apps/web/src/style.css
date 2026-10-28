@@ -71,20 +71,20 @@ img{max-width:100%;display:block}
 #current-rank{font-weight:600;letter-spacing:0;color:var(--ink-soft)}
 #global-status{min-width:0;flex:1;margin-left:9px;font-weight:500;letter-spacing:0;color:#4c4d3e;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 #save-indicator{font-size:8px;color:var(--moss-dark);white-space:nowrap}
-.clicker-layout{display:grid;grid-template-columns:minmax(255px,.79fr) minmax(420px,1.43fr) minmax(350px,1.03fr);align-items:start;gap:14px}
+.game-layout{display:grid;grid-template-columns:minmax(255px,.79fr) minmax(420px,1.43fr) minmax(350px,1.03fr);align-items:start;gap:14px}
 .column{min-width:0;background:var(--paper-hi);border:1px solid #a9a18b;border-top:3px solid var(--moss-dark)}
-.click-column{padding:13px}
+.workshop-column{padding:13px}
 .production-column{padding:14px}
 .store-column{padding:0;overflow:hidden}
 .section-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:9px;margin:0 0 12px}
 .section-heading h1{margin:3px 0 0;font-family:Georgia,"Times New Roman",serif;font-size:22px;line-height:1.12;font-weight:700;letter-spacing:-.4px}
 .section-heading h2{margin:3px 0 0;font-family:Georgia,"Times New Roman",serif;font-size:18px;line-height:1.12;font-weight:700}
-.click-heading{align-items:center}
+.workshop-heading{align-items:center}
 .stamped-tag,.folio-number{display:inline-flex;align-items:center;justify-content:center;padding:5px 7px;border:1px solid var(--brass);color:#786039;font-size:8px;font-weight:800;letter-spacing:1px;white-space:nowrap}
-.click-card{border:1px solid var(--line);background:#efe7d4}
-.click-card-topline{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 10px;background:#e0d4ba;border-bottom:1px solid #c2b28c;font-size:8px;font-weight:900;letter-spacing:1.15px;color:#5b5844}
-#click-multiplier{color:var(--rust-dark)}
-.clicker-stage{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:250px;overflow:hidden;background:linear-gradient(155deg,#f7f1e3 0%,#e9e0c9 75%,#e0d3b4 100%);isolation:isolate}
+.workshop-card{border:1px solid var(--line);background:#efe7d4}
+.workshop-card-topline{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 10px;background:#e0d4ba;border-bottom:1px solid #c2b28c;font-size:8px;font-weight:900;letter-spacing:1.15px;color:#5b5844}
+#harvest-mode-label{color:var(--rust-dark)}
+.workshop-stage-frame{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:250px;overflow:hidden;background:linear-gradient(155deg,#f7f1e3 0%,#e9e0c9 75%,#e0d3b4 100%);isolation:isolate}
 .bottle-halo{position:absolute;width:180px;height:180px;border:1px solid rgba(178,138,77,.4);border-radius:50%;background:radial-gradient(circle,rgba(255,255,255,.6),rgba(222,210,182,.13) 63%,transparent 64%);z-index:-1}
 .bottle-orbit{position:absolute;border:1px solid rgba(83,105,76,.22);border-radius:50%;transform:rotate(-26deg);pointer-events:none}
 .orbit-one{width:210px;height:75px}
@@ -96,10 +96,10 @@ img{max-width:100%;display:block}
 .stage-caption{position:absolute;bottom:11px;font-size:8px;font-weight:800;letter-spacing:1.55px;color:#6d674e}
 .floating-reward{position:absolute;z-index:4;pointer-events:none;color:var(--rust-dark);font-family:Georgia,"Times New Roman",serif;font-size:20px;font-weight:800;text-shadow:0 1px #fff8e5;white-space:nowrap;animation:float-reward .9s ease-out forwards}
 @keyframes float-reward{0%{opacity:0;transform:translate(-20%,-4px) scale(.75)}15%{opacity:1}100%{opacity:0;transform:translate(6%,-72px) scale(1.08)}}
-.click-instructions{display:flex;flex-direction:column;gap:4px;padding:12px 10px 10px;text-align:center;border-top:1px solid #d2c4a6}
-.click-instructions strong{font-family:Georgia,"Times New Roman",serif;font-size:16px}
-.click-instructions span{font-size:10px;color:var(--ink-soft)}
-.click-instructions b{color:var(--moss-dark)}
+.workshop-instructions{display:flex;flex-direction:column;gap:4px;padding:12px 10px 10px;text-align:center;border-top:1px solid #d2c4a6}
+.workshop-instructions strong{font-family:Georgia,"Times New Roman",serif;font-size:16px}
+.workshop-instructions span{font-size:10px;color:var(--ink-soft)}
+.workshop-instructions b{color:var(--moss-dark)}
 .primary-button,.secondary-button,.buy-building,.prestige-button{
   display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;min-height:42px;padding:10px 12px;
   border:1px solid var(--moss-dark);background:var(--moss);color:#fbf2dc;
@@ -108,8 +108,8 @@ img{max-width:100%;display:block}
 .primary-button:hover:not(:disabled),.buy-building:hover:not(:disabled){background:var(--moss-dark)}
 .primary-button strong{font-family:Georgia,"Times New Roman",serif;font-size:15px;color:#ead19b}
 .primary-button strong i{font-style:normal}
-.click-card-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border-top:1px solid #d2c4a6;font-size:8px;font-weight:800;letter-spacing:.8px;color:var(--ink-soft)}
-.click-card-footer strong{font-family:Georgia,"Times New Roman",serif;font-size:13px;color:var(--ink)}
+.workshop-card-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:9px 10px;border-top:1px solid #d2c4a6;font-size:8px;font-weight:800;letter-spacing:.8px;color:var(--ink-soft)}
+.workshop-card-footer strong{font-family:Georgia,"Times New Roman",serif;font-size:13px;color:var(--ink)}
 .rare-event{display:flex;align-items:center;gap:10px;width:100%;min-height:81px;margin:12px 0;padding:8px 10px;border:1px solid #c2b18a;border-left:3px solid var(--brass);background:#e9dfc8;text-align:left;transition:background .15s,border-color .15s}
 .rare-event.is-ready{border-color:#92703e;background:#f1dfb4;box-shadow:inset 0 0 0 1px rgba(178,138,77,.18);animation:rare-arrival 1.4s ease-in-out infinite}
 @keyframes rare-arrival{0%,100%{background:#f1dfb4}50%{background:#f9eaca}}
@@ -312,14 +312,14 @@ body.theme-dark{
   background:#1c211d;
 }
 .theme-dark .topbar{background:#1a2a21;border-color:#4a5845}
-.theme-dark .progress-strip,.theme-dark .store-title,.theme-dark .manufacture-banner,.theme-dark .click-card-topline,
-.theme-dark .click-card-footer,.theme-dark .click-instructions,.theme-dark .building-row,.theme-dark .upgrade-row,
+.theme-dark .progress-strip,.theme-dark .store-title,.theme-dark .manufacture-banner,.theme-dark .workshop-card-topline,
+.theme-dark .workshop-card-footer,.theme-dark .workshop-instructions,.theme-dark .building-row,.theme-dark .upgrade-row,
 .theme-dark .contract-row,.theme-dark .honour-row,.theme-dark .world-card,.theme-dark .prestige-card,
 .theme-dark .order-card,.theme-dark .mini-metrics>div,.theme-dark .rare-event,.theme-dark .research-note,
 .theme-dark .honour-summary,.theme-dark .world-swatch,.theme-dark .theme-toggle,.theme-dark .save-warning{
   background:#33392f;border-color:#575b48;color:var(--ink)
 }
-.theme-dark .clicker-stage{background:linear-gradient(155deg,#393f34 0%,#30372e 75%,#3c4133 100%)}
+.theme-dark .workshop-stage-frame{background:linear-gradient(155deg,#393f34 0%,#30372e 75%,#3c4133 100%)}
 .theme-dark .bottle-halo{border-color:rgba(210,177,111,.25);background:radial-gradient(circle,rgba(255,255,255,.06),rgba(222,210,182,.02) 63%,transparent 64%)}
 .theme-dark .building-portrait,.theme-dark .order-values>span,.theme-dark .prestige-numbers>span,
 .theme-dark .contract-progress,.theme-dark .level-track i,.theme-dark #save-data-text{background:#282d27;color:var(--ink);border-color:#565846}
@@ -335,7 +335,7 @@ body.theme-dark{
 .theme-dark .game-footer{color:#b5b09a;border-color:#4d5144}
 @media(max-width:1350px){
   .game-shell{padding:12px}
-  .clicker-layout{grid-template-columns:minmax(235px,.78fr) minmax(390px,1.35fr) minmax(330px,1fr);gap:10px}
+  .game-layout{grid-template-columns:minmax(235px,.78fr) minmax(390px,1.35fr) minmax(330px,1fr);gap:10px}
   .header-economy .header-stat{min-width:79px;padding-inline:9px}
   .headline-money{min-width:125px;padding-inline:10px}
   .building-row{grid-template-columns:55px minmax(0,1fr) 88px;gap:8px;padding:7px}
@@ -346,7 +346,7 @@ body.theme-dark{
   .topbar{align-items:flex-start;flex-direction:column}
   .header-economy{width:100%;justify-content:space-between}
   .headline-money,.header-stat{flex:1}
-  .clicker-layout{grid-template-columns:minmax(245px,.8fr) minmax(0,1.2fr)}
+  .game-layout{grid-template-columns:minmax(245px,.8fr) minmax(0,1.2fr)}
   .store-column{grid-column:1/-1}
   .store-content{min-height:0}
   .store-tabs{grid-template-columns:repeat(6,minmax(0,1fr))}
@@ -371,11 +371,11 @@ body.theme-dark{
   .progress-strip{gap:6px;flex-wrap:wrap;margin-bottom:9px}
   #global-status{flex-basis:100%;order:5;margin:3px 0 0}
   #save-indicator{margin-left:auto}
-  .clicker-layout{grid-template-columns:minmax(0,1fr);gap:9px}
-  .click-column,.production-column{padding:11px}
+  .game-layout{grid-template-columns:minmax(0,1fr);gap:9px}
+  .workshop-column,.production-column{padding:11px}
   .store-column{grid-column:auto}
   .section-heading h1{font-size:21px}
-  .clicker-stage{min-height:240px}
+  .workshop-stage-frame{min-height:240px}
   .store-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
   .store-tab{border-right:1px solid #c7b99b;border-bottom:1px solid #c7b99b}
   .store-tab:nth-child(3n){border-right:0}
@@ -438,7 +438,7 @@ body.theme-dark{
 .material-chip.is-unknown{background:#eee6d4;border-style:dashed;opacity:.66}
 .material-chip.is-unknown img{width:18px;height:18px;opacity:.6}
 .material-chip.is-latest{border-color:var(--brass);background:#f4e7c8;box-shadow:inset 0 -2px 0 var(--brass)}
-.clicker-stage.show-flacon{background:linear-gradient(155deg,#f7f1e3 0%,#f0e3c5 76%,#dfcfaa 100%)}
+.workshop-stage-frame.show-flacon{background:linear-gradient(155deg,#f7f1e3 0%,#f0e3c5 76%,#dfcfaa 100%)}
 .crafted-flacon-pop{
   position:absolute;z-index:3;left:50%;top:51%;width:76px;height:86px;opacity:0;pointer-events:none;
   transform:translate(-50%,-40%) scale(.35) rotate(-10deg);
@@ -488,22 +488,22 @@ body.theme-dark{
   .live-indicator{flex-basis:6px;width:6px;height:6px}
   #global-status{font-size:8px}
   #save-indicator{font-size:7px}
-  .clicker-layout{
+  .game-layout{
     flex:1 1 auto;min-height:0;height:auto;overflow:hidden;
     grid-template-columns:minmax(270px,.82fr) minmax(430px,1.42fr) minmax(330px,1fr);
     align-items:stretch;gap:7px;
   }
   .column{height:100%;min-height:0;overflow:hidden}
-  .click-column,.production-column{display:flex;flex-direction:column;gap:5px;padding:7px}
+  .workshop-column,.production-column{display:flex;flex-direction:column;gap:5px;padding:7px}
   .store-column{display:flex;flex-direction:column;min-height:0;padding:0;overflow:hidden}
   .section-heading{flex:0 0 auto;align-items:center;gap:6px;margin:0 0 3px}
   .section-heading h1{margin:1px 0 0;font-size:clamp(15px,1.2vw,18px);line-height:1.05;letter-spacing:-.2px}
   .section-heading h2{margin:1px 0 0;font-size:14px}
   .eyebrow{font-size:7px;letter-spacing:1px}
   .stamped-tag,.folio-number{padding:3px 5px;font-size:7px;letter-spacing:.6px}
-  .click-card{flex:0 0 auto;min-height:0;overflow:hidden}
-  .click-card-topline{padding:5px 7px;font-size:7px;letter-spacing:.7px}
-  .clicker-stage{height:clamp(104px,17vh,145px);min-height:104px;flex:0 0 auto}
+  .workshop-card{flex:0 0 auto;min-height:0;overflow:hidden}
+  .workshop-card-topline{padding:5px 7px;font-size:7px;letter-spacing:.7px}
+  .workshop-stage-frame{height:clamp(104px,17vh,145px);min-height:104px;flex:0 0 auto}
   .bottle-halo{width:clamp(95px,10vw,145px);height:clamp(95px,10vw,145px)}
   .orbit-one{width:clamp(112px,14vw,165px);height:49px}
   .orbit-two{width:clamp(108px,13vw,150px);height:43px}
@@ -521,9 +521,9 @@ body.theme-dark{
   .harvest-counter strong{font-size:15px}
   .harvest-counter small{font-size:6px}
   .harvest-progress-track{height:4px;margin:0 6px 2px}
-  .click-instructions{gap:2px;padding:5px 7px 4px}
-  .click-instructions strong{font-size:11px}
-  .click-instructions span{font-size:8px;line-height:1.25}
+  .workshop-instructions{gap:2px;padding:5px 7px 4px}
+  .workshop-instructions strong{font-size:11px}
+  .workshop-instructions span{font-size:8px;line-height:1.25}
   .material-codex-heading{margin:3px 0 3px;font-size:6px;letter-spacing:.6px}
   .material-inventory{gap:2px}
   .material-chip{min-height:36px;padding:2px 0;gap:0}
@@ -531,8 +531,8 @@ body.theme-dark{
   .material-chip span{font-size:5.7px;letter-spacing:0}
   .material-chip strong{font-size:7px}
   .material-chip.is-unknown img{width:15px;height:15px}
-  .click-card-footer{padding:4px 7px;font-size:6px;letter-spacing:.5px}
-  .click-card-footer strong{font-size:10px}
+  .workshop-card-footer{padding:4px 7px;font-size:6px;letter-spacing:.5px}
+  .workshop-card-footer strong{font-size:10px}
   .rare-event{flex:0 0 auto;min-height:48px;margin:1px 0;padding:3px 6px;gap:6px}
   .rare-event-art{flex-basis:35px;width:35px;height:39px}
   .rare-event-art img{width:29px;height:36px}
@@ -682,7 +682,7 @@ body.theme-dark{
   .brand-mark img{width:38px;height:42px}
   .brand-text>strong{font-size:21px}
   .game-shell{gap:4px;padding:5px 7px}
-  .clicker-stage{height:104px;min-height:104px}
+  .workshop-stage-frame{height:104px;min-height:104px}
   .perfume-clicker{height:96px;width:96px}
   .perfume-clicker img{height:83px;width:78px}
   .harvest-summary{grid-template-columns:28px minmax(0,1fr) auto;padding:3px 5px 2px}
