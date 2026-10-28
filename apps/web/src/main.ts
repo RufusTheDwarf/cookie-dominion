@@ -9,6 +9,7 @@ import {
   craftPerfume,
   fulfillCustomerOrder,
   getActiveCustomerOrder,
+  getHouseReputation,
   perfumeSalePrice,
   sellPerfume,
   canRebirth,
@@ -799,12 +800,18 @@ function renderCustomerOrder(): void {
   const recipe = PERFUME_RECIPES.find((item) => item.id === order.recipeId)!;
   const stock = state.perfumeStock[order.recipeId];
   const ready = canFulfillCustomerOrder(state);
+  const reputation = getHouseReputation(state);
   const initials = order.customer.split(' ').map((part) => part[0]).join('');
   byId('customer-order-panel').innerHTML =
     '<article class="customer-order-card ' + (ready ? 'is-ready' : '') + '">' +
-      '<div class="customer-order-topline"><span class="eyebrow">COMMANDE CLIENT #' + format(order.orderNumber, 0) + '</span><span class="customer-order-premium">+50 %</span></div>' +
+      '<div class="customer-order-topline"><span class="eyebrow">COMMANDE CLIENT #' + format(order.orderNumber, 0) + '</span><span class="customer-order-premium">+' + order.premiumPercent + ' %</span></div>' +
       '<div class="customer-order-client"><span class="customer-order-initials" aria-hidden="true">' + initials + '</span>' +
         '<span class="customer-order-identity"><strong>' + order.customer + '</strong><small>' + order.atelier + '</small></span></div>' +
+      '<div class="customer-reputation">' +
+        '<div class="customer-reputation-heading"><span>RÉPUTATION DE LA MAISON</span><strong>Rang ' + reputation.rank + ' / ' + reputation.maxRank + '</strong></div>' +
+        '<div class="customer-reputation-track" role="progressbar" aria-label="Progression de la réputation" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + reputation.progressPercent + '"><i style="width:' + reputation.progressPercent + '%"></i></div>' +
+        '<small>' + format(reputation.points, 0) + ' points · ' + (reputation.rank >= reputation.maxRank ? 'rang maximal atteint' : format(100 - reputation.pointsIntoRank, 0) + ' points avant le rang suivant') + '</small>' +
+      '</div>' +
       '<p class="customer-order-request">' + order.request + '</p>' +
       '<div class="customer-order-data">' +
         '<span><small>FORMULE</small><strong>' + recipe.name + '</strong></span>' +

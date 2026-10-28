@@ -860,3 +860,15 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 
 /* Audio preference uses the same switch rhythm as the appearance setting. */
 .theme-toggle input{accent-color:var(--moss);width:18px;height:18px;flex:0 0 auto}
+
+
+.customer-reputation{margin:10px 0;padding:8px 9px;border:1px solid #cfc19f;background:#e4dac3}
+.customer-reputation-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px}
+.customer-reputation-heading span{font-size:7px;font-weight:900;letter-spacing:.6px;color:#766747}
+.customer-reputation-heading strong{font-size:9px;font-weight:900;color:var(--moss-dark);white-space:nowrap}
+.customer-reputation-track{height:5px;overflow:hidden;border:1px solid #c7b999;background:#d0c3a6}
+.customer-reputation-track i{display:block;width:0;height:100%;background:var(--moss);transition:width .2s ease}
+.customer-reputation>small{display:block;margin-top:5px;font-size:8px;color:var(--ink-soft)}
+.theme-dark .customer-reputation{background:#302f25;border-color:#5e5139}
+.theme-dark .customer-reputation-track{background:#433b2b;border-color:#62543a}
+.theme-dark .customer-reputation-heading strong{color:#c4d1b2}
