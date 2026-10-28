@@ -1544,7 +1544,7 @@ class TycoonScene extends Phaser.Scene {
       if (owned === 0) continue;
       const x = machine.x;
       const y = 292;
-      const wood = this.add.graphics();
+      const wood = this.add.graphics().setDepth(y + 7);
       wood.fillStyle(0x4e4132, 0.13);
       wood.fillEllipse(x, y + 49, 110, 12);
       wood.fillStyle(0x77573d, 1);
@@ -1568,7 +1568,7 @@ class TycoonScene extends Phaser.Scene {
       };
       const artwork = this.add.image(x, y - 22, artworkByMachine[machine.id])
         .setDisplaySize(100, 100)
-        .setDepth(5);
+        .setDepth(y + 29);
       stationParts.push(artwork);
       // Une très légère oscillation donne une vie discrète aux équipements actifs.
       this.tweens.add({
@@ -1584,17 +1584,17 @@ class TycoonScene extends Phaser.Scene {
       const title = this.add.text(x, y + 39, machine.name, {
         fontFamily: 'Georgia, serif', fontSize: '11px', fontStyle: 'bold',
         color: '#35392d', align: 'center', wordWrap: { width: 148 },
-      }).setOrigin(0.5).setDepth(6);
-      const status = this.add.text(x, y - 67, '×' + owned + ' EN SERVICE', {
+      }).setOrigin(0.5).setDepth(y + 44);
+      const status = this.add.text(x, y - 80, '×' + owned + ' EN SERVICE', {
         fontFamily: 'Georgia, serif', fontSize: '9px', fontStyle: 'bold',
         color: '#eee3c9',
         backgroundColor: '#354936',
         padding: { x: 5, y: 3 },
-      }).setOrigin(0.5).setDepth(6);
+      }).setOrigin(0.5).setDepth(y - 76);
       this.machineObjects.push(title, status);
 
       if (owned > 0) {
-        const steam = this.add.graphics().setDepth(4);
+        const steam = this.add.graphics().setDepth(y - 42);
         steam.lineStyle(1.5, 0xe9ddc5, 0.7);
         steam.lineBetween(x - 8, y - 47, x - 12, y - 54);
         steam.lineBetween(x + 2, y - 48, x + 5, y - 57);
