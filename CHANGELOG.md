@@ -2,7 +2,7 @@
 
 ## 0.2.0 — 2026-10-27
 
-- Replaced the cookie-bakery theme with Parfum Empire, a perfume-manufacturing tycoon.
+- Replaced the parfum-atelier theme with Parfum Empire, a perfume-manufacturing tycoon.
 - Rebuilt the interface around a colorful, game-first HUD with a central map, compact economy bar, equipment shop and mobile-friendly controls.
 - Redesigned the player avatar and added Mila the perfumer, a VIP customer, perfume display shelves, bottle-shaped production equipment and animated perfume bottles.
 - Added total ascension after 10 normal rebirths. Total ascension resets normal progression and grants persistent Essences originelles.
