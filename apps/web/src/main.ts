@@ -535,6 +535,17 @@ function renderRareFlacon(now: number): void {
   if (second === rareUiSecond) return;
   rareUiSecond = second;
 
+  if (state.lifetimePerfumeRevenue < 1) {
+    button.hidden = false;
+    button.disabled = true;
+    button.classList.remove('is-ready');
+    boostPanel.hidden = true;
+    rareNextAt = now + 24_000;
+    byId('rare-event-title').textContent = 'Flacon mythique';
+    status.textContent = 'Débloqué après ta première fragrance';
+    return;
+  }
+
   if (now < rareBoostUntil) {
     const remaining = rareBoostUntil - now;
     button.disabled = true;
@@ -691,7 +702,7 @@ function deliverOrder(): void {
 
 function collectRareFlacon(): void {
   const now = performance.now();
-  if (rareExpiresAt <= now || now < rareBoostUntil) return;
+  if (state.lifetimePerfumeRevenue < 1 || rareExpiresAt <= now || now < rareBoostUntil) return;
   const reward = Math.max(1, Math.ceil(productionPerSecond(state) * 5 + state.lifetimePerfumeRevenue * 0.1));
   state = addPerfumeRevenue(state, reward);
   state = { ...state, rareFlaconsClaimed: state.rareFlaconsClaimed + 1 };
