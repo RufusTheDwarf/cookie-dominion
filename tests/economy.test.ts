@@ -6,6 +6,7 @@ import {
   buyMachine,
   buyUpgrade,
   canClaimMission,
+  canCraftPerfume,
   canUnlockFloor,
   canCompleteCustomerOrder,
   canRebirth,
@@ -15,6 +16,7 @@ import {
   createInitialState,
   customerOrderCost,
   customerOrderReward,
+  craftPerfume,
   harvestIngredient,
   INGREDIENTS_PER_PERFUME,
   enterFloor,
@@ -29,6 +31,9 @@ import {
   performRebirth,
   performTotalRebirth,
   productionPerSecond,
+  PERFUME_RECIPES,
+  perfumeSalePrice,
+  sellPerfume,
   STARTING_LAND_COST,
   rebirthCost,
   rebirthMultiplier,
@@ -102,24 +107,55 @@ describe('tycoon economy', () => {
     expect(state.runPerfumeRevenue).toBe(10);
   });
 
-  it('requires ten random botanical ingredients before the first perfume is made', () => {
+  it('keeps gathered ingredients in stock instead of auto-crafting after ten clicks', () => {
     let state = createInitialState(100);
     expect(INGREDIENTS_PER_PERFUME).toBe(10);
 
-    for (let click = 1; click <= 9; click += 1) {
+    for (let click = 1; click <= 10; click += 1) {
       state = harvestIngredient(state, () => 0.01).state;
       expect(state.perfumeRevenue).toBe(0);
       expect(state.harvestProgress).toBe(click);
     }
 
-    state = harvestIngredient(state, () => 0.01).state;
-    expect(state.perfumeRevenue).toBe(1);
-    expect(state.lifetimePerfumeRevenue).toBe(1);
     expect(state.gatherClicks).toBe(10);
-    expect(state.harvestProgress).toBe(0);
-    expect(Object.values(state.ingredients).reduce((sum, count) => sum + count, 0)).toBe(0);
+    expect(state.ingredients.lavender).toBe(10);
+    expect(state.perfumeStock['green-whisper']).toBe(0);
     expect(state.materialDiscoveries.lavender).toBe(10);
     expect(state.lastHarvestedMaterial).toBe('lavender');
+
+    let recipeState = harvestIngredient(createInitialState(100), () => 0.01).state;
+    recipeState = harvestIngredient(recipeState, () => 0.4).state;
+    expect(canCraftPerfume(recipeState, 'green-whisper')).toBe(true);
+    expect(canCraftPerfume(recipeState, 'soft-rose')).toBe(false);
+    const crafted = craftPerfume(recipeState, 'green-whisper');
+    expect(crafted.ingredients.lavender).toBe(0);
+    expect(crafted.ingredients.mint).toBe(0);
+    expect(crafted.perfumeStock['green-whisper']).toBe(1);
+    expect(crafted.perfumeRevenue).toBe(0);
+    expect(perfumeSalePrice(crafted, 'green-whisper')).toBe(2);
+
+    const sold = sellPerfume(crafted, 'green-whisper');
+    expect(sold.perfumeRevenue).toBe(2);
+    expect(sold.lifetimePerfumeRevenue).toBe(2);
+    expect(sold.perfumesSold).toBe(1);
+    expect(sold.perfumeStock['green-whisper']).toBe(0);
+    expect(sellPerfume(sold, 'green-whisper')).toBe(sold);
+  });
+
+  it('supports several distinct herb combinations with increasing sale prices', () => {
+    const gather = (ids: Array<[number, string]>) => ids.reduce(
+      (current, [roll]) => harvestIngredient(current, () => roll).state,
+      createInitialState(100),
+    );
+    const floral = craftPerfume(gather([[0.01, 'lavender'], [0.6, 'rose']]), 'soft-rose');
+    const citrus = craftPerfume(gather([[0.4, 'mint'], [0.8, 'bergamot']]), 'citrus-dawn');
+    const royal = craftPerfume(gather([[0.01, 'lavender'], [0.6, 'rose'], [0.97, 'jasmine']]), 'royal-bouquet');
+    const amber = craftPerfume(gather([[0.93, 'sandalwood'], [0.996, 'resin'], [0.97, 'jasmine']]), 'amber-velvet');
+    expect(floral.perfumeStock['soft-rose']).toBe(1);
+    expect(citrus.perfumeStock['citrus-dawn']).toBe(1);
+    expect(royal.perfumeStock['royal-bouquet']).toBe(1);
+    expect(amber.perfumeStock['amber-velvet']).toBe(1);
+    expect(PERFUME_RECIPES.map((recipe) => recipe.salePrice)).toEqual([2, 3, 4, 6, 10]);
   });
 
   it('reveals random materials and lets botanical research find a bonus item', () => {
@@ -149,6 +185,7 @@ describe('tycoon economy', () => {
       state = harvestIngredient(state, () => 0.01).state;
     }
 
+    state = { ...state, perfumeStock: { ...state.perfumeStock, 'green-whisper': 2 }, perfumesSold: 1 };
     const encoded = exportSaveFile(state, 1000);
     const restored = parseImportedSave(encoded, 1000);
     expect(restored).not.toBeNull();
@@ -157,6 +194,8 @@ describe('tycoon economy', () => {
     expect(restored?.ingredients.lavender).toBe(4);
     expect(restored?.materialDiscoveries.lavender).toBe(4);
     expect(restored?.lastHarvestedMaterial).toBe('lavender');
+    expect(restored?.perfumeStock['green-whisper']).toBe(2);
+    expect(restored?.perfumesSold).toBe(1);
   });
 
   it('rejects invalid earning amounts', () => {
