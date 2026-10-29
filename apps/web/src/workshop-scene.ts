@@ -1,9 +1,15 @@
 export type WorkshopStation =
   | 'lavender' | 'mint' | 'rose' | 'bergamot' | 'sandalwood' | 'jasmine' | 'resin'
-  | 'laboratory' | 'counter' | 'stairs' | 'stairs-down'
+  | 'laboratory' | 'counter' | 'stairs' | 'stairs-down' | 'starting-land'
   | 'lavender-plot-2' | 'mint-plot-2' | 'rose-plot-2';
 
 export type MoveDirection = 'up' | 'down' | 'left' | 'right';
+
+/** Interaction keys fire on the initial keydown only, never on hold-to-repeat events. */
+export function shouldTriggerInteractionKey(key: string, repeat: boolean): boolean {
+  const normalized = key.toLowerCase();
+  return !repeat && (normalized === 'e' || normalized === ' ');
+}
 
 export type WorkshopEffect =
   | 'harvest' | 'craft' | 'sell' | 'order' | 'purchase' | 'unlock'
@@ -69,6 +75,8 @@ export interface WorkshopScene {
     machines: WorkshopMachineVisual[],
     botanicalExpansions?: number,
     customerOrder?: WorkshopCustomerVisual,
+    startingPlotPurchased?: boolean,
+    unlockedMaterials?: readonly string[],
   ): void;
   destroy(): void;
 }
@@ -141,6 +149,7 @@ export function isClosedWallCrossingBlocked(fromX: number, toX: number, y: numbe
 }
 
 const STATIONS: Station[] = [
+  { id: 'starting-land', x: 220, y: 270, title: 'TERRAIN À VENDRE', detail: 'Approche-toi et appuie sur E', color: '#b28a4d' },
   { id: 'lavender', x: 112, y: 172, title: 'LAVANDE', detail: 'Parcelle 01', color: '#798e64' },
   { id: 'mint', x: 292, y: 172, title: 'MENTHE', detail: 'Parcelle 02', color: '#6f9c77' },
   { id: 'rose', x: 112, y: 365, title: 'ROSIER', detail: 'Parcelle 03', color: '#b96e7b' },
@@ -167,6 +176,15 @@ const BOTANICAL_EXPANSION_REQUIREMENT: Partial<Record<WorkshopStation, number>> 
   'mint-plot-2': 2,
   'rose-plot-2': 3,
 };
+const DEFAULT_UNLOCKED_MATERIALS = ['lavender', 'mint', 'rose', 'bergamot', 'sandalwood', 'jasmine', 'resin'] as const;
+
+function stationMaterialId(stationId: WorkshopStation): string | null {
+  if (stationId === 'lavender-plot-2') return 'lavender';
+  if (stationId === 'mint-plot-2') return 'mint';
+  if (stationId === 'rose-plot-2') return 'rose';
+  return MATERIAL_STATION_IDS.has(stationId) ? stationId : null;
+}
+
 const MACHINE_POSITIONS: Record<number, Record<string, { x: number; y: number }>> = {
   0: {
     'formulation-table': { x: 730, y: 230 },
@@ -195,14 +213,20 @@ interface CollisionBox {
 
 const PLAYER_RADIUS = 10;
 
-function stationAvailableAtFloor(
+export function isWorkshopStationAvailable(
   stationId: WorkshopStation,
   floor: number,
-  botanicalExpansions: number,
+  botanicalExpansions = 0,
+  startingPlotPurchased = true,
+  unlockedMaterials: readonly string[] = DEFAULT_UNLOCKED_MATERIALS,
 ): boolean {
+  if (!startingPlotPurchased) return stationId === 'starting-land' && floor === 0;
+  if (stationId === 'starting-land') return false;
   if (floor > 0 && MATERIAL_STATION_IDS.has(stationId)) return false;
   const requiredExpansions = BOTANICAL_EXPANSION_REQUIREMENT[stationId];
   if (requiredExpansions !== undefined && botanicalExpansions < requiredExpansions) return false;
+  const material = stationMaterialId(stationId);
+  if (material && !unlockedMaterials.includes(material)) return false;
   if (stationId === 'stairs' && floor >= 2) return false;
   if (stationId === 'stairs-down' && floor <= 0) return false;
   return true;
@@ -239,6 +263,8 @@ export function isWorkshopPositionBlocked(
   floor: number,
   machines: readonly WorkshopMachineVisual[] = [],
   botanicalExpansions = 0,
+  startingPlotPurchased = true,
+  unlockedMaterials: readonly string[] = DEFAULT_UNLOCKED_MATERIALS,
 ): boolean {
   if (!Number.isFinite(x) || !Number.isFinite(y) ||
       !Number.isInteger(floor) || floor < 0 || floor > 2 ||
@@ -247,7 +273,7 @@ export function isWorkshopPositionBlocked(
   }
 
   const stationBlocked = STATIONS.some((station) =>
-    stationAvailableAtFloor(station.id, floor, botanicalExpansions) &&
+    isWorkshopStationAvailable(station.id, floor, botanicalExpansions, startingPlotPurchased, unlockedMaterials) &&
     circleOverlapsBox(x, y, PLAYER_RADIUS, stationCollisionBox(station)),
   );
   if (stationBlocked) return true;
@@ -274,6 +300,7 @@ export interface WorkshopPathPoint {
 export function findWorkshopPath(
   startX: number, startY: number, targetX: number, targetY: number, floor: number,
   machines: readonly WorkshopMachineVisual[] = [], botanicalExpansions = 0,
+  startingPlotPurchased = true, unlockedMaterials: readonly string[] = DEFAULT_UNLOCKED_MATERIALS,
 ): WorkshopPathPoint[] {
   if (![startX, startY, targetX, targetY].every(Number.isFinite) ||
       !Number.isInteger(floor) || floor < 0 || floor > 2) return [];
@@ -289,12 +316,12 @@ export function findWorkshopPath(
     x: minX + column * step, y: minY + row * step,
   });
   const valid = (point: WorkshopPathPoint): boolean => {
-    const insideSolidWall = WALLS.some((wall) =>
+    const insideSolidWall = startingPlotPurchased && WALLS.some((wall) =>
       Math.abs(point.x - wall) < PLAYER_RADIUS &&
       (point.y < DOOR_TOP + PLAYER_RADIUS || point.y > DOOR_BOTTOM - PLAYER_RADIUS),
     );
     return !insideSolidWall &&
-      !isWorkshopPositionBlocked(point.x, point.y, floor, machines, botanicalExpansions);
+      !isWorkshopPositionBlocked(point.x, point.y, floor, machines, botanicalExpansions, startingPlotPurchased, unlockedMaterials);
   };
 
   for (let row = 0; row < rows; row++) {
@@ -440,8 +467,8 @@ export function createWorkshopScene(
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Canvas 2D indisponible');
 
-  // Begin beside the first botanical plot so the opening action is obvious and reachable.
-  const player = { x: 160, y: 210 };
+  // New players begin on empty land and must walk to the starter plot sign.
+  const player = { x: 190, y: 150 };
   const keys = new Set<string>();
   const particles: Particle[] = [];
   const effectPulses: EffectPulse[] = [];
@@ -460,6 +487,8 @@ export function createWorkshopScene(
   };
   let currentFloor = 0;
   let unlockedBotanicalExpansions = 0;
+  let startingPlotPurchased = true;
+  let unlockedMaterials: readonly string[] = DEFAULT_UNLOCKED_MATERIALS;
   let placedMachines: WorkshopMachineVisual[] = [];
   let customerOrder: WorkshopCustomerVisual | null = null;
   let destroyed = false;
@@ -545,6 +574,30 @@ export function createWorkshopScene(
     }
     if (particles.length > 180) particles.splice(0, particles.length - 180);
     if (effectPulses.length > 24) effectPulses.splice(0, effectPulses.length - 24);
+  }
+
+  function drawStartingLandSite(station: Station): void {
+    const c = context!;
+    c.save();
+    c.translate(station.x, station.y);
+    c.fillStyle = 'rgba(42,48,30,.20)';
+    c.beginPath();
+    c.ellipse(0, 35, 70, 14, 0, 0, Math.PI * 2);
+    c.fill();
+    roundedRect(-58, -28, 116, 58, 3, '#8d6a43', '#59432d');
+    roundedRect(-51, -22, 102, 45, 2, '#f0e5c9', '#c7b58d');
+    c.fillStyle = '#3e4e35';
+    c.font = 'bold 11px Georgia, serif';
+    c.textAlign = 'center';
+    c.textBaseline = 'middle';
+    c.fillText('TERRAIN À VENDRE', 0, -7);
+    c.fillStyle = '#765431';
+    c.font = 'bold 9px sans-serif';
+    c.fillText('APPUIE SUR E', 0, 9);
+    c.strokeStyle = '#755739';
+    c.lineWidth = 4;
+    c.beginPath(); c.moveTo(-48, 26); c.lineTo(-48, 56); c.moveTo(48, 26); c.lineTo(48, 56); c.stroke();
+    c.restore();
   }
 
   function drawHerbBed(station: Station, index: number): void {
@@ -778,6 +831,27 @@ export function createWorkshopScene(
       accent: blendColor(theme.accent, 0x302c65, 0.50),
       belt: blendColor(theme.belt, 0x8a74ba, 0.45),
     };
+    if (!startingPlotPurchased) {
+      c.fillStyle = '#b9b58b';
+      c.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
+      c.fillStyle = 'rgba(86,103,64,.14)';
+      for (let y = 22; y < WORLD_HEIGHT; y += 68) {
+        for (let x = 18 + ((y / 68) % 2) * 24; x < WORLD_WIDTH; x += 84) {
+          c.beginPath();
+          c.ellipse(x, y, 12, 4, -.18, 0, Math.PI * 2);
+          c.fill();
+        }
+      }
+      c.strokeStyle = 'rgba(75,91,56,.4)';
+      c.lineWidth = 5;
+      c.strokeRect(12, 12, WORLD_WIDTH - 24, WORLD_HEIGHT - 24);
+      c.strokeStyle = 'rgba(255,255,255,.25)';
+      c.lineWidth = 1;
+      for (let x = 32; x < WORLD_WIDTH; x += 48) {
+        c.beginPath(); c.moveTo(x, 0); c.lineTo(x, WORLD_HEIGHT); c.stroke();
+      }
+      return;
+    }
     c.fillStyle = colorHex(palette.floorColor);
     c.fillRect(0, 0, WORLD_WIDTH, WORLD_HEIGHT);
 
@@ -1134,20 +1208,25 @@ export function createWorkshopScene(
     drawGround();
     drawAmbientMotes();
     drawDestinationPath();
-    if (currentFloor === 0) {
+    if (!startingPlotPurchased) {
+      const startingSite = STATIONS.find((station) => station.id === 'starting-land');
+      if (startingSite) drawStartingLandSite(startingSite);
+    } else {
+      if (currentFloor === 0) {
+        STATIONS.filter((station) =>
+          MATERIAL_STATION_IDS.has(station.id) && isStationAvailable(station.id),
+        ).forEach((station, i) => {
+          drawHerbBed(station, i);
+        });
+      }
       STATIONS.filter((station) =>
-        MATERIAL_STATION_IDS.has(station.id) && isStationAvailable(station.id),
-      ).forEach((station, i) => {
-        drawHerbBed(station, i);
-      });
+        (station.id === 'laboratory' || station.id === 'counter' ||
+          station.id === 'stairs' || station.id === 'stairs-down') &&
+        isStationAvailable(station.id),
+      ).forEach(drawMachine);
+      drawPlacedMachines();
+      drawCustomer();
     }
-    STATIONS.filter((station) =>
-      (station.id === 'laboratory' || station.id === 'counter' ||
-        station.id === 'stairs' || station.id === 'stairs-down') &&
-      isStationAvailable(station.id),
-    ).forEach(drawMachine);
-    drawPlacedMachines();
-    drawCustomer();
 
     for (const pulse of effectPulses) {
       if (pulse.delay > 0) continue;
@@ -1181,7 +1260,7 @@ export function createWorkshopScene(
   }
 
   function isStationAvailable(stationId: WorkshopStation): boolean {
-    return stationAvailableAtFloor(stationId, currentFloor, unlockedBotanicalExpansions);
+    return isWorkshopStationAvailable(stationId, currentFloor, unlockedBotanicalExpansions, startingPlotPurchased, unlockedMaterials);
   }
 
   function nearestStation(): Station | null {
@@ -1202,19 +1281,19 @@ export function createWorkshopScene(
     const startX = player.x;
     const startY = player.y;
     const nextX = Math.max(22, Math.min(WORLD_WIDTH - 22, player.x + dx));
-    const crossesWall = isClosedWallCrossingBlocked(player.x, nextX, player.y);
+    const crossesWall = startingPlotPurchased && isClosedWallCrossingBlocked(player.x, nextX, player.y);
     if (!crossesWall &&
-        !isWorkshopPositionBlocked(nextX, player.y, currentFloor, placedMachines, unlockedBotanicalExpansions)) {
+        !isWorkshopPositionBlocked(nextX, player.y, currentFloor, placedMachines, unlockedBotanicalExpansions, startingPlotPurchased, unlockedMaterials)) {
       player.x = nextX;
     }
 
     const nextY = Math.max(76, Math.min(WORLD_HEIGHT - 24, player.y + dy));
-    const trappedInWall = WALLS.some((wall) =>
+    const trappedInWall = startingPlotPurchased && WALLS.some((wall) =>
       Math.abs(player.x - wall) < PLAYER_RADIUS &&
       (nextY < DOOR_TOP + PLAYER_RADIUS || nextY > DOOR_BOTTOM - PLAYER_RADIUS),
     );
     if (!trappedInWall &&
-        !isWorkshopPositionBlocked(player.x, nextY, currentFloor, placedMachines, unlockedBotanicalExpansions)) {
+        !isWorkshopPositionBlocked(player.x, nextY, currentFloor, placedMachines, unlockedBotanicalExpansions, startingPlotPurchased, unlockedMaterials)) {
       player.y = nextY;
     }
 
@@ -1269,7 +1348,7 @@ export function createWorkshopScene(
       if (destinationPath.length > 0 && !moved) {
         const target = destinationTarget;
         destinationPath = target
-          ? findWorkshopPath(player.x, player.y, target.x, target.y, currentFloor, placedMachines, unlockedBotanicalExpansions)
+          ? findWorkshopPath(player.x, player.y, target.x, target.y, currentFloor, placedMachines, unlockedBotanicalExpansions, startingPlotPurchased, unlockedMaterials)
           : [];
         destinationIndex = 0;
         destinationTarget = destinationPath.length > 0 ? destinationPath[destinationPath.length - 1]! : null;
@@ -1327,7 +1406,9 @@ export function createWorkshopScene(
       keys.add(key);
       event.preventDefault();
     } else if (key === 'e' || key === ' ') {
-      if (nearby) { triggerInteraction(nearby); event.preventDefault(); }
+      event.preventDefault();
+      if (!shouldTriggerInteractionKey(event.key, event.repeat)) return;
+      if (nearby) triggerInteraction(nearby);
     }
   };
   const keyup = (event: KeyboardEvent): void => { keys.delete(event.key.toLowerCase()); };
@@ -1342,13 +1423,19 @@ export function createWorkshopScene(
     let targetX = x;
     let targetY = y;
     if (station) {
-      const offset = station.id === 'counter' || station.id === 'laboratory' ||
-        station.id === 'stairs' || station.id === 'rose-plot-2' ? -54 : 54;
-      targetX = station.x + offset;
-      targetY = station.y + (station.id === 'counter' ? 5 : 20);
+      if (station.id === 'starting-land') {
+        targetX = station.x + 50;
+        targetY = station.y + 40;
+      } else {
+        const offset = station.id === 'counter' || station.id === 'laboratory' ||
+          station.id === 'stairs' || station.id === 'rose-plot-2' ? -54 : 54;
+        targetX = station.x + offset;
+        targetY = station.y + (station.id === 'counter' ? 5 : 20);
+      }
     }
     destinationPath = findWorkshopPath(
       player.x, player.y, targetX, targetY, currentFloor, placedMachines, unlockedBotanicalExpansions,
+      startingPlotPurchased, unlockedMaterials,
     );
     destinationIndex = 0;
     destinationTarget = destinationPath.length > 0 ? destinationPath[destinationPath.length - 1]! : null;
@@ -1378,7 +1465,15 @@ export function createWorkshopScene(
     },
     interact(): void { if (nearby) triggerInteraction(nearby); },
     playEffect,
-    setEnvironment(nextTheme: WorkshopTheme, floor: number, nextMachines: WorkshopMachineVisual[], botanicalExpansions = 0, nextCustomerOrder?: WorkshopCustomerVisual): void {
+    setEnvironment(
+    nextTheme: WorkshopTheme,
+    floor: number,
+    nextMachines: WorkshopMachineVisual[],
+    botanicalExpansions = 0,
+    nextCustomerOrder?: WorkshopCustomerVisual,
+    plotPurchased = true,
+    nextUnlockedMaterials: readonly string[] = DEFAULT_UNLOCKED_MATERIALS,
+  ): void {
       theme = {
         background: nextTheme.background,
         floorColor: nextTheme.floorColor,
@@ -1407,10 +1502,12 @@ export function createWorkshopScene(
       unlockedBotanicalExpansions = Number.isInteger(botanicalExpansions)
         ? Math.max(0, Math.min(3, botanicalExpansions))
         : 0;
+      startingPlotPurchased = plotPurchased;
+      unlockedMaterials = [...nextUnlockedMaterials];
       placedMachines = nextMachines.map((machine) => ({ ...machine }));
       customerOrder = nextCustomerOrder ? { ...nextCustomerOrder } : null;
-      if (landing) {
-        nearby = nearestStation()?.id ?? null;
+      nearby = nearestStation()?.id ?? null;
+      if (landing || nearby !== lastReported) {
         lastReported = nearby;
         onNearbyChange(nearby);
       }
