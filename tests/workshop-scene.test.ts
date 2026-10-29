@@ -276,5 +276,4 @@ describe('application HTML structure', () => {
     expect(styles).toContain('max-width: 760px;');
     expect(styles).toContain('@media (max-width: 720px)');
   });
-  });
 });
