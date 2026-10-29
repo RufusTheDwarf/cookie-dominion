@@ -64,3 +64,9 @@ Tap/click movement uses grid-based A* routing to navigate around blocked station
 - L'interface se réorganise en une colonne sur téléphone, avec statistiques défilantes et contrôles d'étage accessibles.
 - Une brève vibration confirme les récoltes réussies sur les appareils qui prennent en charge l'API Vibration.
 - Les effets sonores d'action étaient déjà présents; le test visuel réel sur appareil reste à faire.
+
+
+### Path smoothing and recovery
+- Le déplacement par toucher/clic fusionne les segments droits lorsque le trajet reste libre d'obstacles.
+- Si le personnage est bloqué pendant un trajet, le chemin est recalculé vers sa destination au lieu d'être immédiatement abandonné.
+- Les tests échantillonnent les segments lissés pour vérifier qu'ils ne traversent ni objets solides ni murs fermés.

@@ -89,15 +89,37 @@ describe('workshop click pathfinding', () => {
     const path = findWorkshopPath(500, 350, 1200, 350, 0);
     expect(path.length).toBeGreaterThan(0);
     expect(path.at(-1)!.x).toBeGreaterThan(1100);
+    expect(path.length).toBeLessThan(20);
     let previous = { x: 500, y: 350 };
+    let segmentIndex = 0;
     for (const point of path) {
       expect(isWorkshopPositionBlocked(point.x, point.y, 0)).toBe(false);
+      // The first waypoint is reached from the player's exact off-grid position;
+      // subsequent smoothed segments must stay clear of every collision box.
+      if (segmentIndex > 0) {
+        const distance = Math.hypot(point.x - previous.x, point.y - previous.y);
+        const samples = Math.max(1, Math.ceil(distance / 8));
+        for (let sample = 1; sample <= samples; sample++) {
+          const ratio = sample / samples;
+          const x = previous.x + (point.x - previous.x) * ratio;
+          const y = previous.y + (point.y - previous.y) * ratio;
+          expect(isWorkshopPositionBlocked(x, y, 0)).toBe(false);
+          const previousRatio = (sample - 1) / samples;
+          expect(isClosedWallCrossingBlocked(
+            previous.x + (point.x - previous.x) * previousRatio, x,
+            previous.y + (point.y - previous.y) * previousRatio,
+          )).toBe(false);
+        }
+      }
+      segmentIndex++;
       for (const wall of [650, 1000]) {
         const crossesWall = (previous.x < wall && point.x > wall) ||
           (previous.x > wall && point.x < wall);
         if (crossesWall) {
-          expect(previous.y).toBeGreaterThanOrEqual(295);
-          expect(previous.y).toBeLessThanOrEqual(415);
+          const crossingRatio = (wall - previous.x) / (point.x - previous.x);
+          const crossingY = previous.y + (point.y - previous.y) * crossingRatio;
+          expect(crossingY).toBeGreaterThanOrEqual(295);
+          expect(crossingY).toBeLessThanOrEqual(415);
         }
       }
       previous = point;
