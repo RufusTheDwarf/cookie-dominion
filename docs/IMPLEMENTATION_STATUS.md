@@ -78,3 +78,12 @@ Tap/click movement uses grid-based A* routing to navigate around blocked station
 - L'atelier affiche des particules d'ambiance discrètes, tandis que le poste à proximité utilise un contour pulsé.
 - Les animations CSS respectent la préférence système de réduction des mouvements.
 - Le rendu sur navigateur mobile et ordinateur reste à vérifier manuellement.
+
+
+### Système unifié d'animations de gameplay
+- Profil d'effet dédié pour récolte, formulation, vente, livraison, achat, déblocage, contrat, changement de monde/d'étage, sauvegarde, rebirth, ascension, montée de rang, sélection et échec.
+- Les interactions réussies déclenchent un retour visuel synchronisé : particules et anneaux dans l'atelier, flash léger du panneau, mise en évidence des valeurs ou cartes touchées.
+- La livraison surveille l'évolution du rang de réputation et déclenche une animation et un son de montée de rang si un palier est franchi.
+- Les changements d'onglet et de recette ont une transition légère; les éléments de formulation, matières et machines ont des micro-animations à l'interaction.
+- La préférence système de réduction des mouvements reste appliquée aux nouveaux effets.
+- Les tests contrôlent la présence et la cohérence des profils; une vérification manuelle dans un navigateur réel reste nécessaire.
