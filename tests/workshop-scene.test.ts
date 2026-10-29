@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { findWorkshopPath, getFloorTransitionLanding, isClosedWallCrossingBlocked, isWorkshopPositionBlocked } from '../apps/web/src/workshop-scene';
+import { findWorkshopPath, getFloorTransitionLanding, isClosedWallCrossingBlocked, isWorkshopPositionBlocked, WORKSHOP_EFFECT_PROFILES } from '../apps/web/src/workshop-scene';
 
 
 describe('workshop wall crossings', () => {
@@ -129,5 +129,29 @@ describe('workshop click pathfinding', () => {
   it('rejects invalid input and invalid floors', () => {
     expect(findWorkshopPath(0, 0, 100, 100, 9)).toEqual([]);
     expect(findWorkshopPath(Number.NaN, 0, 100, 100, 0)).toEqual([]);
+  });
+});
+
+
+describe('workshop action animation profiles', () => {
+  it('defines a visual profile for every gameplay feedback state', () => {
+    const effects = [
+      'harvest', 'craft', 'sell', 'order', 'purchase', 'unlock', 'mission',
+      'world', 'rebirth', 'ascension', 'floor', 'save', 'level-up', 'selection', 'failure',
+    ];
+    expect(Object.keys(WORKSHOP_EFFECT_PROFILES).sort()).toEqual([...effects].sort());
+    for (const effect of effects) {
+      const profile = WORKSHOP_EFFECT_PROFILES[effect as keyof typeof WORKSHOP_EFFECT_PROFILES];
+      expect(profile.color).toMatch(/^#[0-9a-f]{6}$/i);
+      expect(profile.particleCount).toBeGreaterThan(0);
+      expect(profile.ringCount).toBeGreaterThan(0);
+      expect(profile.duration).toBeGreaterThan(0);
+    }
+  });
+
+  it('gives major milestones more pronounced feedback than selection and failure', () => {
+    expect(WORKSHOP_EFFECT_PROFILES.ascension.particleCount).toBeGreaterThan(WORKSHOP_EFFECT_PROFILES.selection.particleCount);
+    expect(WORKSHOP_EFFECT_PROFILES.rebirth.ringCount).toBeGreaterThan(WORKSHOP_EFFECT_PROFILES.selection.ringCount);
+    expect(WORKSHOP_EFFECT_PROFILES['level-up'].duration).toBeGreaterThan(WORKSHOP_EFFECT_PROFILES.failure.duration);
   });
 });

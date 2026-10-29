@@ -5,6 +5,37 @@ export type WorkshopStation =
 
 export type MoveDirection = 'up' | 'down' | 'left' | 'right';
 
+export type WorkshopEffect =
+  | 'harvest' | 'craft' | 'sell' | 'order' | 'purchase' | 'unlock'
+  | 'mission' | 'world' | 'rebirth' | 'ascension' | 'floor' | 'save'
+  | 'level-up' | 'selection' | 'failure';
+
+export interface WorkshopEffectProfile {
+  color: string;
+  particleCount: number;
+  ringCount: number;
+  duration: number;
+}
+
+/** Each gameplay action has an explicit visual profile. */
+export const WORKSHOP_EFFECT_PROFILES: Record<WorkshopEffect, WorkshopEffectProfile> = {
+  harvest:    { color: '#a6c889', particleCount: 14, ringCount: 1, duration: .52 },
+  craft:      { color: '#d2b06d', particleCount: 18, ringCount: 2, duration: .7 },
+  sell:       { color: '#e6c174', particleCount: 13, ringCount: 1, duration: .55 },
+  order:      { color: '#f0cf80', particleCount: 24, ringCount: 3, duration: .8 },
+  purchase:   { color: '#7eac99', particleCount: 14, ringCount: 2, duration: .65 },
+  unlock:     { color: '#d9c18a', particleCount: 20, ringCount: 3, duration: .78 },
+  mission:    { color: '#9ab77d', particleCount: 22, ringCount: 3, duration: .75 },
+  world:      { color: '#b7a4ce', particleCount: 28, ringCount: 4, duration: .92 },
+  rebirth:    { color: '#e4b968', particleCount: 30, ringCount: 4, duration: .95 },
+  ascension:  { color: '#d6c8f1', particleCount: 36, ringCount: 5, duration: 1.15 },
+  floor:      { color: '#84a8af', particleCount: 12, ringCount: 2, duration: .6 },
+  save:       { color: '#9ab58a', particleCount: 9, ringCount: 1, duration: .5 },
+  'level-up': { color: '#f1d78b', particleCount: 25, ringCount: 3, duration: .9 },
+  selection:  { color: '#bdc5a2', particleCount: 6, ringCount: 1, duration: .35 },
+  failure:    { color: '#bd756a', particleCount: 7, ringCount: 1, duration: .38 },
+};
+
 export interface WorkshopTheme {
   background: number;
   floorColor: number;
@@ -31,6 +62,7 @@ export interface WorkshopCustomerVisual {
 export interface WorkshopScene {
   move(direction: MoveDirection): void;
   interact(): void;
+  playEffect(effect: WorkshopEffect): void;
   setEnvironment(
     theme: WorkshopTheme,
     floor: number,
@@ -59,6 +91,15 @@ interface Particle {
   maxLife: number;
   color: string;
   size: number;
+}
+
+interface EffectPulse {
+  x: number;
+  y: number;
+  color: string;
+  life: number;
+  maxLife: number;
+  delay: number;
 }
 
 const VIEW_WIDTH = 960;
@@ -402,6 +443,7 @@ export function createWorkshopScene(
   const player = { x: 735, y: 520 };
   const keys = new Set<string>();
   const particles: Particle[] = [];
+  const effectPulses: EffectPulse[] = [];
   let destinationPath: WorkshopPathPoint[] = [];
   let destinationIndex = 0;
   let destinationTarget: WorkshopPathPoint | null = null;
@@ -473,8 +515,34 @@ export function createWorkshopScene(
     if (!station) return;
     actionStation = stationId;
     actionUntil = elapsedWorld + .65;
-    addBurst(station.x, station.y - 28, station.color, stationId === 'laboratory' ? 14 : 9);
     onInteract(stationId);
+  }
+
+  function playEffect(effect: WorkshopEffect): void {
+    const profile = WORKSHOP_EFFECT_PROFILES[effect];
+    const celebration = effect === 'world' || effect === 'rebirth' ||
+      effect === 'ascension' || effect === 'level-up';
+    const activeStation = actionStation && elapsedWorld < actionUntil
+      ? STATIONS.find((station) => station.id === actionStation)
+      : STATIONS.find((station) => station.id === nearby);
+    const focusX = celebration || !activeStation ? player.x : activeStation.x;
+    const focusY = celebration || !activeStation ? player.y - 10 : activeStation.y - 22;
+    addBurst(focusX, focusY, profile.color, profile.particleCount);
+    if (celebration) addBurst(player.x, player.y - 10, profile.color, Math.ceil(profile.particleCount * .55));
+
+    for (let index = 0; index < profile.ringCount; index++) {
+      const duration = profile.duration + index * .08;
+      effectPulses.push({
+        x: focusX,
+        y: focusY,
+        color: profile.color,
+        life: duration,
+        maxLife: duration,
+        delay: index * .075,
+      });
+    }
+    if (particles.length > 180) particles.splice(0, particles.length - 180);
+    if (effectPulses.length > 24) effectPulses.splice(0, effectPulses.length - 24);
   }
 
   function drawHerbBed(station: Station, index: number): void {
@@ -1079,6 +1147,16 @@ export function createWorkshopScene(
     drawPlacedMachines();
     drawCustomer();
 
+    for (const pulse of effectPulses) {
+      if (pulse.delay > 0) continue;
+      const progress = Math.max(0, Math.min(1, 1 - pulse.life / pulse.maxLife));
+      c.globalAlpha = Math.max(0, (1 - progress) * .72);
+      c.strokeStyle = pulse.color;
+      c.lineWidth = 2.8 * (1 - progress) + .55;
+      c.beginPath();
+      c.arc(pulse.x, pulse.y, 9 + progress * 44, 0, Math.PI * 2);
+      c.stroke();
+    }
     for (const particle of particles) {
       c.globalAlpha = Math.max(0, particle.life / particle.maxLife);
       c.fillStyle = particle.color;
@@ -1201,6 +1279,14 @@ export function createWorkshopScene(
       particle.vy += 25 * elapsed;
       if (particle.life <= 0) particles.splice(i, 1);
     }
+    for (let i = effectPulses.length - 1; i >= 0; i--) {
+      const pulse = effectPulses[i]!;
+      if (pulse.delay > 0) pulse.delay = Math.max(0, pulse.delay - elapsed);
+      else {
+        pulse.life -= elapsed;
+        if (pulse.life <= 0) effectPulses.splice(i, 1);
+      }
+    }
 
     const targetCameraX = Math.max(0, Math.min(WORLD_WIDTH - VIEW_WIDTH, player.x - VIEW_WIDTH / 2));
     const targetCameraY = Math.max(0, Math.min(WORLD_HEIGHT - VIEW_HEIGHT, player.y - VIEW_HEIGHT / 2));
@@ -1272,6 +1358,7 @@ export function createWorkshopScene(
       onNearbyChange(nearby);
     },
     interact(): void { if (nearby) triggerInteraction(nearby); },
+    playEffect,
     setEnvironment(nextTheme: WorkshopTheme, floor: number, nextMachines: WorkshopMachineVisual[], botanicalExpansions = 0, nextCustomerOrder?: WorkshopCustomerVisual): void {
       theme = {
         background: nextTheme.background,
@@ -1292,6 +1379,7 @@ export function createWorkshopScene(
         actionStation = null;
         actionUntil = 0;
         particles.length = 0;
+        effectPulses.length = 0;
         cameraX = Math.max(0, Math.min(WORLD_WIDTH - VIEW_WIDTH, player.x - VIEW_WIDTH / 2));
         cameraY = Math.max(0, Math.min(WORLD_HEIGHT - VIEW_HEIGHT, player.y - VIEW_HEIGHT / 2));
       }

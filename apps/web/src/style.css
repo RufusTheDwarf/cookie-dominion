@@ -1036,3 +1036,90 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
     filter: brightness(1.06);
   }
 }
+
+
+/* Unified feedback language for harvest, crafting, commerce, progression and prestige. */
+.workshop-stage-frame::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  opacity: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 48%, var(--game-effect-glow, rgba(255,255,255,0)) 0%, transparent 68%);
+}
+.workshop-stage-frame.game-effect-active::after { animation: game-stage-flash .72s ease-out both; }
+.workshop-stage-frame.game-effect--harvest { --game-effect-glow: rgba(157, 198, 126, .34); }
+.workshop-stage-frame.game-effect--craft { --game-effect-glow: rgba(211, 175, 102, .4); }
+.workshop-stage-frame.game-effect--sell,
+.workshop-stage-frame.game-effect--order { --game-effect-glow: rgba(242, 201, 111, .4); }
+.workshop-stage-frame.game-effect--purchase,
+.workshop-stage-frame.game-effect--mission { --game-effect-glow: rgba(143, 184, 153, .35); }
+.workshop-stage-frame.game-effect--unlock,
+.workshop-stage-frame.game-effect--floor { --game-effect-glow: rgba(131, 174, 184, .34); }
+.workshop-stage-frame.game-effect--world { --game-effect-glow: rgba(181, 157, 213, .5); }
+.workshop-stage-frame.game-effect--rebirth { --game-effect-glow: rgba(236, 190, 101, .48); }
+.workshop-stage-frame.game-effect--ascension { --game-effect-glow: rgba(216, 201, 245, .58); }
+.workshop-stage-frame.game-effect--level-up { --game-effect-glow: rgba(241, 215, 139, .45); }
+.workshop-stage-frame.game-effect--failure { --game-effect-glow: rgba(189, 117, 106, .3); }
+@keyframes game-stage-flash {
+  0% { opacity: 0; }
+  24% { opacity: 1; }
+  100% { opacity: 0; }
+}
+.game-action-label {
+  position: absolute; z-index: 6; top: 13px; left: 50%; max-width: calc(100% - 28px);
+  padding: 7px 11px; border: 1px solid var(--game-label-edge, #b39a68);
+  background: var(--game-label-bg, rgba(250, 244, 224, .96)); color: var(--game-label-ink, #354735);
+  box-shadow: 0 4px 14px rgba(37, 45, 34, .16); font-size: 10px; font-weight: 900;
+  letter-spacing: .8px; text-align: center; text-overflow: ellipsis; white-space: nowrap;
+  overflow: hidden; pointer-events: none; transform: translateX(-50%);
+  animation: game-label-arrive 1.25s cubic-bezier(.2,.8,.2,1) both;
+}
+.game-action-label--failure { --game-label-edge: #bd756a; --game-label-bg: #f6e2dc; --game-label-ink: #713c36; }
+.game-action-label--ascension,
+.game-action-label--rebirth,
+.game-action-label--world { --game-label-edge: #9d8bbd; --game-label-bg: #f2eafa; --game-label-ink: #4f4267; }
+.game-action-label--order,
+.game-action-label--sell,
+.game-action-label--level-up { --game-label-edge: #bd9b54; --game-label-bg: #fff2ce; }
+@keyframes game-label-arrive {
+  0% { opacity: 0; margin-top: -8px; filter: blur(2px); }
+  12%, 76% { opacity: 1; margin-top: 0; filter: blur(0); }
+  100% { opacity: 0; margin-top: -4px; }
+}
+.game-feedback-pulse { transform-origin: center; animation: game-ui-pulse .68s cubic-bezier(.2,.8,.2,1); }
+.game-feedback--harvest { --feedback-glow: rgba(137, 177, 105, .4); }
+.game-feedback--craft { --feedback-glow: rgba(196, 159, 87, .44); }
+.game-feedback--sell,
+.game-feedback--order,
+.game-feedback--level-up { --feedback-glow: rgba(223, 182, 87, .45); }
+.game-feedback--purchase,
+.game-feedback--mission,
+.game-feedback--save { --feedback-glow: rgba(120, 163, 126, .42); }
+.game-feedback--unlock,
+.game-feedback--floor { --feedback-glow: rgba(112, 164, 174, .42); }
+.game-feedback--world,
+.game-feedback--rebirth,
+.game-feedback--ascension { --feedback-glow: rgba(174, 154, 211, .45); }
+.game-feedback--failure { --feedback-glow: rgba(189, 117, 106, .42); }
+@keyframes game-ui-pulse {
+  0% { filter: brightness(1); box-shadow: 0 0 0 0 var(--feedback-glow, rgba(178,138,77,0)); }
+  38% { filter: brightness(1.08); box-shadow: 0 0 0 5px var(--feedback-glow, rgba(178,138,77,0)); }
+  100% { filter: brightness(1); box-shadow: 0 0 0 0 rgba(178,138,77,0); }
+}
+.recipe-bottle img { transition: transform .24s ease, filter .24s ease; }
+.recipe-row:hover .recipe-bottle img { transform: translateY(-2px) rotate(-3deg); filter: drop-shadow(0 3px 3px rgba(77,65,43,.18)); }
+.recipe-row.is-current-recipe .recipe-bottle { box-shadow: inset 0 0 0 1px rgba(178,138,77,.18); }
+.material-chip img, .building-portrait img, .upgrade-stamp { transition: transform .22s ease, filter .22s ease; }
+.material-chip:hover img, .building-row:hover .building-portrait img { transform: translateY(-2px) scale(1.06); }
+.store-tabs .store-tab { transition: color .2s ease, background-color .2s ease, box-shadow .2s ease; }
+@media (prefers-reduced-motion: reduce) {
+  .workshop-stage-frame.game-effect-active::after,
+  .game-action-label,
+  .game-feedback-pulse { animation: none !important; }
+  .game-action-label { opacity: 1; }
+}
+@media (max-width: 560px) {
+  .game-action-label { top: 7px; max-width: calc(100% - 14px); padding: 5px 7px; font-size: 8px; letter-spacing: .4px; }
+}
