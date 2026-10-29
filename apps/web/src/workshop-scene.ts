@@ -310,7 +310,34 @@ export function findWorkshopPath(
         cursor = cameFrom.get(cursor);
       }
       path.reverse();
-      return path;
+
+      // Collapse straight, collision-free runs into longer segments for less mechanical movement.
+      const segmentWalkable = (from: WorkshopPathPoint, to: WorkshopPathPoint): boolean => {
+        const distance = Math.hypot(to.x - from.x, to.y - from.y);
+        const samples = Math.max(1, Math.ceil(distance / 8));
+        let previous = from;
+        for (let sample = 1; sample <= samples; sample++) {
+          const ratio = sample / samples;
+          const point = { x: from.x + (to.x - from.x) * ratio, y: from.y + (to.y - from.y) * ratio };
+          if (isWorkshopPositionBlocked(point.x, point.y, floor, machines, botanicalExpansions) ||
+              isClosedWallCrossingBlocked(previous.x, point.x, previous.y)) return false;
+          previous = point;
+        }
+        return true;
+      };
+      const smoothPath: WorkshopPathPoint[] = [];
+      let anchor: WorkshopPathPoint = { x: startX, y: startY };
+      let index = 0;
+      while (index < path.length) {
+        let furthest = index;
+        for (let candidate = path.length - 1; candidate > index; candidate--) {
+          if (segmentWalkable(anchor, path[candidate]!)) { furthest = candidate; break; }
+        }
+        smoothPath.push(path[furthest]!);
+        anchor = path[furthest]!;
+        index = furthest + 1;
+      }
+      return smoothPath;
     }
     closed.add(currentKey);
     const [column, row] = currentKey.split(",").map(Number);
@@ -377,6 +404,7 @@ export function createWorkshopScene(
   const particles: Particle[] = [];
   let destinationPath: WorkshopPathPoint[] = [];
   let destinationIndex = 0;
+  let destinationTarget: WorkshopPathPoint | null = null;
   let frame = 0;
   let lastFrame = performance.now();
   let nearby: WorkshopStation | null = null;
@@ -1113,6 +1141,7 @@ export function createWorkshopScene(
     if (dx !== 0 || dy !== 0) {
       destinationPath = [];
       destinationIndex = 0;
+      destinationTarget = null;
     }
     while (destinationIndex < destinationPath.length) {
       const waypoint = destinationPath[destinationIndex]!;
@@ -1130,14 +1159,19 @@ export function createWorkshopScene(
     if (destinationIndex >= destinationPath.length) {
       destinationPath = [];
       destinationIndex = 0;
+      destinationTarget = null;
     }
     walking = dx !== 0 || dy !== 0;
     if (walking) {
       const length = Math.hypot(dx, dy);
       const moved = movePlayer(dx / length * PLAYER_SPEED * elapsed, dy / length * PLAYER_SPEED * elapsed);
       if (destinationPath.length > 0 && !moved) {
-        destinationPath = [];
+        const target = destinationTarget;
+        destinationPath = target
+          ? findWorkshopPath(player.x, player.y, target.x, target.y, currentFloor, placedMachines, unlockedBotanicalExpansions)
+          : [];
         destinationIndex = 0;
+        destinationTarget = destinationPath.length > 0 ? destinationPath[destinationPath.length - 1]! : null;
       }
     }
 
@@ -1195,6 +1229,7 @@ export function createWorkshopScene(
       player.x, player.y, targetX, targetY, currentFloor, placedMachines, unlockedBotanicalExpansions,
     );
     destinationIndex = 0;
+    destinationTarget = destinationPath.length > 0 ? destinationPath[destinationPath.length - 1]! : null;
   };
   const observer = new ResizeObserver(resize);
   observer.observe(canvas);
@@ -1213,6 +1248,7 @@ export function createWorkshopScene(
       if (direction === 'right') movePlayer(distance, 0);
       destinationPath = [];
       destinationIndex = 0;
+      destinationTarget = null;
       draw();
       nearby = nearestStation()?.id ?? null;
       onNearbyChange(nearby);
@@ -1233,6 +1269,7 @@ export function createWorkshopScene(
         player.y = landing.y;
         destinationPath = [];
         destinationIndex = 0;
+        destinationTarget = null;
         keys.clear();
         actionStation = null;
         actionUntil = 0;
