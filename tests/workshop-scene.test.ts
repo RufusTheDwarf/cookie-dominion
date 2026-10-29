@@ -116,8 +116,10 @@ describe('workshop click pathfinding', () => {
         const crossesWall = (previous.x < wall && point.x > wall) ||
           (previous.x > wall && point.x < wall);
         if (crossesWall) {
-          expect(previous.y).toBeGreaterThanOrEqual(295);
-          expect(previous.y).toBeLessThanOrEqual(415);
+          const crossingRatio = (wall - previous.x) / (point.x - previous.x);
+          const crossingY = previous.y + (point.y - previous.y) * crossingRatio;
+          expect(crossingY).toBeGreaterThanOrEqual(295);
+          expect(crossingY).toBeLessThanOrEqual(415);
         }
       }
       previous = point;
