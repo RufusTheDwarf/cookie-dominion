@@ -166,12 +166,16 @@ describe('workshop starting position', () => {
 });
 
 
+
 describe('application HTML structure', () => {
   it('keeps the workshop, manufacture, and office inside one valid grid', () => {
     const source = readFileSync(new URL('../apps/web/src/main.ts', import.meta.url), 'utf8');
-    const match = source.match(/app\\.innerHTML\\s*=\\s*`([\\s\\S]*?)`;\\s*\\nfunction byId/);
-    expect(match, 'the application HTML template must exist').not.toBeNull();
-    const html = match![1]!;
+    const tick = String.fromCharCode(96);
+    const templateStart = source.indexOf('app.innerHTML = ' + tick);
+    const templateEnd = source.indexOf(tick + ';\n\nfunction byId', templateStart);
+    expect(templateStart, 'the application HTML template must exist').toBeGreaterThanOrEqual(0);
+    expect(templateEnd, 'the application HTML template must close').toBeGreaterThan(templateStart);
+    const html = source.slice(templateStart + ('app.innerHTML = ' + tick).length, templateEnd);
 
     type ElementNode = { tag: string; className: string; children: ElementNode[] };
     const root: ElementNode = { tag: '#root', className: '', children: [] };
@@ -181,11 +185,11 @@ describe('application HTML structure', () => {
       'link', 'meta', 'param', 'source', 'track', 'wbr',
     ]);
 
-    for (const tokenMatch of html.matchAll(/<!--[\\s\\S]*?-->|<\\/?[a-zA-Z][^>]*>/g)) {
+    for (const tokenMatch of html.matchAll(/<!--[\s\S]*?-->|<\/?[a-zA-Z][^>]*>/g)) {
       const token = tokenMatch[0];
       if (token.startsWith('<!--')) continue;
-      const closing = /^<\\//.test(token);
-      const name = token.match(/^<\\/?\\s*([a-zA-Z][\\w:-]*)/)?.[1]?.toLowerCase();
+      const closing = /^<\//.test(token);
+      const name = token.match(/^<\/?\s*([a-zA-Z][\w:-]*)/)?.[1]?.toLowerCase();
       if (!name) continue;
 
       if (closing) {
@@ -195,15 +199,15 @@ describe('application HTML structure', () => {
         continue;
       }
 
-      const className = token.match(/\\bclass=["']([^"']*)["']/)?.[1] ?? '';
+      const className = token.match(/\bclass=["']([^"']*)["']/)?.[1] ?? '';
       const element: ElementNode = { tag: name, className, children: [] };
       stack[stack.length - 1]!.children.push(element);
-      if (!voidTags.has(name) && !/\\/\\s*>$/.test(token)) stack.push(element);
+      if (!voidTags.has(name) && !/\/\s*>$/.test(token)) stack.push(element);
     }
 
     expect(stack.map((element) => element.tag), 'all HTML tags must be properly closed').toEqual(['#root']);
     const findByClass = (node: ElementNode, className: string): ElementNode | undefined => {
-      if (node.className.split(/\\s+/).includes(className)) return node;
+      if (node.className.split(/\s+/).includes(className)) return node;
       for (const child of node.children) {
         const found = findByClass(child, className);
         if (found) return found;
@@ -213,11 +217,11 @@ describe('application HTML structure', () => {
 
     const layout = findByClass(root, 'game-layout');
     expect(layout, 'the main layout grid must exist').toBeDefined();
-    expect(layout!.children.map((child) => child.className.split(/\\s+/).find((name) =>
+    expect(layout!.children.map((child) => child.className.split(/\s+/).find((name) =>
       ['workshop-column', 'production-column', 'store-column'].includes(name),
     ))).toEqual(['workshop-column', 'production-column', 'store-column']);
 
     const workshop = findByClass(layout!, 'workshop-column');
-    expect(workshop!.children.some((child) => child.className.split(/\\s+/).includes('mini-metrics'))).toBe(true);
+    expect(workshop!.children.some((child) => child.className.split(/\s+/).includes('mini-metrics'))).toBe(true);
   });
 });
