@@ -4,23 +4,30 @@ import {
   applyOfflineProgress,
   buyStartingLand,
   buyMachine,
+  botanicalExpansionCost,
+  canUnlockBotanicalExpansion,
+  unlockBotanicalExpansion,
+  MAX_BOTANICAL_EXPANSIONS,
   buyUpgrade,
   canClaimMission,
+  canCraftPerfume,
+  canFulfillCustomerOrder,
+  fulfillCustomerOrder,
+  getActiveCustomerOrder,
+  getHouseReputation,
   canUnlockFloor,
-  canCompleteCustomerOrder,
   canRebirth,
   canTotalRebirth,
   claimMission,
-  completeCustomerOrder,
   createInitialState,
-  customerOrderCost,
-  customerOrderReward,
-  harvestIngredient,
-  INGREDIENTS_PER_PERFUME,
+  craftPerfume,
+  harvestMaterial,
   enterFloor,
   floorUnlockCost,
   enterWorld,
   exportSaveFile,
+  MACHINES,
+  WORLDS,
   machineCost,
   missionProgress,
   MAX_OFFLINE_SECONDS,
@@ -29,6 +36,11 @@ import {
   performRebirth,
   performTotalRebirth,
   productionPerSecond,
+  operatingCostsPerSecond,
+  netProductionPerSecond,
+  PERFUME_RECIPES,
+  perfumeSalePrice,
+  sellPerfume,
   STARTING_LAND_COST,
   rebirthCost,
   rebirthMultiplier,
@@ -68,6 +80,14 @@ describe('tycoon economy', () => {
     expect(staleEmptySave.currentFloor).toBe(0);
     expect(staleEmptySave.unlockedFloors).toEqual([0]);
 
+    const expandedLegacySave = parseSavedState(JSON.stringify({
+      ...initial,
+      rampBuilt: undefined,
+      outsideExpansions: 1,
+    }), 100);
+    expect(expandedLegacySave.outsideExpansions).toBe(1);
+    expect(expandedLegacySave.rampBuilt).toBe(true);
+
     const explicitRampSave = parseSavedState(JSON.stringify({ ...initial, rampBuilt: true }), 100);
     expect(explicitRampSave.rampBuilt).toBe(true);
   });
@@ -82,6 +102,30 @@ describe('tycoon economy', () => {
     expect(legacy.rampBuilt).toBe(false);
     expect(legacy.machines['glass-garden']['copper-still']).toBe(0);
     expect(legacy.unlockedFloors).toEqual([0]);
+  });
+
+  it('unlocks extra garden plots with rising deterministic costs', () => {
+    const initial = createInitialState(100);
+    expect(initial.outsideExpansions).toBe(0);
+    expect(botanicalExpansionCost(initial)).toBe(2_500);
+    expect(canUnlockBotanicalExpansion(initial)).toBe(false);
+    expect(unlockBotanicalExpansion(initial)).toBe(initial);
+
+    const first = unlockBotanicalExpansion({ ...initial, perfumeRevenue: 2_500 });
+    expect(first.outsideExpansions).toBe(1);
+    expect(first.perfumeRevenue).toBe(0);
+    expect(botanicalExpansionCost(first)).toBe(25_000);
+
+    const second = unlockBotanicalExpansion({ ...first, perfumeRevenue: 25_000 });
+    expect(second.outsideExpansions).toBe(2);
+    expect(second.perfumeRevenue).toBe(0);
+    expect(botanicalExpansionCost(second)).toBe(250_000);
+
+    const third = unlockBotanicalExpansion({ ...second, perfumeRevenue: 250_000 });
+    expect(third.outsideExpansions).toBe(MAX_BOTANICAL_EXPANSIONS);
+    expect(third.perfumeRevenue).toBe(0);
+    expect(canUnlockBotanicalExpansion({ ...third, perfumeRevenue: 1_000_000 })).toBe(false);
+    expect(unlockBotanicalExpansion(third)).toBe(third);
   });
 
   it('requires 1,000 perfumes to purchase the starting outdoor plot', () => {
@@ -102,53 +146,69 @@ describe('tycoon economy', () => {
     expect(state.runPerfumeRevenue).toBe(10);
   });
 
-  it('requires ten random botanical ingredients before the first perfume is made', () => {
+  it('harvests only the selected material and crafts/sells recipes without random rolls', () => {
     let state = createInitialState(100);
-    expect(INGREDIENTS_PER_PERFUME).toBe(10);
-
-    for (let click = 1; click <= 9; click += 1) {
-      state = harvestIngredient(state, () => 0.01).state;
+    for (let action = 1; action <= 10; action += 1) {
+      state = harvestMaterial(state, 'lavender').state;
       expect(state.perfumeRevenue).toBe(0);
-      expect(state.harvestProgress).toBe(click);
+      expect(state.harvestProgress).toBe(action);
     }
-
-    state = harvestIngredient(state, () => 0.01).state;
-    expect(state.perfumeRevenue).toBe(1);
-    expect(state.lifetimePerfumeRevenue).toBe(1);
     expect(state.gatherClicks).toBe(10);
-    expect(state.harvestProgress).toBe(0);
-    expect(Object.values(state.ingredients).reduce((sum, count) => sum + count, 0)).toBe(0);
+    expect(state.ingredients.lavender).toBe(10);
+    expect(state.perfumeStock['green-whisper']).toBe(0);
     expect(state.materialDiscoveries.lavender).toBe(10);
-    expect(state.lastHarvestedMaterial).toBe('lavender');
+
+    let recipeState = harvestMaterial(createInitialState(100), 'lavender').state;
+    recipeState = harvestMaterial(recipeState, 'mint').state;
+    expect(canCraftPerfume(recipeState, 'green-whisper')).toBe(true);
+    expect(canCraftPerfume(recipeState, 'soft-rose')).toBe(false);
+    const crafted = craftPerfume(recipeState, 'green-whisper');
+    expect(crafted.ingredients.lavender).toBe(0);
+    expect(crafted.ingredients.mint).toBe(0);
+    expect(crafted.perfumeStock['green-whisper']).toBe(1);
+    expect(crafted.perfumeRevenue).toBe(0);
+    expect(perfumeSalePrice(crafted, 'green-whisper')).toBe(2);
+    const sold = sellPerfume(crafted, 'green-whisper');
+    expect(sold.perfumeRevenue).toBe(2);
+    expect(sold.lifetimePerfumeRevenue).toBe(2);
+    expect(sold.perfumesSold).toBe(1);
+    expect(sold.perfumeStock['green-whisper']).toBe(0);
+    expect(sellPerfume(sold, 'green-whisper')).toBe(sold);
   });
 
-  it('reveals random materials and lets botanical research find a bonus item', () => {
-    const initial = createInitialState(100);
-    const rareDrop = harvestIngredient(initial, () => 0.995);
-    expect(rareDrop.materials).toEqual(['resin']);
-    expect(rareDrop.state.lastHarvestedMaterial).toBe('resin');
-    expect(rareDrop.state.materialDiscoveries.resin).toBe(1);
-    expect(rareDrop.state.perfumeRevenue).toBe(0);
+  it('supports several distinct herb combinations with increasing sale prices', () => {
+    const gather = (ids: Array<'lavender' | 'mint' | 'rose' | 'bergamot' | 'sandalwood' | 'jasmine' | 'resin'>) =>
+      ids.reduce((current, id) => harvestMaterial(current, id).state, createInitialState(100));
+    const floral = craftPerfume(gather(['lavender', 'rose']), 'soft-rose');
+    const citrus = craftPerfume(gather(['mint', 'bergamot']), 'citrus-dawn');
+    const royal = craftPerfume(gather(['lavender', 'rose', 'jasmine']), 'royal-bouquet');
+    const amber = craftPerfume(gather(['sandalwood', 'resin', 'jasmine']), 'amber-velvet');
+    expect(floral.perfumeStock['soft-rose']).toBe(1);
+    expect(citrus.perfumeStock['citrus-dawn']).toBe(1);
+    expect(royal.perfumeStock['royal-bouquet']).toBe(1);
+    expect(amber.perfumeStock['amber-velvet']).toBe(1);
+    expect(PERFUME_RECIPES.map((recipe) => recipe.salePrice)).toEqual([2, 3, 4, 6, 10]);
+  });
 
-    const trained = {
-      ...initial,
-      upgrades: { ...initial.upgrades, clickPower: 1 },
-    };
-    const rolls = [0.1, 0.05, 0.7];
-    const bonusDrop = harvestIngredient(trained, () => rolls.shift() ?? 0.5);
-    expect(bonusDrop.materials).toEqual(['lavender', 'rose']);
-    expect(bonusDrop.state.harvestProgress).toBe(2);
-    expect(bonusDrop.state.ingredients.lavender).toBe(1);
-    expect(bonusDrop.state.ingredients.rose).toBe(1);
-    expect(bonusDrop.state.gatherClicks).toBe(1);
+  it('applies deterministic harvest upgrades to the chosen garden bed', () => {
+    const initial = createInitialState(100);
+    const trained = { ...initial, upgrades: { ...initial.upgrades, clickPower: 2, rareBonus: 3 } };
+    const common = harvestMaterial(trained, 'lavender');
+    expect(common.materials).toEqual(['lavender', 'lavender']);
+    expect(common.state.ingredients.lavender).toBe(2);
+    const rare = harvestMaterial(trained, 'resin');
+    expect(rare.materials).toEqual(['resin', 'resin', 'resin']);
+    expect(rare.state.ingredients.resin).toBe(3);
+    expect(rare.state.gatherClicks).toBe(1);
   });
 
   it('persists partial botanical harvests and the discovery journal', () => {
     let state = createInitialState(100);
     for (let click = 0; click < 4; click += 1) {
-      state = harvestIngredient(state, () => 0.01).state;
+      state = harvestMaterial(state, 'lavender').state;
     }
 
+    state = { ...state, perfumeStock: { ...state.perfumeStock, 'green-whisper': 2 }, perfumesSold: 1 };
     const encoded = exportSaveFile(state, 1000);
     const restored = parseImportedSave(encoded, 1000);
     expect(restored).not.toBeNull();
@@ -157,6 +217,85 @@ describe('tycoon economy', () => {
     expect(restored?.ingredients.lavender).toBe(4);
     expect(restored?.materialDiscoveries.lavender).toBe(4);
     expect(restored?.lastHarvestedMaterial).toBe('lavender');
+    expect(restored?.perfumeStock['green-whisper']).toBe(2);
+    expect(restored?.perfumesSold).toBe(1);
+  });
+
+  it('delivers deterministic customer orders and pays the 50% premium exactly once', () => {
+    const initial = createInitialState(100);
+    const first = getActiveCustomerOrder(initial);
+    expect(first.orderNumber).toBe(1);
+    expect(first.recipeId).toBe('green-whisper');
+    expect(first.quantity).toBe(1);
+    expect(first.normalValue).toBe(2);
+    expect(first.reward).toBe(3);
+    expect(canFulfillCustomerOrder(initial)).toBe(false);
+    expect(fulfillCustomerOrder(initial)).toBe(initial);
+
+    const stocked = {
+      ...initial,
+      perfumeStock: { ...initial.perfumeStock, 'green-whisper': 1 },
+    };
+    expect(canFulfillCustomerOrder(stocked)).toBe(true);
+    const delivered = fulfillCustomerOrder(stocked);
+    expect(delivered.perfumeStock['green-whisper']).toBe(0);
+    expect(delivered.perfumesSold).toBe(1);
+    expect(delivered.customerOrdersCompleted).toBe(1);
+    expect(delivered.perfumeRevenue).toBe(3);
+    expect(delivered.lifetimePerfumeRevenue).toBe(3);
+    expect(getActiveCustomerOrder(delivered).recipeId).toBe('soft-rose');
+    expect(fulfillCustomerOrder(delivered)).toBe(delivered);
+  });
+
+  it('requires the full order quantity and preserves the order queue in saves', () => {
+    const initial = createInitialState(100);
+    const partial = {
+      ...initial,
+      customerOrdersCompleted: 5,
+      perfumeStock: { ...initial.perfumeStock, 'green-whisper': 1 },
+    };
+    const order = getActiveCustomerOrder(partial);
+    expect(order.recipeId).toBe('green-whisper');
+    expect(order.quantity).toBe(2);
+    expect(canFulfillCustomerOrder(partial)).toBe(false);
+    expect(fulfillCustomerOrder(partial)).toBe(partial);
+
+    const restored = parseImportedSave(exportSaveFile(partial, 1000), 1000);
+    expect(restored?.customerOrdersCompleted).toBe(5);
+    expect(getActiveCustomerOrder(restored!).orderNumber).toBe(6);
+    expect(getActiveCustomerOrder(restored!).quantity).toBe(2);
+  });
+
+  it('increases house reputation and customer premiums at deterministic rank thresholds', () => {
+    const initial = createInitialState(100);
+    expect(getHouseReputation(initial)).toEqual({
+      points: 0,
+      rank: 1,
+      maxRank: 10,
+      pointsIntoRank: 0,
+      progressPercent: 0,
+      premiumPercent: 50,
+    });
+
+    const threeOrders = getHouseReputation({ customerOrdersCompleted: 3 });
+    expect(threeOrders.points).toBe(75);
+    expect(threeOrders.rank).toBe(1);
+    expect(threeOrders.progressPercent).toBe(75);
+
+    const fourOrders = getHouseReputation({ customerOrdersCompleted: 4 });
+    expect(fourOrders.points).toBe(100);
+    expect(fourOrders.rank).toBe(2);
+    expect(fourOrders.premiumPercent).toBe(55);
+
+    const nextOrder = getActiveCustomerOrder({ ...initial, customerOrdersCompleted: 4 });
+    expect(nextOrder.premiumPercent).toBe(55);
+    expect(nextOrder.normalValue).toBe(10);
+    expect(nextOrder.reward).toBe(16);
+
+    const maxed = getHouseReputation({ customerOrdersCompleted: 36 });
+    expect(maxed.rank).toBe(10);
+    expect(maxed.premiumPercent).toBe(95);
+    expect(maxed.progressPercent).toBe(100);
   });
 
   it('rejects invalid earning amounts', () => {
@@ -200,9 +339,9 @@ describe('tycoon economy', () => {
 
     const rareResearch = buyUpgrade({ ...withMixer, perfumeRevenue: 2000 }, 'rareBonus');
     expect(rareResearch.upgrades.rareBonus).toBe(1);
-    const vipResearch = buyUpgrade({ ...withMixer, perfumeRevenue: 2000 }, 'orders');
-    expect(vipResearch.upgrades.orders).toBe(1);
-    expect(customerOrderReward(vipResearch)).toBe(16);
+    const luxuryFinish = buyUpgrade({ ...withMixer, perfumeRevenue: 2000 }, 'orders');
+    expect(luxuryFinish.upgrades.orders).toBe(1);
+    expect(perfumeSalePrice(luxuryFinish, 'green-whisper')).toBe(3);
 
     expect(buyUpgrade({ ...researched, upgrades: { ...researched.upgrades, production: 10 } }, 'production').upgrades.production).toBe(10);
   });
@@ -225,38 +364,6 @@ describe('tycoon economy', () => {
     expect(rewarded.perfumeRevenue).toBe(2);
     expect(rewarded.claimedMissions).toContain('first-machine');
     expect(claimMission(rewarded, 'first-machine')).toBe(rewarded);
-  });
-
-  it('delivers scalable VIP perfume orders and pays the player', () => {
-    const initial = createInitialState(100);
-    expect(initial.ordersCompleted).toBe(0);
-    expect(customerOrderCost(initial)).toBe(8);
-    expect(customerOrderReward(initial)).toBe(15);
-    expect(canCompleteCustomerOrder(initial)).toBe(false);
-    expect(completeCustomerOrder(initial)).toBe(initial);
-
-    const underfunded = { ...initial, perfumeRevenue: 7 };
-    expect(completeCustomerOrder(underfunded)).toBe(underfunded);
-
-    const funded = { ...initial, perfumeRevenue: 8 };
-    const delivered = completeCustomerOrder(funded);
-    expect(delivered.perfumeRevenue).toBe(15);
-    expect(delivered.ordersCompleted).toBe(1);
-    expect(delivered.lifetimePerfumeRevenue).toBe(15);
-    expect(delivered.runPerfumeRevenue).toBe(15);
-    expect(customerOrderCost(delivered)).toBe(14);
-    expect(customerOrderReward(delivered)).toBe(26);
-    const secondDelivery = completeCustomerOrder(delivered);
-    expect(secondDelivery.ordersCompleted).toBe(2);
-    expect(secondDelivery.perfumeRevenue).toBe(27);
-    expect(customerOrderCost(secondDelivery)).toBe(22);
-    expect(customerOrderReward(secondDelivery)).toBe(40);
-    expect(canClaimMission(delivered, 'first-order')).toBe(true);
-
-    const claimed = claimMission(delivered, 'first-order');
-    expect(claimed.claimedMissions).toContain('first-order');
-    expect(claimed.perfumeRevenue).toBe(23);
-    expect(claimMission(claimed, 'first-order')).toBe(claimed);
   });
 
   it('locks floors until the player builds enough machines and pays for stairs', () => {
@@ -282,13 +389,17 @@ describe('tycoon economy', () => {
     expect(enterFloor(opened, 2)).toBe(opened);
   });
 
-  it('allows all production tiers to be purchased directly from the clicker catalog', () => {
+  it('only allows equipment that belongs to the currently active, unlocked floor', () => {
     const starter = { ...createInitialState(100), perfumeRevenue: 5000 };
-    const firstHighTier = buyMachine(starter, 'bottling-line');
+    expect(buyMachine(starter, 'bottling-line')).toBe(starter);
+
+    const firstUpperFloor = { ...starter, currentFloor: 1, unlockedFloors: [0, 1] };
+    const firstHighTier = buyMachine(firstUpperFloor, 'bottling-line');
     expect(firstHighTier.perfumeRevenue).toBe(4860);
     expect(firstHighTier.machines['glass-garden']['bottling-line']).toBe(1);
+    expect(buyMachine(firstUpperFloor, 'astral-extractor')).toBe(firstUpperFloor);
 
-    const funded = { ...starter, perfumeRevenue: 100_000_000 };
+    const funded = { ...starter, perfumeRevenue: 100_000_000, currentFloor: 2, unlockedFloors: [0, 1, 2] };
     const advanced = buyMachine(funded, 'astral-extractor');
     expect(advanced.machines['glass-garden']['astral-extractor']).toBe(1);
     expect(advanced.perfumeRevenue).toBeLessThan(funded.perfumeRevenue);
@@ -319,13 +430,16 @@ describe('tycoon economy', () => {
     expect(enterWorld(unlocked, 'amber-house').currentWorld).toBe('amber-house');
   });
 
-  it('changes only to unlocked floors', () => {
+  it('changes only to unlocked floors and allows returning down the staircase', () => {
     const state = createInitialState(100);
     expect(state.unlockedFloors).toEqual([0]);
     expect(enterFloor(state, 2)).toBe(state);
     const firstFloor = { ...state, unlockedFloors: [0, 1], currentFloor: 1 };
     expect(enterFloor(firstFloor, 1).currentFloor).toBe(1);
     expect(enterFloor(firstFloor, 2)).toBe(firstFloor);
+    const upperFloor = { ...state, unlockedFloors: [0, 1, 2], currentFloor: 2 };
+    expect(enterFloor(upperFloor, 1).currentFloor).toBe(1);
+    expect(enterFloor(upperFloor, 0).currentFloor).toBe(0);
     expect(enterFloor(state, 4)).toBe(state);
   });
 
@@ -426,7 +540,74 @@ describe('tycoon economy', () => {
     expect(canTotalRebirth(noRun)).toBe(false);
   });
 
-  it('caps offline production at eight hours', () => {
+  it('charges operating costs for installed machines and reports net cashflow', () => {
+    const initial = createInitialState(100);
+    expect(operatingCostsPerSecond(initial)).toBe(0);
+    expect(netProductionPerSecond(initial)).toBe(0);
+
+    const installed = {
+      ...initial,
+      machines: {
+        ...initial.machines,
+        'glass-garden': {
+          ...initial.machines['glass-garden'],
+          'formulation-table': 2,
+          'copper-still': 1,
+        },
+      },
+    };
+    const expectedUpkeep = (2 * 3 + 18) / 600;
+    expect(operatingCostsPerSecond(installed)).toBeCloseTo(expectedUpkeep);
+    expect(netProductionPerSecond(installed)).toBeCloseTo(
+      productionPerSecond(installed) - expectedUpkeep,
+    );
+
+    const otherWorld = {
+      ...installed,
+      currentWorld: 'amber-house' as WorldId,
+      machines: {
+        ...installed.machines,
+        'amber-house': {
+          ...installed.machines['amber-house'],
+          'formulation-table': 1,
+        },
+      },
+    };
+    expect(operatingCostsPerSecond(otherWorld)).toBeCloseTo((3 * 5) / 600);
+  });
+
+  it('keeps every first machine purchase net-positive across all three worlds', () => {
+    const initial = createInitialState(100);
+
+    for (const world of WORLDS) {
+      const emptyWorld = {
+        ...initial,
+        currentWorld: world.id,
+        unlockedWorlds: WORLDS.map((entry) => entry.id),
+      };
+
+      for (const machine of MACHINES) {
+        const installed = {
+          ...emptyWorld,
+          machines: {
+            ...emptyWorld.machines,
+            [world.id]: {
+              ...emptyWorld.machines[world.id],
+              [machine.id]: 1,
+            },
+          },
+        };
+        const netPerSecond = netProductionPerSecond(installed);
+        const firstCost = machineCost(emptyWorld, machine.id);
+
+        expect(netPerSecond).toBeGreaterThan(0);
+        expect(operatingCostsPerSecond(installed)).toBeLessThan(productionPerSecond(installed));
+        expect(firstCost / netPerSecond).toBeLessThan(120);
+      }
+    }
+  });
+
+  it('caps offline production at eight hours after operating costs', () => {
     const initial = createInitialState(0);
     const state = {
       ...initial,
@@ -437,8 +618,9 @@ describe('tycoon economy', () => {
       lastSavedAt: 0,
     };
     const next = applyOfflineProgress(state, (MAX_OFFLINE_SECONDS + 100) * 1000);
-    expect(next.perfumeRevenue).toBeCloseTo((6 / 3.5) * MAX_OFFLINE_SECONDS);
-    expect(next.runPerfumeRevenue).toBeCloseTo((6 / 3.5) * MAX_OFFLINE_SECONDS);
+    const expectedNetProduction = netProductionPerSecond(state) * MAX_OFFLINE_SECONDS;
+    expect(next.perfumeRevenue).toBeCloseTo(expectedNetProduction);
+    expect(next.runPerfumeRevenue).toBeCloseTo(expectedNetProduction);
   });
 
   it('migrates the older alambic-only save', () => {
@@ -463,6 +645,7 @@ describe('tycoon economy', () => {
       currentWorld: 'amber-house' as WorldId,
       currentFloor: 1,
       unlockedFloors: [0, 1],
+      outsideExpansions: 2,
       unlockedWorlds: ['glass-garden', 'amber-house'] as WorldId[],
       rareFlaconsClaimed: 3,
       ordersCompleted: 4,
@@ -475,6 +658,7 @@ describe('tycoon economy', () => {
     expect(loaded?.rebirths).toBe(1);
     expect(loaded?.currentWorld).toBe('amber-house');
     expect(loaded?.currentFloor).toBe(1);
+    expect(loaded?.outsideExpansions).toBe(2);
     expect(loaded?.machines['amber-house']['bottling-line']).toBe(2);
     expect(loaded?.upgrades).toEqual({ production: 0, clickPower: 0, discount: 0, rareBonus: 0, orders: 0 });
     expect(loaded?.claimedMissions).toEqual([]);

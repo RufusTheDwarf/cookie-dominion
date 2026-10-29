@@ -1,29 +1,44 @@
 import {
   addPerfumeRevenue,
+  applyOfflineProgress,
+  botanicalExpansionCost,
+  canUnlockBotanicalExpansion,
+  unlockBotanicalExpansion,
+  MAX_BOTANICAL_EXPANSIONS,
   buyMachine,
   buyUpgrade,
   canClaimMission,
-  canCompleteCustomerOrder,
+  canCraftPerfume,
+  canFulfillCustomerOrder,
+  canUnlockFloor,
+  craftPerfume,
+  fulfillCustomerOrder,
+  getActiveCustomerOrder,
+  getHouseReputation,
+  perfumeSalePrice,
+  sellPerfume,
   canRebirth,
   canTotalRebirth,
   claimMission,
-  completeCustomerOrder,
   createInitialState,
-  customerOrderCost,
-  customerOrderReward,
   enterWorld,
+  enterFloor,
+  floorUnlockCost,
+  unlockFloor,
   ESSENCE_PRESTIGE_VALUE,
   essenceMultiplier,
   exportSaveFile,
   getWorld,
-  harvestIngredient,
-  INGREDIENTS_PER_PERFUME,
+  harvestMaterial,
+  PERFUME_RECIPES,
   MATERIALS,
   MACHINES,
   MAX_UPGRADE_LEVEL,
   MISSION_DEFINITIONS,
   machineCost,
   missionProgress,
+  netProductionPerSecond,
+  operatingCostsPerSecond,
   parseImportedSave,
   parseSavedState,
   performRebirth,
@@ -37,44 +52,139 @@ import {
   type GameState,
   type MachineId,
   type MissionId,
+  type RecipeId,
+  type MaterialId,
   type UpgradeId,
   type WorldId,
 } from './economy';
 import './style.css';
+import { createWorkshopScene, type WorkshopScene, type WorkshopStation, type MoveDirection } from './workshop-scene';
+
 
 const SAVE_KEY = 'parfum-empire-save-v1';
+const BACKUP_SAVE_KEY = 'parfum-empire-save-backup-v1';
 const LEGACY_SAVE_KEY = 'cookie-dominion-save-v1';
+const SOUND_KEY = 'parfum-empire-sound-enabled-v1';
+
+type SoundEffect = 'harvest' | 'craft' | 'sell' | 'order' | 'purchase' | 'unlock' | 'prestige';
+const SOUND_NOTES: Record<SoundEffect, number[]> = {
+  harvest: [660, 880],
+  craft: [392, 494, 659],
+  sell: [740, 988],
+  order: [523, 659, 784, 1046],
+  purchase: [440, 554, 659],
+  unlock: [330, 440, 554, 740],
+  prestige: [392, 494, 587, 784, 988],
+};
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('Missing app root');
 
 type StoreTab = 'upgrades' | 'contracts' | 'honours' | 'worlds' | 'prestige' | 'save';
 let activeTab: StoreTab = 'upgrades';
-let statusMessage = 'Ta première fragrance t’attend. Clique sur le flacon pour commencer.';
+let statusMessage = 'Récolte ta première matière, puis compose ta fragrance.';
 let lastTick = performance.now();
 let lastStatsUpdate = 0;
 let lastPassiveUiSecond = -1;
 let autoSaveElapsed = 0;
-let rareNextAt = performance.now() + 24_000;
-let rareExpiresAt = 0;
-let rareBoostUntil = 0;
-let rareUiSecond = -1;
+let selectedRecipeId: RecipeId = 'green-whisper';
+let workshopScene: WorkshopScene | null = null;
+let nearbyStation: WorkshopStation | null = null;
 let state: GameState;
+let saveRecoveryMessage: string | null = null;
+let backupNeedsRepair = false;
+let soundEnabled = readSoundPreference();
+let soundContext: AudioContext | null = null;
 
-function normalizeClickerState(value: GameState): GameState {
+const EXPANSION_PLOT_MATERIALS: Partial<Record<WorkshopStation, MaterialId>> = {
+  'lavender-plot-2': 'lavender',
+  'mint-plot-2': 'mint',
+  'rose-plot-2': 'rose',
+};
+const EXPANSION_PLOT_NAMES = [
+  'Second carré de lavande',
+  'Seconde parcelle de menthe',
+  'Seconde roseraie',
+];
+
+function readSoundPreference(): boolean {
+  try {
+    return localStorage.getItem(SOUND_KEY) !== 'false';
+  } catch {
+    return false;
+  }
+}
+
+function playSound(effect: SoundEffect): void {
+  if (!soundEnabled || typeof window.AudioContext !== 'function') return;
+  try {
+    soundContext ??= new window.AudioContext();
+    if (soundContext.state === 'suspended') void soundContext.resume().catch(() => undefined);
+    const context = soundContext;
+    const notes = SOUND_NOTES[effect];
+    notes.forEach((frequency, index) => {
+      const start = context.currentTime + index * 0.055;
+      const oscillator = context.createOscillator();
+      const gain = context.createGain();
+      oscillator.type = effect === 'unlock' || effect === 'prestige' ? 'triangle' : 'sine';
+      oscillator.frequency.setValueAtTime(frequency, start);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.025, start + 0.012);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.14);
+      oscillator.connect(gain);
+      gain.connect(context.destination);
+      oscillator.start(start);
+      oscillator.stop(start + 0.145);
+    });
+  } catch {
+    // Audio is an optional enhancement; the game remains fully playable without it.
+  }
+}
+
+function normalizeGameState(value: GameState): GameState {
+  const unlockedFloors = [...new Set([
+    0,
+    ...value.unlockedFloors.filter((floor) => Number.isInteger(floor) && floor >= 0 && floor <= 2),
+  ])].sort((a, b) => a - b);
+  const requestedFloor = Number.isInteger(value.currentFloor) && value.currentFloor >= 0 && value.currentFloor <= 2
+    ? value.currentFloor
+    : 0;
   return {
     ...value,
     rampBuilt: true,
-    currentFloor: 0,
-    unlockedFloors: [0],
+    currentFloor: unlockedFloors.includes(requestedFloor) ? requestedFloor : 0,
+    unlockedFloors,
     lastSavedAt: Date.now(),
   };
 }
 
 try {
-  const saved = localStorage.getItem(SAVE_KEY) ?? localStorage.getItem(LEGACY_SAVE_KEY);
-  state = normalizeClickerState(parseSavedState(saved));
+  const primary = localStorage.getItem(SAVE_KEY);
+  const backup = localStorage.getItem(BACKUP_SAVE_KEY);
+  const legacy = localStorage.getItem(LEGACY_SAVE_KEY);
+  const primaryIsValid = primary !== null && parseImportedSave(primary) !== null;
+  const backupIsValid = backup !== null && parseImportedSave(backup) !== null;
+  const legacyIsValid = legacy !== null && parseImportedSave(legacy) !== null;
+
+  if (primaryIsValid) {
+    state = normalizeGameState(parseSavedState(primary));
+  } else if (backupIsValid) {
+    state = normalizeGameState(parseSavedState(backup));
+    backupNeedsRepair = true;
+    saveRecoveryMessage = 'La sauvegarde principale était illisible. La copie de secours a été restaurée.';
+  } else if (legacyIsValid) {
+    state = normalizeGameState(parseSavedState(legacy));
+    backupNeedsRepair = true;
+    saveRecoveryMessage = 'Une ancienne sauvegarde a été récupérée. Exporte une copie après vérification.';
+  } else {
+    state = normalizeGameState(createInitialState());
+    if (primary !== null || backup !== null || legacy !== null) {
+      backupNeedsRepair = true;
+      saveRecoveryMessage = 'Les sauvegardes existantes sont illisibles. Une nouvelle partie a été créée; vérifie tes exports avant de continuer.';
+    }
+  }
 } catch {
-  state = normalizeClickerState(createInitialState());
+  state = normalizeGameState(createInitialState());
+  saveRecoveryMessage = 'Le stockage local est indisponible. La progression peut ne pas être conservée.';
 }
 
 app.innerHTML = `
@@ -92,11 +202,11 @@ app.innerHTML = `
         <div class="headline-money">
           <span>TRÉSORERIE</span>
           <strong id="header-money">0</strong>
-          <small>parfums disponibles</small>
+          <small>pièces disponibles</small>
         </div>
-        <div class="header-stat"><span>PRODUCTION</span><strong id="header-cps">0</strong><small>par seconde</small></div>
-        <div class="header-stat"><span>RÉCOLTE</span><strong id="header-click">0/10</strong><small>notes pour un flacon</small></div>
-        <div class="header-stat"><span>VIE DU RUN</span><strong id="header-run">0</strong><small>produits cumulés</small></div>
+        <div class="header-stat"><span>PRODUCTION NETTE</span><strong id="header-cps">0</strong><small>après entretien / s</small></div>
+        <div class="header-stat"><span>MATIÈRES</span><strong id="header-click">0</strong><small>ingrédients en stock</small></div>
+        <div class="header-stat"><span>REVENU DU RUN</span><strong id="header-run">0</strong><small>pièces gagnées ce run</small></div>
         <button id="open-settings" class="icon-button" type="button" title="Paramètres et sauvegarde" aria-label="Paramètres et sauvegarde">☷</button>
       </div>
     </header>
@@ -106,76 +216,65 @@ app.innerHTML = `
       <span id="current-world-line">JARDIN DE VERRE</span>
       <span class="progress-separator">/</span>
       <span id="current-rank">Maison indépendante · Rang 1</span>
-      <span id="global-status" role="status">Ta première fragrance t’attend.</span>
+      <span id="global-status" role="status">Récolte ta première matière, puis compose ta fragrance.</span>
       <span id="save-indicator">SAUVEGARDE LOCALE</span>
     </div>
 
-    <div class="clicker-layout">
-      <section class="column click-column">
-        <div class="section-heading click-heading">
+    <div class="game-layout">
+      <section class="column workshop-column">
+        <div class="section-heading workshop-heading">
           <div><span class="eyebrow">01 · CRÉATION</span><h1>Le parfumeur</h1></div>
           <span class="stamped-tag">ATELIER</span>
         </div>
-        <div class="click-card">
-          <div class="click-card-topline"><span>RÉCOLTE BOTANIQUE</span><span id="click-multiplier">BUTIN ALÉATOIRE</span></div>
-          <div class="clicker-stage" id="clicker-stage">
-            <div class="bottle-halo" aria-hidden="true"></div>
-            <div class="bottle-orbit orbit-one" aria-hidden="true"></div>
-            <div class="bottle-orbit orbit-two" aria-hidden="true"></div>
-            <button id="perfume-clicker" class="perfume-clicker" type="button" aria-label="Récolter une matière botanique aléatoire">
-              <img src="/assets/material-unknown.svg" alt="Matière inconnue" draggable="false" />
-            </button>
-            <div class="crafted-flacon-pop" id="crafted-flacon-pop" aria-hidden="true"><img src="/assets/bottle-product.svg" alt="" /></div>
-            <span class="stage-caption">10 MATIÈRES = 1 FRAGRANCE</span>
+        <div class="workshop-card">
+          <div class="workshop-card-topline"><span>ATELIER 2D</span><span id="harvest-mode-label">RÉCOLTE MANUELLE</span></div>
+          <div class="workshop-stage-frame workshop-stage" id="workshop-stage-frame">
+            <canvas id="workshop-canvas" aria-label="Atelier 2D. Déplace-toi avec ZQSD ou les flèches. Clique au sol pour marcher. Appuie sur E près d'un poste pour interagir." role="img"></canvas>
+            <div class="scene-help"><span id="scene-prompt">Déplace-toi vers une parcelle pour récolter.</span><button id="scene-interact" type="button" disabled>INTERAGIR · E</button></div>
+            <div class="scene-touch-controls" aria-label="Commandes tactiles"><div class="scene-pad"><button type="button" data-scene-move="up" aria-label="Avancer">↑</button><button type="button" data-scene-move="left" aria-label="Aller à gauche">←</button><button type="button" data-scene-move="down" aria-label="Reculer">↓</button><button type="button" data-scene-move="right" aria-label="Aller à droite">→</button></div><small>Commandes tactiles</small></div>
           </div>
+          <section class="floor-navigation" aria-label="Étages de la maison">
+            <div class="floor-navigation-heading"><span class="eyebrow">ATELIER VERTICAL</span><strong id="active-floor-label">Artisanat · étage 0</strong></div>
+            <div id="floor-buttons" class="floor-buttons"></div>
+            <small id="floor-navigation-hint">Approche l'escalier pour ouvrir le prochain étage.</small>
+          </section>
           <div class="harvest-summary" aria-live="polite">
             <span class="last-drop-icon"><img id="harvest-last-icon" src="/assets/material-unknown.svg" alt="" /></span>
             <span class="last-drop-copy"><small>DERNIÈRE DÉCOUVERTE</small><strong id="harvest-last-name">Objet inconnu</strong><em id="harvest-last-rarity">La nature réserve une surprise.</em></span>
-            <span class="harvest-counter"><strong id="harvest-progress">0/10</strong><small>notes</small></span>
+            <span class="harvest-counter"><strong id="harvest-progress">0</strong><small>en stock</small></span>
           </div>
           <div class="harvest-progress-track"><i id="harvest-progress-bar"></i></div>
-          <div class="click-instructions">
-            <strong>Récolte des matières premières</strong>
-            <span>Chaque clic révèle un objet. Dix matières sont assemblées en une fragrance.</span>
+          <div id="botanical-expansion-panel" class="botanical-expansion-panel"></div>
+          <div class="workshop-instructions">
+            <strong>Travaille à chaque poste</strong>
+            <span>Approche les parcelles pour récolter une matière précise. Choisis une recette, formule-la au laboratoire et vends le flacon au comptoir.</span>
           </div>
           <div class="material-codex-heading"><span>CARNET BOTANIQUE</span><span id="material-discovered-count">0 découvertes</span></div>
           <div id="material-inventory" class="material-inventory"></div>
-          <div class="click-card-footer">
-            <span>RÉCOLTES EFFECTUÉES</span><strong id="session-clicks">0</strong>
+          <section class="recipe-workshop" aria-labelledby="recipe-workshop-title">
+            <div class="recipe-workshop-heading"><div><span class="eyebrow">FORMULATION ARTISANALE</span><h2 id="recipe-workshop-title">Carnet de formulations</h2></div><span id="perfume-stock-count">0 flacon</span></div>
+            <p class="recipe-workshop-intro">Choisis une recette, récolte les ingrédients dans le jardin, puis rejoins le laboratoire pour la composer. Le comptoir sert à vendre les flacons.</p>
+            <p class="selected-recipe-note">Recette active : <strong id="selected-recipe-name">Brise verte</strong></p>
+            <div id="recipe-list" class="recipe-list"></div>
+            <div id="customer-order-panel" class="customer-order-panel"></div>
+          </section>
+          <div class="workshop-card-footer">
+            <span>INTERACTIONS À L’ATELIER</span><strong id="workshop-actions-count">0</strong>
           </div>
         </div>
 
-        <button id="rare-flacon" class="rare-event" type="button" disabled>
-          <span class="rare-event-art"><img src="/assets/bottle-rare.svg" alt="" /></span>
-          <span class="rare-event-copy"><span class="eyebrow">ÉVÉNEMENT RARE</span><strong id="rare-event-title">Flacon mythique</strong><small id="rare-flacon-status">Arrive dans 24 secondes</small></span>
-          <span class="rare-event-badge" id="rare-event-mark">×2</span>
-        </button>
-        <div id="boost-status" class="boost-status" hidden>
-          <span class="boost-symbol">✦</span><span><strong>ÉCLAT MYTHIQUE ACTIF</strong><small id="boost-countdown">Production doublée</small></span>
-          <div class="boost-progress"><i id="boost-progress-bar"></i></div>
         </div>
 
-        <section class="order-card">
-          <div class="section-heading compact-heading"><div><span class="eyebrow">VENTES PRIVÉES</span><h2>Commande VIP</h2></div><span class="order-seal">VIP</span></div>
-          <p>Prépare un lot spécial pour la clientèle de la maison. Les contrats deviennent plus lucratifs à chaque livraison.</p>
-          <div class="order-values">
-            <span><small>LOT À PRÉPARER</small><strong id="order-cost">120</strong></span>
-            <span><small>PAIEMENT</small><strong id="order-reward">216</strong></span>
-            <span><small>LIVRAISONS</small><strong id="order-count">0</strong></span>
-          </div>
-          <button id="complete-order" class="secondary-button" type="button">LIVRER LA COMMANDE <span>↗</span></button>
-        </section>
 
         <div class="mini-metrics">
-          <div><span>Ventes cumulées</span><strong id="lifetime-sales">0</strong></div>
-          <div><span>Flacons mythiques</span><strong id="rare-count">0</strong></div>
+          <div><span>Revenus cumulés</span><strong id="lifetime-sales">0</strong></div>
         </div>
       </section>
 
       <section class="column production-column">
         <div class="section-heading">
           <div><span class="eyebrow">02 · AUTOMATISATION</span><h1>La manufacture</h1><p class="heading-note">Chaque équipement produit en continu, même sans clic.</p></div>
-          <div class="production-totals"><strong id="factory-cps">0</strong><small>PAR SECONDE</small></div>
+          <div class="production-totals"><strong id="factory-cps">0</strong><small>RENDEMENT NET / S</small></div>
         </div>
         <div class="manufacture-banner">
           <div class="banner-stamp"><img src="/assets/perfume-emblem.svg" alt="" /></div>
@@ -203,9 +302,9 @@ app.innerHTML = `
       </aside>
     </div>
     <footer class="game-footer">
-      <span>PARFUM EMPIRE <i>—</i> MAISON DES ESSENCES</span>
+      <span>PARFUM EMPIRE <i>/</i> MAISON DES ESSENCES</span>
       <span>PRODUCTION CONTINUE · SAUVEGARDE AUTOMATIQUE</span>
-      <span id="footer-version">V. 0.4.0 · BOTANICAL CLICKER</span>
+      <span id="footer-version">V. 0.4.0 · ATELIER INTERACTIF</span>
     </footer>
     <input id="import-file" type="file" accept=".json,.txt,application/json,text/plain" hidden />
   </main>
@@ -273,9 +372,22 @@ function setStatus(message: string): void {
 
 function save(): void {
   const now = Date.now();
-  state = { ...state, lastSavedAt: now, currentFloor: 0, unlockedFloors: [0], rampBuilt: true };
+  state = { ...state, lastSavedAt: now, rampBuilt: true };
   try {
+    const previous = localStorage.getItem(SAVE_KEY);
+    const previousIsValid = previous !== null && parseImportedSave(previous) !== null;
+    if (previousIsValid || backupNeedsRepair) {
+      try {
+        // Normally keep the previous valid save as a rollback point. After recovery,
+        // refresh the backup from the recovered state to avoid replaying old offline time.
+        const backupPayload = previousIsValid && !backupNeedsRepair ? previous : JSON.stringify(state);
+        localStorage.setItem(BACKUP_SAVE_KEY, backupPayload);
+      } catch {
+        // Keep attempting the primary save even when there is no room for a backup.
+      }
+    }
     localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    backupNeedsRepair = false;
     byId('save-indicator').textContent = 'SAUVEGARDÉ · ' + new Date(now).toLocaleTimeString('fr-CH', { hour: '2-digit', minute: '2-digit' });
   } catch {
     byId('save-indicator').textContent = 'SAUVEGARDE INDISPONIBLE';
@@ -291,88 +403,126 @@ function renderHarvestView(): void {
   lastIcon.alt = latest?.name ?? 'Matière inconnue';
   byId('harvest-last-name').textContent = latest?.name ?? 'Objet inconnu';
   byId('harvest-last-rarity').textContent = latest
-    ? latest.rarity + ' · nouvelle trouvaille'
-    : 'Le prochain clic révélera une matière.';
-  byId('harvest-progress').textContent = state.harvestProgress + '/' + INGREDIENTS_PER_PERFUME;
-  byId('harvest-progress-bar').style.width = (state.harvestProgress / INGREDIENTS_PER_PERFUME * 100) + '%';
-
-  const mainButton = byId<HTMLButtonElement>('perfume-clicker');
-  const mainImage = mainButton.querySelector<HTMLImageElement>('img');
-  if (mainImage) {
-    mainImage.src = source;
-    mainImage.alt = latest ? latest.name : 'Matière botanique inconnue';
-  }
-  mainButton.setAttribute('aria-label', 'Récolter une matière botanique aléatoire');
+    ? latest.rarity + ' · récoltée à l’atelier'
+    : 'Approche une parcelle pour commencer.';
+  const ingredientTotal = Object.values(state.ingredients).reduce((sum, count) => sum + count, 0);
+  byId('harvest-progress').textContent = format(ingredientTotal, 0);
+  byId('harvest-progress-bar').style.width = Math.min(100, ingredientTotal / 20 * 100) + '%';
 
   const discoveries = MATERIALS.reduce((sum, material) => sum + state.materialDiscoveries[material.id], 0);
   byId('material-discovered-count').textContent = format(discoveries, 0) + ' trouvaille' + (discoveries === 1 ? '' : 's');
   byId('material-inventory').innerHTML = MATERIALS.map((material) => {
-    const count = state.materialDiscoveries[material.id];
-    const known = count > 0;
+    const discoveries = state.materialDiscoveries[material.id];
+    const stock = state.ingredients[material.id];
+    const known = discoveries > 0;
     const latestClass = material.id === state.lastHarvestedMaterial ? ' is-latest' : '';
     return `
-      <div class="material-chip ${known ? 'is-known' : 'is-unknown'}${latestClass}" title="${known ? material.name + ' · ' + material.rarity : 'Matière encore inconnue'}">
+      <div class="material-chip ${known ? 'is-known' : 'is-unknown'}${latestClass}" title="${known ? material.name + ' · en stock : ' + stock + ' · découvertes : ' + discoveries : 'Matière encore inconnue'}">
         <img src="${known ? material.asset : unknownAsset}" alt="" />
         <span>${known ? material.shortName : '???'}</span>
-        <strong>${format(count, 0)}</strong>
+        <strong>${format(stock, 0)}</strong>
       </div>`;
   }).join('');
 }
 
+function renderBotanicalExpansion(): void {
+  const level = state.outsideExpansions;
+  const maxed = level >= MAX_BOTANICAL_EXPANSIONS;
+  const cost = botanicalExpansionCost(state);
+  const canAfford = canUnlockBotanicalExpansion(state);
+  const nextName = EXPANSION_PLOT_NAMES[level] ?? '';
+  const stateClass = maxed ? 'is-complete' : canAfford ? 'is-ready' : '';
+  byId('botanical-expansion-panel').innerHTML =
+    '<section class="botanical-expansion-card ' + stateClass + '">' +
+      '<div class="botanical-expansion-heading"><span class="eyebrow">EXTENSIONS DU JARDIN</span><strong>' +
+        level + ' / ' + MAX_BOTANICAL_EXPANSIONS + '</strong></div>' +
+      '<p>' + (maxed
+        ? 'Toutes les parcelles supplémentaires sont ouvertes.'
+        : nextName + ' sera accessible après achat.') + '</p>' +
+      '<button type="button" data-buy-botanical-expansion="true" ' + (canAfford ? '' : 'disabled') + '>' +
+        '<span>' + (maxed ? 'JARDIN COMPLET' : 'DÉBLOQUER LA PARCELLE') + '</span>' +
+        '<b>' + (maxed ? 'MAX' : format(cost)) + '</b>' +
+      '</button>' +
+    '</section>';
+}
+
+function renderPreservingFocus(
+  container: HTMLElement,
+  markup: string,
+  actionAttributes: string[] = [],
+): void {
+  const activeElement = document.activeElement;
+  const focusedButton = activeElement instanceof HTMLElement && container.contains(activeElement)
+    ? activeElement.closest<HTMLButtonElement>('button')
+    : null;
+  const focusedId = focusedButton?.id ?? '';
+  const focusAttribute = focusedButton
+    ? actionAttributes.find((attribute) => focusedButton.hasAttribute(attribute))
+    : undefined;
+  const focusValue = focusAttribute ? focusedButton?.getAttribute(focusAttribute) : null;
+
+  container.innerHTML = markup;
+
+  let replacement: HTMLElement | undefined;
+  if (focusedId) {
+    replacement = Array.from(container.querySelectorAll<HTMLElement>('[id]'))
+      .find((element) => element.id === focusedId);
+  } else if (focusAttribute && focusValue !== null) {
+    replacement = Array.from(container.querySelectorAll<HTMLElement>('[' + focusAttribute + ']'))
+      .find((element) => element.getAttribute(focusAttribute) === focusValue);
+  }
+  replacement?.focus({ preventScroll: true });
+}
+
 function renderStats(): void {
   const world = getWorld(state.currentWorld);
-  const cps = productionPerSecond(state);
+  const grossCps = productionPerSecond(state);
+  const upkeepCps = operatingCostsPerSecond(state);
+  const cps = netProductionPerSecond(state);
   byId('header-money').textContent = format(state.perfumeRevenue);
-  byId('header-money').title = formatExact(state.perfumeRevenue) + ' parfums';
+  byId('header-money').title = formatExact(state.perfumeRevenue) + ' pièces';
   byId('header-cps').textContent = format(cps);
-  byId('header-click').textContent = state.harvestProgress + '/' + INGREDIENTS_PER_PERFUME;
+  byId('header-click').textContent = format(Object.values(state.ingredients).reduce((sum, count) => sum + count, 0), 0);
   byId('header-run').textContent = format(state.runPerfumeRevenue);
   byId('factory-cps').textContent = format(cps);
-  byId('session-clicks').textContent = format(state.gatherClicks, 0);
+  byId('workshop-actions-count').textContent = format(state.gatherClicks, 0);
   byId('lifetime-sales').textContent = format(state.lifetimePerfumeRevenue);
-  byId('rare-count').textContent = format(state.rareFlaconsClaimed, 0);
   byId('current-world-line').textContent = world.name.toUpperCase();
   byId('current-rank').textContent = 'Maison indépendante · Rang ' + (1 + state.rebirths + state.totalRebirths * 10);
-  byId('click-multiplier').textContent = state.upgrades.clickPower > 0 ? '+' + (state.upgrades.clickPower * 8) + '% BUTIN BONUS' : 'BUTIN ALÉATOIRE';
+  byId('harvest-mode-label').textContent = 'RÉCOLTE MANUELLE';
   byId('global-status').textContent = statusMessage;
-  byId('order-count').textContent = format(state.ordersCompleted, 0);
-  byId('order-cost').textContent = format(customerOrderCost(state));
-  byId('order-reward').textContent = format(customerOrderReward(state));
   byId('factory-status').textContent = currentWorldMachineTotal() === 0
     ? 'La première ligne attend son équipement.'
     : currentWorldMachineTotal() + ' équipement(s) en service dans cette collection.';
-  byId('factory-detail').textContent = cps > 0
-    ? format(cps) + ' parfums sont produits chaque seconde.'
-    : 'Investis dans une machine pour lancer tes revenus automatiques.';
+  byId('factory-detail').textContent = grossCps > 0
+    ? 'Brut : ' + format(grossCps) + ' / s. Entretien : ' + format(upkeepCps, 3) + ' / s. Net : ' + format(cps, 3) + ' / s.'
+    : 'Vends tes premiers flacons ou investis dans une machine pour lancer les revenus automatiques.';
   byId('machine-count').textContent = format(currentWorldMachineTotal(), 0) + ' INSTALLÉ' + (currentWorldMachineTotal() > 1 ? 'S' : '');
-  byId('complete-order').toggleAttribute('disabled', !canCompleteCustomerOrder(state));
-  byId('complete-order').title = canCompleteCustomerOrder(state)
-    ? 'Livrer cette commande et recevoir ' + formatExact(customerOrderReward(state)) + ' parfums.'
-    : 'Il manque ' + formatExact(Math.max(0, customerOrderCost(state) - state.perfumeRevenue)) + ' parfums pour préparer le lot.';
-  renderRareFlacon(performance.now());
 }
 
 function renderMachines(): void {
   const list = byId('machine-list');
   const current = state.machines[state.currentWorld];
-  const catalog = MACHINES;
-  list.innerHTML = catalog.map((machine, index) => {
+  const catalog = MACHINES.filter((machine) => machine.floor === state.currentFloor);
+  const markup = catalog.map((machine) => {
     const owned = current[machine.id];
     const cost = machineCost(state, machine.id);
     const canAfford = state.perfumeRevenue >= cost;
+    const world = getWorld(state.currentWorld);
     const perSecond = (machine.payout / machine.cycleSeconds) *
-      getWorld(state.currentWorld).incomeMultiplier *
+      world.incomeMultiplier *
       (1 + state.upgrades.production * 0.2) *
       (1.6 ** state.rebirths) *
       essenceMultiplier(state);
-    const locked = owned === 0 && !canAfford && index > 1;
+    const upkeepPerSecond = machine.cost * world.costMultiplier / 600;
     return `
-      <article class="building-row ${owned > 0 ? 'is-owned' : ''} ${canAfford ? 'can-buy' : 'is-expensive'} ${locked ? 'is-locked' : ''}">
+      <article class="building-row ${owned > 0 ? 'is-owned' : ''} ${canAfford ? 'can-buy' : 'is-expensive'}">
         <div class="building-portrait"><img src="${machineIcon(machine.id)}" alt="" loading="lazy" /></div>
         <div class="building-info">
           <div class="building-title-line"><h3>${machine.name}</h3><span class="building-tier">${tierName(machine.floor)}</span></div>
           <p>${machine.description}</p>
-          <div class="building-output"><span>PRODUCTION</span><strong>${format(perSecond)} / s</strong></div>
+          <div class="building-output"><span>PRODUCTION NETTE</span><strong>${format(perSecond - upkeepPerSecond)} / s</strong></div>
+          <div class="building-output"><span>ENTRETIEN</span><strong>${format(upkeepPerSecond, 3)} / s</strong></div>
           <div class="building-price-line"><span>PROCHAIN COÛT</span><strong>${format(cost)}</strong></div>
         </div>
         <div class="building-buy-side">
@@ -383,7 +533,7 @@ function renderMachines(): void {
         </div>
       </article>`;
   }).join('');
-
+  renderPreservingFocus(list, markup, ['data-buy-machine']);
 }
 
 function renderUpgrades(): string {
@@ -403,7 +553,7 @@ function renderUpgrades(): string {
           <div class="upgrade-action"><span>NV. ${level}/${MAX_UPGRADE_LEVEL}</span><button type="button" data-buy-upgrade="${id}" ${canAfford ? '' : 'disabled'}>${maxed ? 'MAX' : format(cost)}</button></div>
         </article>`;
     }).join('')}</div>
-    <div class="research-note"><span>NOTE DU PARFUMEUR</span><p>Le rendement se cumule : automatisation, gestes de formulation, négociation VIP et durée des flacons mythiques se renforcent mutuellement.</p></div>`;
+    <div class="research-note"><span>NOTE DU PARFUMEUR</span><p>Le rendement se cumule : automatisation, récoltes ciblées, précision d’extraction et finition des flacons se renforcent mutuellement.</p></div>`;
 }
 
 function renderContracts(): string {
@@ -425,17 +575,17 @@ function renderContracts(): string {
 function achievements() {
   const machines = totalMachinesOwned();
   const criteria = [
-    { name: 'Première note', description: 'Créer ou vendre ton premier parfum.', unlocked: state.lifetimePerfumeRevenue >= 1 },
-    { name: 'Le nez se forme', description: 'Produire 100 parfums cumulés.', unlocked: state.lifetimePerfumeRevenue >= 100 },
+    { name: 'Première note', description: 'Récolter une première matière botanique.', unlocked: state.gatherClicks >= 1 },
+    { name: 'Le nez se forme', description: 'Générer 100 pièces de revenus cumulés.', unlocked: state.lifetimePerfumeRevenue >= 100 },
     { name: 'Premier investissement', description: 'Installer un premier équipement.', unlocked: machines >= 1 },
     { name: 'Petite manufacture', description: 'Posséder 10 équipements au total.', unlocked: machines >= 10 },
     { name: 'Ligne industrielle', description: 'Posséder 50 équipements au total.', unlocked: machines >= 50 },
     { name: 'Recherche appliquée', description: 'Acheter une première amélioration.', unlocked: Object.values(state.upgrades).some((level) => level > 0) },
-    { name: 'Client satisfait', description: 'Terminer une commande VIP.', unlocked: state.ordersCompleted >= 1 },
-    { name: 'Pièce de collection', description: 'Récupérer un flacon mythique.', unlocked: state.rareFlaconsClaimed >= 1 },
-    { name: 'Maison internationale', description: 'Ouvrir une deuxième collection.', unlocked: state.unlockedWorlds.length >= 2 },
+    { name: 'Première vente', description: 'Vendre un flacon au comptoir.', unlocked: state.perfumesSold >= 1 },
+    { name: 'Première collection', description: 'Ouvrir une deuxième collection.', unlocked: state.unlockedWorlds.length >= 2 },
+    { name: 'Maison internationale', description: 'Ouvrir la troisième collection.', unlocked: state.unlockedWorlds.length >= 3 },
     { name: 'Nouvelle génération', description: 'Effectuer un rebirth normal.', unlocked: state.rebirths >= 1 },
-    { name: 'Un million de notes', description: 'Produire un million de parfums.', unlocked: state.lifetimePerfumeRevenue >= 1_000_000 },
+    { name: 'Un million de notes', description: 'Générer un million de pièces de revenus cumulés.', unlocked: state.lifetimePerfumeRevenue >= 1_000_000 },
     { name: 'Essence originelle', description: 'Gagner une première Essence permanente.', unlocked: state.essences >= 1 },
   ];
   return criteria;
@@ -507,7 +657,47 @@ function renderSavePanel(): string {
     <textarea id="save-data-text" rows="7" spellcheck="false" placeholder="Clique sur EXPORTER EN JSON ou colle ici une sauvegarde à importer."></textarea>
     <div class="save-panel-actions"><button id="import-save" class="secondary-button" type="button">IMPORTER LE TEXTE COLLÉ</button><button id="erase-save" class="secondary-button danger-outline" type="button">EFFACER LA PARTIE</button></div>
     <label class="theme-toggle"><span><strong>Mode sombre</strong><small>Réduit la luminosité de l'interface.</small></span><input id="dark-mode-toggle" type="checkbox" ${document.body.classList.contains('theme-dark') ? 'checked' : ''} /></label>
+    <label class="theme-toggle"><span><strong>Effets sonores</strong><small>Notes synthétiques pour les récoltes, ventes et améliorations.</small></span><input id="sound-enabled-toggle" type="checkbox" ${soundEnabled ? 'checked' : ''} /></label>
     <p class="save-warning">Importer remplace la partie actuelle. Vérifie que tu as exporté tes progrès avant de réinitialiser.</p>`;
+}
+
+function renderFloorNavigation(): void {
+  const names = ['Artisanat', 'Manufacture', 'Essences rares'];
+  const shortNames = ['ÉTAGE 0', 'ÉTAGE 1', 'ÉTAGE 2'];
+  byId('active-floor-label').textContent = names[state.currentFloor] + ' · étage ' + state.currentFloor;
+  byId('floor-buttons').innerHTML = names.map((name, floor) => {
+    const unlocked = state.unlockedFloors.includes(floor);
+    const active = state.currentFloor === floor;
+    const cost = floor === 0 ? 0 : floorUnlockCost(floor);
+    const label = active || unlocked ? name.toUpperCase() : name.toUpperCase() + ' · ' + format(cost);
+    return '<button type="button" data-enter-floor="' + floor + '" class="floor-choice ' +
+      (active ? 'is-active' : '') + (unlocked ? '' : ' is-locked') + '"' +
+      (unlocked && !active ? '' : ' disabled') + ' aria-current="' + (active ? 'true' : 'false') + '">' +
+      '<span>' + shortNames[floor] + '</span><strong>' + label + '</strong></button>';
+  }).join('');
+  const nextFloor = state.currentFloor + 1;
+  if (nextFloor > 2) {
+    byId('floor-navigation-hint').textContent = 'Dernier étage atteint. Utilise l’escalier descendant ou les boutons ci-dessus.';
+    return;
+  }
+  if (state.unlockedFloors.includes(nextFloor)) {
+    byId('floor-navigation-hint').textContent = 'L’escalier montant mène à l’étage suivant. ' +
+      (state.currentFloor > 0 ? 'L’escalier descendant ramène à l’étage ' + (state.currentFloor - 1) + '. ' : '') +
+      'Les revenus automatisés continuent dans les étages non actifs.';
+    return;
+  }
+  const requiredMachines = nextFloor === 1 ? 2 : 1;
+  const installed = MACHINES.filter((machine) => machine.floor === state.currentFloor)
+    .reduce((total, machine) => total + state.machines[state.currentWorld][machine.id], 0);
+  const missingMachines = Math.max(0, requiredMachines - installed);
+  const cost = floorUnlockCost(nextFloor);
+  const missingCash = Math.max(0, cost - state.perfumeRevenue);
+  const requirements: string[] = [];
+  if (missingMachines > 0) requirements.push(missingMachines + ' équipement(s) supplémentaire(s)');
+  if (missingCash > 0) requirements.push(format(missingCash) + ' pièces');
+  byId('floor-navigation-hint').textContent = 'Près de l’escalier montant : ouvre ' + names[nextFloor] +
+    (requirements.length ? ' après avoir obtenu ' + requirements.join(' et ') + '.' : ' dès maintenant.') +
+    (state.currentFloor > 0 ? ' L’escalier descendant ramène à l’étage ' + (state.currentFloor - 1) + '.' : '');
 }
 
 function renderStore(): void {
@@ -520,7 +710,9 @@ function renderStore(): void {
     prestige: renderPrestige,
     save: renderSavePanel,
   };
-  content.innerHTML = panels[activeTab]();
+  renderPreservingFocus(content, panels[activeTab](), [
+    'data-buy-upgrade', 'data-claim-mission', 'data-enter-world',
+  ]);
   document.querySelectorAll<HTMLButtonElement>('[data-tab]').forEach((button) => {
     const selected = button.dataset.tab === activeTab;
     button.classList.toggle('is-active', selected);
@@ -528,63 +720,188 @@ function renderStore(): void {
   });
 }
 
-function renderRareFlacon(now: number): void {
-  const button = byId<HTMLButtonElement>('rare-flacon');
-  const status = byId('rare-flacon-status');
-  const boostPanel = byId('boost-status');
-  const second = Math.floor(now / 1000);
-  if (second === rareUiSecond) return;
-  rareUiSecond = second;
 
-  if (state.lifetimePerfumeRevenue < 1) {
-    button.hidden = false;
-    button.disabled = true;
-    button.classList.remove('is-ready');
-    boostPanel.hidden = true;
-    rareNextAt = now + 24_000;
-    byId('rare-event-title').textContent = 'Flacon mythique';
-    status.textContent = 'Débloqué après ta première fragrance';
+function renderSceneSelection(): void {
+  const prompt = byId('scene-prompt');
+  const button = byId<HTMLButtonElement>('scene-interact');
+  const stationNames: Record<WorkshopStation, string> = {
+    lavender: 'Parcelle de lavande', mint: 'Parcelle de menthe', rose: 'Roseraie',
+    bergamot: 'Bergamotiers', sandalwood: 'Bois de santal', jasmine: 'Jardin de jasmin',
+    resin: 'Résine ambrée', laboratory: 'Laboratoire de formulation', counter: 'Comptoir de vente',
+    stairs: 'Escalier montant',
+    'stairs-down': 'Escalier descendant',
+    'lavender-plot-2': 'Parcelle agrandie de lavande',
+    'mint-plot-2': 'Parcelle agrandie de menthe',
+    'rose-plot-2': 'Parcelle agrandie de rose',
+  };
+  const order = getActiveCustomerOrder(state);
+  const selectedRecipeIsOrder = selectedRecipeId === order.recipeId;
+  const orderReady = selectedRecipeIsOrder && canFulfillCustomerOrder(state);
+  button.disabled = nearbyStation === null;
+  if (!nearbyStation) {
+    prompt.textContent = 'Marche jusqu’à un poste, puis appuie sur E ou Interagir.';
+  } else if (nearbyStation === 'laboratory') {
+    prompt.textContent = stationNames[nearbyStation] + ' · composer la recette active';
+  } else if (nearbyStation === 'counter') {
+    prompt.textContent = stationNames[nearbyStation] + ' · ' + (
+      selectedRecipeIsOrder
+        ? orderReady
+          ? 'livrer la commande de ' + order.customer
+          : 'préparer ' + order.quantity + ' flacon(s) pour ' + order.customer
+        : 'vendre la recette active'
+    );
+  } else if (nearbyStation === 'stairs') {
+    prompt.textContent = stationNames[nearbyStation] + ' · ouvrir ou rejoindre l’étage ' + (state.currentFloor + 1);
+  } else if (nearbyStation === 'stairs-down') {
+    prompt.textContent = stationNames[nearbyStation] + ' · rejoindre l’étage ' + (state.currentFloor - 1);
+  } else {
+    prompt.textContent = stationNames[nearbyStation] + ' · récolter une matière choisie';
+  }
+  button.textContent = nearbyStation === 'laboratory'
+    ? 'FORMULER · E'
+    : nearbyStation === 'counter'
+      ? selectedRecipeIsOrder ? (orderReady ? 'LIVRER · E' : 'COMMANDE · E') : 'VENDRE · E'
+      : nearbyStation === 'stairs'
+        ? 'MONTER · E'
+        : nearbyStation === 'stairs-down'
+          ? 'DESCENDRE · E'
+          : 'INTERAGIR · E';
+}
+
+function interactWithStation(station: WorkshopStation): void {
+  const expansionMaterial = EXPANSION_PLOT_MATERIALS[station];
+  if (MATERIALS.some((material) => material.id === station) || expansionMaterial) {
+    const material: MaterialId = expansionMaterial ?? (station as MaterialId);
+    const result = harvestMaterial(state, material);
+    if (result.state !== state) playSound('harvest');
+    state = result.state;
+    const definition = MATERIALS.find((item) => item.id === material)!;
+    renderAll();
+    floatText('+' + definition.name);
+    setStatus('Récolte ciblée : ' + definition.name + '. Retourne au laboratoire pour formuler.');
+    saveSoon();
     return;
   }
-
-  if (now < rareBoostUntil) {
-    const remaining = rareBoostUntil - now;
-    button.disabled = true;
-    button.hidden = true;
-    button.classList.remove('is-ready');
-    byId('rare-event-title').textContent = 'Production doublée';
-    status.textContent = 'Bonus actif · ' + Math.ceil(remaining / 1000) + ' s restantes';
-    boostPanel.hidden = false;
-    byId('boost-countdown').textContent = 'Production ×2 pendant ' + Math.ceil(remaining / 1000) + ' s';
-    byId('boost-progress-bar').style.width = Math.min(100, remaining / (20_000 + state.upgrades.rareBonus * 3_000) * 100) + '%';
+  const recipe = PERFUME_RECIPES.find((item) => item.id === selectedRecipeId)!;
+  if (station === 'laboratory') {
+    if (!canCraftPerfume(state, selectedRecipeId)) {
+      const missing = Object.entries(recipe.ingredients)
+        .filter(([id, amount]) => state.ingredients[id as MaterialId] < (amount ?? 0))
+        .map(([id, amount]) => {
+          const material = MATERIALS.find((item) => item.id === id)!;
+          return material.name + ' × ' + Math.max(0, (amount ?? 0) - state.ingredients[material.id]);
+        });
+      setStatus('Formulation impossible. Il manque ' + missing.join(', ') + '. Récolte ces matières dans le jardin.');
+      return;
+    }
+    state = craftPerfume(state, selectedRecipeId);
+    playSound('craft');
+    renderAll();
+    setStatus(recipe.name + ' formulé au laboratoire. Le flacon attend au comptoir.');
+    saveSoon();
     return;
   }
-
-  boostPanel.hidden = true;
-  button.hidden = false;
-  if (rareExpiresAt === 0 && now >= rareNextAt) {
-    rareExpiresAt = now + 12_000;
-  }
-  if (rareExpiresAt > 0 && now < rareExpiresAt) {
-    button.disabled = false;
-    button.classList.add('is-ready');
-    byId('rare-event-title').textContent = 'Flacon mythique repéré !';
-    status.textContent = 'Clique avant qu’il ne disparaisse · ' + Math.ceil((rareExpiresAt - now) / 1000) + ' s';
+  if (station === 'stairs-down') {
+    const targetFloor = state.currentFloor - 1;
+    if (targetFloor < 0 || !state.unlockedFloors.includes(targetFloor)) {
+      setStatus('Cet étage inférieur n’est pas accessible depuis cet escalier.');
+      return;
+    }
+    state = enterFloor(state, targetFloor);
+    playSound('unlock');
+    renderAll();
+    setStatus('Tu es redescendu à l’étage ' + targetFloor + ' · ' +
+      ['Artisanat', 'Manufacture', 'Essences rares'][targetFloor] + '.');
+    saveSoon();
     return;
   }
-  if (rareExpiresAt > 0 && now >= rareExpiresAt) {
-    rareExpiresAt = 0;
-    rareNextAt = now + 32_000 + Math.random() * 24_000;
+  if (station === 'stairs') {
+    const targetFloor = state.currentFloor + 1;
+    if (targetFloor > 2) {
+      setStatus('Tu es au dernier étage. Utilise le sélecteur des étages pour redescendre.');
+      return;
+    }
+    if (!state.unlockedFloors.includes(targetFloor)) {
+      const requiredMachines = targetFloor === 1 ? 2 : 1;
+      const installed = MACHINES.filter((machine) => machine.floor === state.currentFloor)
+        .reduce((total, machine) => total + state.machines[state.currentWorld][machine.id], 0);
+      if (installed < requiredMachines) {
+        setStatus('Pour ouvrir l’étage ' + targetFloor + ', installe encore ' +
+          (requiredMachines - installed) + ' équipement(s) à l’étage actuel.');
+        return;
+      }
+      const cost = floorUnlockCost(targetFloor);
+      if (state.perfumeRevenue < cost) {
+        setStatus('L’accès à l’étage ' + targetFloor + ' coûte ' + format(cost) +
+          ' pièces. Il t’en manque ' + format(cost - state.perfumeRevenue) + '.');
+        return;
+      }
+      if (!canUnlockFloor(state, targetFloor)) {
+        setStatus('Cet étage ne peut pas encore être ouvert depuis l’escalier.');
+        return;
+      }
+      state = unlockFloor(state, targetFloor);
+      playSound('unlock');
+    }
+    state = enterFloor(state, targetFloor);
+    renderAll();
+    setStatus('Étage ouvert : ' + ['Artisanat', 'Manufacture', 'Essences rares'][targetFloor] +
+      '. Les machines de cet étage sont maintenant accessibles.');
+    saveSoon();
+    return;
   }
-  button.disabled = true;
-  button.classList.remove('is-ready');
-  byId('rare-event-title').textContent = 'Flacon mythique';
-  status.textContent = 'Arrive dans ' + Math.max(0, Math.ceil((rareNextAt - now) / 1000)) + ' secondes';
+  const order = getActiveCustomerOrder(state);
+  if (selectedRecipeId === order.recipeId) {
+    const available = state.perfumeStock[selectedRecipeId];
+    if (available < order.quantity) {
+      setStatus('Commande de ' + order.customer + ' : ' + order.quantity + ' flacon(s) de ' + recipe.name +
+        ' requis, ' + available + ' disponible(s). Prépare les flacons au laboratoire avant de revenir au comptoir.');
+      return;
+    }
+    state = fulfillCustomerOrder(state);
+    playSound('order');
+    renderAll();
+    setStatus('Commande #' + order.orderNumber + ' livrée à ' + order.customer + ' : ' +
+      order.quantity + ' × ' + recipe.name + ', prime comprise : +' + format(order.reward) + ' pièces.');
+    floatText('+' + format(order.reward) + ' pièces');
+    saveSoon();
+    return;
+  }
+  if (state.perfumeStock[selectedRecipeId] <= 0) {
+    setStatus('Aucun flacon de ' + recipe.name + ' en stock. Compose cette recette au laboratoire avant de la vendre.');
+    return;
+  }
+  const price = perfumeSalePrice(state, selectedRecipeId);
+  state = sellPerfume(state, selectedRecipeId);
+  playSound('sell');
+  renderAll();
+  setStatus(recipe.name + ' vendu au comptoir pour ' + format(price) + ' pièces.');
+  saveSoon();
+}
+
+
+function currentCustomerVisual() {
+  const order = getActiveCustomerOrder(state);
+  return {
+    name: order.customer,
+    orderNumber: order.orderNumber,
+    quantity: order.quantity,
+    stock: state.perfumeStock[order.recipeId],
+    ready: canFulfillCustomerOrder(state),
+  };
 }
 
 function renderAll(): void {
+  workshopScene?.setEnvironment(getWorld(state.currentWorld), state.currentFloor, MACHINES.map((machine) => ({
+    id: machine.id, short: machine.short, name: machine.name, floor: machine.floor,
+    count: state.machines[state.currentWorld][machine.id],
+  })), state.outsideExpansions, currentCustomerVisual());
   renderStats();
+  renderFloorNavigation();
   renderHarvestView();
+  renderBotanicalExpansion();
+  renderRecipeWorkshop();
+  renderSceneSelection();
   renderMachines();
   renderStore();
 }
@@ -593,22 +910,8 @@ function saveSoon(): void {
   autoSaveElapsed = Math.max(autoSaveElapsed, 8);
 }
 
-function floatReward(amount: number, event?: MouseEvent, noun = 'parfums'): void {
-  const stage = byId('clicker-stage');
-  const rect = stage.getBoundingClientRect();
-  const floating = document.createElement('span');
-  floating.className = 'floating-reward';
-  floating.textContent = '+' + format(amount) + ' ' + noun;
-  const x = event ? event.clientX - rect.left : rect.width * 0.56;
-  const y = event ? event.clientY - rect.top : rect.height * 0.48;
-  floating.style.left = Math.max(18, Math.min(rect.width - 80, x)) + 'px';
-  floating.style.top = Math.max(15, Math.min(rect.height - 35, y)) + 'px';
-  stage.appendChild(floating);
-  window.setTimeout(() => floating.remove(), 950);
-}
-
 function floatText(label: string, event?: MouseEvent): void {
-  const stage = byId('clicker-stage');
+  const stage = byId('workshop-stage-frame');
   const rect = stage.getBoundingClientRect();
   const floating = document.createElement('span');
   floating.className = 'floating-reward floating-material';
@@ -621,32 +924,58 @@ function floatText(label: string, event?: MouseEvent): void {
   window.setTimeout(() => floating.remove(), 950);
 }
 
-function formulate(event?: MouseEvent): void {
-  const result = harvestIngredient(state);
-  state = result.state;
-  const lastId = result.materials[result.materials.length - 1] ?? 'lavender';
-  const material = MATERIALS.find((item) => item.id === lastId)!;
-  if (result.perfumesCreated > 0) {
-    floatReward(result.perfumesCreated, event, result.perfumesCreated === 1 ? 'parfum' : 'parfums');
-    const pop = byId('crafted-flacon-pop');
-    pop.classList.remove('is-visible');
-    void pop.offsetWidth;
-    pop.classList.add('is-visible');
-    window.setTimeout(() => pop.classList.remove('is-visible'), 760);
-    setStatus('Fragrance assemblée ! +' + format(result.perfumesCreated) + ' parfum(s). La prochaine formule repart de zéro.');
-  } else {
-    floatText('+' + material.name, event);
-    setStatus('Découverte : ' + material.name + ' · ' + material.rarity + '. ' + state.harvestProgress + '/' + INGREDIENTS_PER_PERFUME + ' matières avant la prochaine fragrance.');
-  }
-  const clicker = byId('perfume-clicker');
-  clicker.classList.remove('is-clicking');
-  void clicker.offsetWidth;
-  clicker.classList.add('is-clicking');
-  window.setTimeout(() => clicker.classList.remove('is-clicking'), 220);
-  renderStats();
-  renderHarvestView();
-  renderMachines();
-  saveSoon();
+function renderRecipeWorkshop(): void {
+  const totalStock = Object.values(state.perfumeStock).reduce((sum, count) => sum + count, 0);
+  byId('perfume-stock-count').textContent = format(totalStock, 0) + ' flacon' + (totalStock === 1 ? '' : 's');
+  byId('selected-recipe-name').textContent = PERFUME_RECIPES.find((recipe) => recipe.id === selectedRecipeId)?.name ?? 'Aucune';
+  byId('recipe-list').innerHTML = PERFUME_RECIPES.map((recipe) => {
+    const stock = state.perfumeStock[recipe.id];
+    const ingredients = Object.entries(recipe.ingredients).map(([id, amount]) => {
+      const material = MATERIALS.find((item) => item.id === id)!;
+      return '<span class="recipe-ingredient" title="' + material.name + ' × ' + amount + '"><img src="' + material.asset + '" alt="" /><small>×' + amount + '</small></span>';
+    }).join('');
+    const canCraft = canCraftPerfume(state, recipe.id);
+    const price = perfumeSalePrice(state, recipe.id);
+    const selected = selectedRecipeId === recipe.id;
+    return `
+      <article class="recipe-row ${stock > 0 ? 'has-stock' : ''} ${selected ? 'is-current-recipe' : ''}">
+        <div class="recipe-bottle"><img src="/assets/bottle-product.svg" alt="" /></div>
+        <div class="recipe-info"><h3>${recipe.name}</h3><p>${recipe.description}</p><div class="recipe-ingredients">${ingredients}</div><small>VENTE · ${format(price)} pièces · STOCK ${format(stock, 0)}</small></div>
+        <div class="recipe-actions"><button type="button" data-select-recipe="${recipe.id}" class="${selected ? 'is-selected' : ''}">${selected ? 'RECETTE CHOISIE' : 'CHOISIR'}</button><small>${canCraft ? 'Ingrédients disponibles' : 'Ingrédients manquants'}</small></div>
+      </article>`;
+  }).join('');
+  renderCustomerOrder();
+}
+
+function renderCustomerOrder(): void {
+  const order = getActiveCustomerOrder(state);
+  const recipe = PERFUME_RECIPES.find((item) => item.id === order.recipeId)!;
+  const stock = state.perfumeStock[order.recipeId];
+  const ready = canFulfillCustomerOrder(state);
+  const reputation = getHouseReputation(state);
+  const initials = order.customer.split(' ').map((part) => part[0]).join('');
+  byId('customer-order-panel').innerHTML =
+    '<article class="customer-order-card ' + (ready ? 'is-ready' : '') + '">' +
+      '<div class="customer-order-topline"><span class="eyebrow">COMMANDE CLIENT #' + format(order.orderNumber, 0) + '</span><span class="customer-order-premium">+' + order.premiumPercent + ' %</span></div>' +
+      '<div class="customer-order-client"><span class="customer-order-initials" aria-hidden="true">' + initials + '</span>' +
+        '<span class="customer-order-identity"><strong>' + order.customer + '</strong><small>' + order.atelier + '</small></span></div>' +
+      '<div class="customer-reputation">' +
+        '<div class="customer-reputation-heading"><span>RÉPUTATION DE LA MAISON</span><strong>Rang ' + reputation.rank + ' / ' + reputation.maxRank + '</strong></div>' +
+        '<div class="customer-reputation-track" role="progressbar" aria-label="Progression de la réputation" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + reputation.progressPercent + '"><i style="width:' + reputation.progressPercent + '%"></i></div>' +
+        '<small>' + format(reputation.points, 0) + ' points · ' + (reputation.rank >= reputation.maxRank ? 'rang maximal atteint' : format(100 - reputation.pointsIntoRank, 0) + ' points avant le rang suivant') + '</small>' +
+      '</div>' +
+      '<p class="customer-order-request">' + order.request + '</p>' +
+      '<div class="customer-order-data">' +
+        '<span><small>FORMULE</small><strong>' + recipe.name + '</strong></span>' +
+        '<span><small>QUANTITÉ</small><strong>' + order.quantity + ' flacon' + (order.quantity > 1 ? 's' : '') + '</strong></span>' +
+        '<span><small>EN STOCK</small><strong>' + stock + ' / ' + order.quantity + '</strong></span></div>' +
+      '<div class="customer-order-payout">' +
+        '<span><small>VENTE NORMALE</small><strong>' + format(order.normalValue) + ' pièces</strong></span>' +
+        '<span><small>PAIEMENT CLIENT</small><strong>' + format(order.reward) + ' pièces</strong></span></div>' +
+      '<p class="customer-order-hint">' + (ready
+        ? 'Prête à livrer. Sélectionne cette formule et interagis avec le comptoir.'
+        : 'Prépare la quantité demandée, puis livre la commande au comptoir. La prime est versée une seule fois.') + '</p>' +
+    '</article>';
 }
 
 function buyMachineById(machineId: MachineId): void {
@@ -656,6 +985,7 @@ function buyMachineById(machineId: MachineId): void {
     setStatus('Il te faut encore ' + format(Math.max(0, machineCost(state, machineId) - state.perfumeRevenue)) + ' parfums pour cet équipement.');
     return;
   }
+  playSound('purchase');
   renderAll();
   setStatus(getMachineLabel(machineId) + ' installé : la production automatique augmente.');
   saveSoon();
@@ -675,6 +1005,7 @@ function buyUpgradeById(upgradeId: UpgradeId): void {
       : 'Fonds insuffisants : il manque ' + format(Math.max(0, cost - state.perfumeRevenue)) + ' parfums.');
     return;
   }
+  playSound('purchase');
   renderAll();
   setStatus('Recherche appliquée : ' + UPGRADES[upgradeId].name + '.');
   saveSoon();
@@ -686,35 +1017,6 @@ function claimContract(missionId: MissionId): void {
   const mission = MISSION_DEFINITIONS.find((item) => item.id === missionId);
   renderAll();
   setStatus('Contrat réclamé : +' + format(mission?.reward ?? 0) + ' parfums.');
-  saveSoon();
-}
-
-function deliverOrder(): void {
-  if (!canCompleteCustomerOrder(state)) {
-    setStatus('Commande non préparée : il manque ' + format(Math.max(0, customerOrderCost(state) - state.perfumeRevenue)) + ' parfums.');
-    return;
-  }
-  const payout = customerOrderReward(state);
-  state = completeCustomerOrder(state);
-  renderAll();
-  setStatus('Commande VIP livrée automatiquement : +' + format(payout) + ' parfums.');
-  saveSoon();
-}
-
-function collectRareFlacon(): void {
-  const now = performance.now();
-  if (state.lifetimePerfumeRevenue < 1 || rareExpiresAt <= now || now < rareBoostUntil) return;
-  const reward = Math.max(1, Math.ceil(productionPerSecond(state) * 5 + state.lifetimePerfumeRevenue * 0.1));
-  state = addPerfumeRevenue(state, reward);
-  state = { ...state, rareFlaconsClaimed: state.rareFlaconsClaimed + 1 };
-  rareExpiresAt = 0;
-  rareBoostUntil = now + 20_000 + state.upgrades.rareBonus * 3_000;
-  rareNextAt = rareBoostUntil + 32_000 + Math.random() * 24_000;
-  rareUiSecond = -1;
-  renderAll();
-  renderRareFlacon(now);
-  floatReward(reward);
-  setStatus('Flacon mythique récupéré : +' + format(reward) + ' parfums et production ×2.');
   saveSoon();
 }
 
@@ -736,7 +1038,8 @@ function doRebirth(): void {
     'REBIRTH NORMAL\n\nTu perdras le stock du run et tous les équipements de production. Les recherches et ventes cumulées resteront acquises. Le multiplicateur de production augmentera de 60 %.\n\nContinuer ?',
   );
   if (!accepted) return;
-  state = normalizeClickerState(performRebirth(state));
+  state = normalizeGameState(performRebirth(state));
+  playSound('prestige');
   renderAll();
   setStatus('Rebirth effectué. La prochaine maison produira 60 % plus vite.');
   save();
@@ -750,7 +1053,8 @@ function doTotalRebirth(): void {
     reward + ' Essence(s) originelle(s), conservées définitivement.\n\nContinuer ?',
   );
   if (!accepted) return;
-  state = normalizeClickerState(performTotalRebirth(state));
+  state = normalizeGameState(performTotalRebirth(state));
+  playSound('prestige');
   renderAll();
   setStatus('Ascension accomplie. Les Essences originelles renforcent définitivement tes prochaines maisons.');
   save();
@@ -780,10 +1084,7 @@ function applyImportedSave(raw: string): void {
     setStatus('Fichier invalide. La partie actuelle n’a pas été modifiée.');
     return;
   }
-  state = normalizeClickerState(imported);
-  rareExpiresAt = 0;
-  rareBoostUntil = 0;
-  rareNextAt = performance.now() + 24_000;
+  state = normalizeGameState(imported);
   renderAll();
   save();
   setStatus('Sauvegarde importée avec succès.');
@@ -791,12 +1092,10 @@ function applyImportedSave(raw: string): void {
 
 function eraseSave(): void {
   if (!window.confirm('Effacer définitivement la progression locale et recommencer depuis zéro ?')) return;
-  state = normalizeClickerState(createInitialState());
-  rareExpiresAt = 0;
-  rareBoostUntil = 0;
-  rareNextAt = performance.now() + 24_000;
+  state = normalizeGameState(createInitialState());
   try {
     localStorage.removeItem(SAVE_KEY);
+    localStorage.removeItem(BACKUP_SAVE_KEY);
     localStorage.removeItem(LEGACY_SAVE_KEY);
   } catch {
     // The game remains playable without persistent storage.
@@ -806,34 +1105,25 @@ function eraseSave(): void {
   setStatus('Nouvelle partie créée. Ta maison repart de zéro.');
 }
 
-// The game is pointer-operated: keyboard focus must not automate rapid purchases or harvesting.
-document.addEventListener('keydown', (event) => {
-  if (event.key === 'Tab') {
-    event.preventDefault();
-    event.stopPropagation();
-    return;
-  }
-  if ((event.key === 'Enter' || event.key === ' ') && event.target instanceof HTMLButtonElement) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
-}, true);
-
+// Keep native Tab and Enter/Space behavior available to keyboard users.
 app.addEventListener('click', (event) => {
-  if (!(event instanceof MouseEvent) || event.detail === 0) return;
+  if (!(event instanceof MouseEvent)) return;
   const target = event.target instanceof Element ? event.target.closest<HTMLElement>('button') : null;
   if (!target) return;
 
-  if (target.id === 'perfume-clicker') {
-    formulate(event instanceof MouseEvent ? event : undefined);
+  if (target.dataset.selectRecipe) {
+    selectedRecipeId = target.dataset.selectRecipe as RecipeId;
+    renderRecipeWorkshop();
+    renderSceneSelection();
+    setStatus('Recette active : ' + (PERFUME_RECIPES.find((recipe) => recipe.id === selectedRecipeId)?.name ?? selectedRecipeId) + '. Rejoins le laboratoire pour composer ou le comptoir pour vendre.');
     return;
   }
-  if (target.id === 'rare-flacon') {
-    collectRareFlacon();
+  if (target.dataset.sceneMove) {
+    workshopScene?.move(target.dataset.sceneMove as MoveDirection);
     return;
   }
-  if (target.id === 'complete-order') {
-    deliverOrder();
+  if (target.id === 'scene-interact') {
+    workshopScene?.interact();
     return;
   }
   if (target.id === 'open-settings') {
@@ -850,12 +1140,37 @@ app.addEventListener('click', (event) => {
     buyMachineById(target.dataset.buyMachine as MachineId);
     return;
   }
+  if (target.dataset.buyBotanicalExpansion !== undefined) {
+    const previous = state;
+    state = unlockBotanicalExpansion(state);
+    if (state === previous) {
+      setStatus('Il faut plus de pièces pour ouvrir la prochaine parcelle botanique.');
+      return;
+    }
+    const plotName = EXPANSION_PLOT_NAMES[state.outsideExpansions - 1] ?? 'nouvelle parcelle';
+    playSound('unlock');
+    renderAll();
+    setStatus(plotName + ' est maintenant accessible dans le jardin.');
+    saveSoon();
+    return;
+  }
   if (target.dataset.buyUpgrade) {
     buyUpgradeById(target.dataset.buyUpgrade as UpgradeId);
     return;
   }
   if (target.dataset.claimMission) {
     claimContract(target.dataset.claimMission as MissionId);
+    return;
+  }
+  if (target.dataset.enterFloor !== undefined) {
+    const floor = Number(target.dataset.enterFloor);
+    if (Number.isInteger(floor) && state.unlockedFloors.includes(floor)) {
+      state = enterFloor(state, floor);
+      renderAll();
+      setStatus('Tu es maintenant à l’étage ' + floor + ' : ' +
+        ['Artisanat', 'Manufacture', 'Essences rares'][floor] + '.');
+      saveSoon();
+    }
     return;
   }
   if (target.dataset.enterWorld) {
@@ -911,6 +1226,16 @@ app.addEventListener('change', (event) => {
   if (target instanceof HTMLInputElement && target.id === 'dark-mode-toggle') {
     document.body.classList.toggle('theme-dark', target.checked);
   }
+  if (target instanceof HTMLInputElement && target.id === 'sound-enabled-toggle') {
+    soundEnabled = target.checked;
+    try {
+      localStorage.setItem(SOUND_KEY, String(soundEnabled));
+    } catch {
+      // The preference remains active for this tab even without storage.
+    }
+    if (soundEnabled) playSound('unlock');
+    setStatus(soundEnabled ? 'Effets sonores activés.' : 'Effets sonores désactivés.');
+  }
 });
 
 byId<HTMLInputElement>('import-file').addEventListener('change', async (event) => {
@@ -922,17 +1247,28 @@ byId<HTMLInputElement>('import-file').addEventListener('change', async (event) =
 });
 
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'hidden') save();
+  if (document.visibilityState === 'hidden') {
+    save();
+    return;
+  }
+
+  const revenueBeforeCatchUp = state.perfumeRevenue;
+  state = applyOfflineProgress(state, Date.now());
+  const revenueGained = state.perfumeRevenue - revenueBeforeCatchUp;
+  save();
+  renderAll();
+  if (revenueGained > 0) {
+    setStatus('Pendant ton absence, la manufacture a généré ' + format(revenueGained) + ' pièces nettes.');
+  }
 });
 window.addEventListener('beforeunload', save);
 
 function gameTick(now: number): void {
   const elapsed = Math.min(1, Math.max(0, (now - lastTick) / 1000));
   lastTick = now;
-  if (elapsed > 0) {
-    const cps = productionPerSecond(state);
-    const activeProductionMultiplier = now < rareBoostUntil ? 2 : 1;
-    if (cps > 0) state = addPerfumeRevenue(state, cps * elapsed * activeProductionMultiplier);
+  if (elapsed > 0 && document.visibilityState === 'visible') {
+    const cps = netProductionPerSecond(state);
+    if (cps > 0) state = addPerfumeRevenue(state, cps * elapsed);
     autoSaveElapsed += elapsed;
     if (autoSaveElapsed >= 10) {
       save();
@@ -953,5 +1289,15 @@ function gameTick(now: number): void {
 }
 
 renderAll();
+workshopScene = createWorkshopScene(byId<HTMLCanvasElement>('workshop-canvas'), interactWithStation, (station) => {
+  nearbyStation = station;
+  renderSceneSelection();
+});
+workshopScene.setEnvironment(getWorld(state.currentWorld), state.currentFloor, MACHINES.map((machine) => ({
+  id: machine.id, short: machine.short, name: machine.name, floor: machine.floor,
+  count: state.machines[state.currentWorld][machine.id],
+})), state.outsideExpansions, currentCustomerVisual());
+renderFloorNavigation();
 save();
+if (saveRecoveryMessage) setStatus(saveRecoveryMessage);
 requestAnimationFrame(gameTick);

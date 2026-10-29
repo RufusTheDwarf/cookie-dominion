@@ -1,38 +1,38 @@
-# Roadmap — Parfum Empire
+# Feuille de route de Parfum Empire
 
-- [x] Prototype web avec économie déterministe, sauvegarde locale et progression hors ligne plafonnée.
-- [x] CI : typecheck TypeScript, tests unitaires et build.
-- [x] Identité de parfumerie avec palette papier ivoire, vert profond, cuivre et laiton.
-- [x] Dix producteurs illustrés avec coûts croissants et revenus passifs.
-- [x] Refonte clicker à trois colonnes : parfumeur, manufacture et bureau de gestion.
-- [x] Récolte aléatoire de sept matières botaniques ; dix matières consommées par fragrance.
-- [x] Carnet de découvertes persisté, progression de lot et animation de fabrication.
-- [x] Rééquilibrage des prix des producteurs et des premières récompenses.
-- [x] Recherche botanique avec chance de récolter une matière supplémentaire.
-- [x] Grand écran fixe sans défilement vertical, dix producteurs visibles en grille compacte.
-- [x] Désactivation de la navigation Tab et de l'activation des boutons par Entrée/Espace pour les actions de jeu.
-- [x] Événement du flacon mythique avec récompense ajustée à la progression et production doublée.
-- [x] Catalogue de cinq recherches à dix niveaux.
-- [x] Six contrats réclamables et registre de douze honneurs calculés automatiquement.
-- [x] Commandes VIP accessibles directement depuis l'interface.
-- [x] Trois collections avec inventaire séparé, multiplicateurs et déverrouillage par prestige.
-- [x] Rebirth normal et ascension totale avec Essences originelles.
-- [x] Import/export JSON, sauvegarde locale et support des anciens formats.
-- [ ] Inspection visuelle manuelle sur des écrans desktop de plusieurs tailles.
-- [ ] Réglage fin de l'équilibrage sur une session longue.
-- [ ] Recettes avancées exigeant des combinaisons d'ingrédients spécifiques.
-- [ ] Déploiement public et tests avec des joueurs.
-- [ ] Comptes et sauvegardes cloud si nécessaires.
-- [ ] Décider si un packaging desktop est utile.
+## Réalisé
 
-## Critères de la version actuelle
+- [x] Moteur économique avec sauvegarde locale et progression hors ligne.
+- [x] Identité visuelle de maison de parfumerie.
+- [x] Atelier 2D avec jardin, laboratoire et boutique.
+- [x] Déplacement au clavier, par clic et avec les commandes tactiles.
+- [x] Récolte déterministe de sept matières botaniques.
+- [x] Cinq recettes et stock de flacons.
+- [x] Formulation au laboratoire et vente au comptoir.
+- [x] Dix producteurs et cinq recherches.
+- [x] Contrats, honneurs, collections et prestige.
+- [x] Import/export JSON et migration des anciennes sauvegardes.
+- [x] Tests automatisés, vérification TypeScript et build.
 
-- Au départ, le joueur récolte dix matières aléatoires avant d'obtenir son premier parfum.
-- Dix ingrédients sont consommés par fragrance ; une recherche peut produire une récolte bonus.
-- Tous les producteurs sont accessibles depuis le catalogue compact, sans déplacement sur la carte.
-- Les revenus passifs restent séparés du rendu visuel et de l'animation des matières.
-- Les recherches s'appliquent aux producteurs, à la récolte bonus, aux coûts et aux commandes VIP.
-- La version desktop grand écran tient dans le viewport sans scroll vertical.
-- Les actions de jeu ne sont pas déclenchées par Tab, Entrée ou Espace.
-- L'inventaire botanique et la progression de récolte survivent à une sauvegarde/export-import JSON.
-- Les tests, typecheck et build passent dans GitHub Actions.
+## Prochaine phase
+
+- [ ] Tester les déplacements, la proximité des postes, les parcelles bonus et l'interface tactile sur un vrai navigateur.
+- [x] Ajouter des animations de marche et d'interaction, ainsi que des effets sonores originaux désactivables.
+- [x] Progression entre étages avec escalier, coûts, prérequis, sélecteur et catalogues séparés.
+- [x] Différencier les étages avec lignes de conditionnement, chambres d'extraction, ouvertures encadrées et escaliers montants/descendants.
+- [ ] Vérifier visuellement les collisions, les portes et les escaliers dans un navigateur réel.
+- [x] Donner à chaque machine achetée un emplacement physique, une animation de production et un compteur de quantité.
+- [x] Réputation de la maison liée aux livraisons, rangs et prime de commande croissante.
+- [x] Coûts d'exploitation des machines, rendement net et calcul hors ligne cohérent.
+- [x] Test de santé économique sur les dix machines dans les trois mondes : cashflow positif après entretien et retour théorique de la première unité sous deux minutes.
+- [x] Débloquer trois parcelles bonus de lavande, menthe et rose avec des prix progressifs.
+- [ ] Équilibrer les prix, l'entretien et le rythme d'évolution sur une session longue.
+- [ ] Envisager une version serveur si les comptes, les sauvegardes cloud ou l'anti-triche deviennent nécessaires.
+
+## Principes
+
+- Les actions principales doivent dépendre des choix du joueur, pas de butin aléatoire ou d'événements temporaires.
+- Les règles économiques restent dans `economy.ts`, indépendantes de la scène.
+- Le rendu et les déplacements restent dans `workshop-scene.ts`.
+- Le jeu doit rester utilisable au clavier et sur écran tactile.
+- Toute modification importante doit passer `npm run typecheck`, `npm test` et `npm run build`.

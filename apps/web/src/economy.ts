@@ -8,24 +8,63 @@ export interface MaterialDefinition {
   name: string;
   shortName: string;
   rarity: 'Commune' | 'Inhabituelle' | 'Rare' | 'Très rare';
-  weight: number;
   color: string;
   asset: string;
 }
 
 export type MaterialStock = Record<MaterialId, number>;
+export type RecipeId = 'green-whisper' | 'soft-rose' | 'citrus-dawn' | 'royal-bouquet' | 'amber-velvet';
+export type PerfumeStock = Record<RecipeId, number>;
+export interface PerfumeRecipe {
+  id: RecipeId;
+  name: string;
+  description: string;
+  ingredients: Partial<MaterialStock>;
+  salePrice: number;
+}
+
+export interface HouseReputation {
+  points: number;
+  rank: number;
+  maxRank: number;
+  pointsIntoRank: number;
+  progressPercent: number;
+  premiumPercent: number;
+}
+
+export interface CustomerOrder {
+  orderNumber: number;
+  customer: string;
+  atelier: string;
+  request: string;
+  recipeId: RecipeId;
+  quantity: number;
+  unitPrice: number;
+  normalValue: number;
+  reward: number;
+  bonus: number;
+  premiumPercent: number;
+}
+
+interface CustomerOrderTemplate {
+  customer: string;
+  atelier: string;
+  request: string;
+  recipeId: RecipeId;
+}
+
 export interface HarvestResult {
   state: GameState;
   materials: MaterialId[];
-  perfumesCreated: number;
 }
-export type MissionId = 'first-machine' | 'industrialist' | 'lifetime-perfumer' | 'world-explorer' | 'galactic-empire' | 'first-order';
+export type MissionId = 'first-machine' | 'industrialist' | 'lifetime-perfumer' | 'world-explorer' | 'galactic-empire';
 
 export interface UpgradeLevels {
   production: number;
   clickPower: number;
   discount: number;
   rareBonus: number;
+  /** Historical save key, now used for the luxury finishing bonus. */
   orders: number;
 }
 
@@ -35,7 +74,7 @@ export interface MissionDefinition {
   description: string;
   target: number;
   reward: number;
-  kind: 'machines' | 'lifetime' | 'worlds' | 'orders';
+  kind: 'machines' | 'lifetime' | 'worlds' | 'orders' | 'sold';
 }
 
 export interface WorldDefinition {
@@ -70,14 +109,20 @@ export interface GameState {
   perfumeRevenue: number;
   lifetimePerfumeRevenue: number;
   runPerfumeRevenue: number;
-  /** Number of click actions made while gathering raw materials. */
+  /** Number of player interactions with garden plots, retained under its historical save key. */
   gatherClicks: number;
-  /** Ingredients waiting to be blended, always fewer than ten after a harvest. */
+  /** Total raw ingredients currently in stock; field name retained for old saves. */
   harvestProgress: number;
-  /** Current raw-material stock; ten units are consumed to make one perfume. */
+  /** Current raw-material stock. Each recipe consumes its own listed ingredients. */
   ingredients: MaterialStock;
   /** Lifetime discoveries, used by the botanical collection display. */
   materialDiscoveries: MaterialStock;
+  /** Crafted bottles waiting to be sold. */
+  perfumeStock: PerfumeStock;
+  /** Lifetime count of bottles sold, independent from their price. */
+  perfumesSold: number;
+  /** Number of deterministic customer orders successfully delivered. */
+  customerOrdersCompleted: number;
   lastHarvestedMaterial: MaterialId | null;
   machines: MachineSave;
   rebirths: number;
@@ -87,7 +132,9 @@ export interface GameState {
   unlockedWorlds: WorldId[];
   upgrades: UpgradeLevels;
   claimedMissions: MissionId[];
+  /** Legacy save field retained only for importing older game files. */
   rareFlaconsClaimed: number;
+  /** Legacy save field retained only for importing older game files. */
   ordersCompleted: number;
   totalRebirths: number;
   essences: number;
@@ -100,31 +147,61 @@ export interface GameState {
 export const MAX_OFFLINE_SECONDS = 8 * 60 * 60;
 /** The opening plot is a one-time purchase; an empty new game receives this amount. */
 export const STARTING_LAND_COST = 1_000;
-export const INGREDIENTS_PER_PERFUME = 10;
 export const TOTAL_REBIRTH_BASE_LEVEL = 10;
 export const TOTAL_REBIRTH_LEVEL_STEP = 5;
 export const ESSENCE_PRODUCTION_BONUS = 0.75;
 export const ESSENCE_PRESTIGE_VALUE = 1_000_000;
-export const CUSTOMER_ORDER_BASE_COST = 8;
-export const CUSTOMER_ORDER_COST_GROWTH = 1.65;
-export const CUSTOMER_ORDER_REWARD_MULTIPLIER = 1.8;
 export const REBIRTH_BASE_COST = 10000;
 export const REBIRTH_COST_GROWTH = 1.65;
 export const REBIRTH_MULTIPLIER = 1.6;
 export const MACHINE_COST_GROWTH = 1.35;
 export const MAX_UPGRADE_LEVEL = 10;
+export const MAX_BOTANICAL_EXPANSIONS = 3;
+export const BOTANICAL_EXPANSION_BASE_COST = 2_500;
+export const BOTANICAL_EXPANSION_COST_GROWTH = 10;
 
 export const MATERIALS: MaterialDefinition[] = [
-  { id: 'lavender', name: 'Lavande', shortName: 'LAVANDE', rarity: 'Commune', weight: 0.30, color: '#798e64', asset: '/assets/material-lavender.svg' },
-  { id: 'mint', name: 'Menthe', shortName: 'MENTHE', rarity: 'Commune', weight: 0.25, color: '#6f9c77', asset: '/assets/material-mint.svg' },
-  { id: 'rose', name: 'Pétales de rose', shortName: 'ROSE', rarity: 'Inhabituelle', weight: 0.18, color: '#b96e7b', asset: '/assets/material-rose.svg' },
-  { id: 'bergamot', name: 'Bergamote', shortName: 'BERGAMOTE', rarity: 'Inhabituelle', weight: 0.14, color: '#b5a849', asset: '/assets/material-bergamot.svg' },
-  { id: 'sandalwood', name: 'Bois de santal', shortName: 'SANTAL', rarity: 'Rare', weight: 0.075, color: '#a66b4c', asset: '/assets/material-sandalwood.svg' },
-  { id: 'jasmine', name: 'Jasmin', shortName: 'JASMIN', rarity: 'Rare', weight: 0.04, color: '#e0cfa1', asset: '/assets/material-jasmine.svg' },
-  { id: 'resin', name: 'Résine ambrée', shortName: 'RÉSINE', rarity: 'Très rare', weight: 0.015, color: '#c28a42', asset: '/assets/material-resin.svg' },
+  { id: 'lavender', name: 'Lavande', shortName: 'LAVANDE', rarity: 'Commune', color: '#798e64', asset: '/assets/material-lavender.svg' },
+  { id: 'mint', name: 'Menthe', shortName: 'MENTHE', rarity: 'Commune', color: '#6f9c77', asset: '/assets/material-mint.svg' },
+  { id: 'rose', name: 'Pétales de rose', shortName: 'ROSE', rarity: 'Inhabituelle', color: '#b96e7b', asset: '/assets/material-rose.svg' },
+  { id: 'bergamot', name: 'Bergamote', shortName: 'BERGAMOTE', rarity: 'Inhabituelle', color: '#b5a849', asset: '/assets/material-bergamot.svg' },
+  { id: 'sandalwood', name: 'Bois de santal', shortName: 'SANTAL', rarity: 'Rare', color: '#a66b4c', asset: '/assets/material-sandalwood.svg' },
+  { id: 'jasmine', name: 'Jasmin', shortName: 'JASMIN', rarity: 'Rare', color: '#e0cfa1', asset: '/assets/material-jasmine.svg' },
+  { id: 'resin', name: 'Résine ambrée', shortName: 'RÉSINE', rarity: 'Très rare', color: '#c28a42', asset: '/assets/material-resin.svg' },
 ];
 
 const MATERIAL_IDS = MATERIALS.map((material) => material.id);
+
+export const PERFUME_RECIPES: PerfumeRecipe[] = [
+  { id: 'green-whisper', name: 'Brise verte', description: 'Une fragrance simple et fraîche', ingredients: { lavender: 1, mint: 1 }, salePrice: 2 },
+  { id: 'soft-rose', name: 'Rose tendre', description: 'Une note florale légère', ingredients: { lavender: 1, rose: 1 }, salePrice: 3 },
+  { id: 'citrus-dawn', name: 'Aube citronnée', description: 'Une fragrance vive et végétale', ingredients: { bergamot: 1, mint: 1 }, salePrice: 4 },
+  { id: 'royal-bouquet', name: 'Bouquet royal', description: 'Un accord floral plus complexe', ingredients: { lavender: 1, rose: 1, jasmine: 1 }, salePrice: 6 },
+  { id: 'amber-velvet', name: 'Velours ambré', description: 'Bois de santal et résine rare', ingredients: { sandalwood: 1, resin: 1, jasmine: 1 }, salePrice: 10 },
+];
+const RECIPE_IDS: RecipeId[] = PERFUME_RECIPES.map((recipe) => recipe.id);
+
+const CUSTOMER_ORDER_TEMPLATES: CustomerOrderTemplate[] = [
+  { customer: 'Camille Perrin', atelier: 'Maison Perrin', request: 'Une fragrance fraîche pour accueillir les visiteurs du salon.', recipeId: 'green-whisper' },
+  { customer: 'Lucien Morel', atelier: 'Hôtel Morel', request: 'Une note florale discrète pour les chambres de la maison.', recipeId: 'soft-rose' },
+  { customer: 'Nora Vidal', atelier: 'Atelier Vidal', request: 'Un parfum vif pour une nouvelle vitrine de printemps.', recipeId: 'citrus-dawn' },
+  { customer: 'Émile Laurent', atelier: 'Maison Laurent', request: 'Un bouquet élégant réservé aux clients fidèles.', recipeId: 'royal-bouquet' },
+  { customer: 'Inès Rochat', atelier: 'Parfumerie Rochat', request: 'Une composition ambrée pour une édition confidentielle.', recipeId: 'amber-velvet' },
+];
+
+function emptyPerfumeStock(): PerfumeStock {
+  return Object.fromEntries(RECIPE_IDS.map((id) => [id, 0])) as PerfumeStock;
+}
+
+function parsePerfumeStock(value: unknown): PerfumeStock {
+  const source = value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  const stock = emptyPerfumeStock();
+  for (const id of RECIPE_IDS) {
+    const count = source[id];
+    stock[id] = Number.isSafeInteger(count) && (count as number) >= 0 ? Math.min(1_000_000, count as number) : 0;
+  }
+  return stock;
+}
 
 function emptyMaterialStock(): MaterialStock {
   return { lavender: 0, mint: 0, rose: 0, bergamot: 0, sandalwood: 0, jasmine: 0, resin: 0 };
@@ -156,10 +233,10 @@ export const UPGRADES: Record<UpgradeId, { name: string; description: string; ba
   },
   clickPower: {
     name: 'Instinct du botaniste',
-    description: 'Chaque niveau augmente de 8 % la chance de trouver une matière botanique supplémentaire.',
+    description: 'Tous les deux niveaux, chaque interaction récolte une matière supplémentaire dans la parcelle choisie.',
     baseCost: 45,
     growth: 1.8,
-    effect: '+8 % de chance de récolte bonus / niveau',
+    effect: '+1 matière tous les 2 niveaux',
   },
   discount: {
     name: 'Contrats verriers',
@@ -169,28 +246,27 @@ export const UPGRADES: Record<UpgradeId, { name: string; description: string; ba
     effect: '−5 % prix des machines / niveau',
   },
   rareBonus: {
-    name: 'Vaporisateur de précision',
-    description: 'Prolonge le bonus de production du flacon mythique.',
+    name: 'Extraction spécialisée',
+    description: 'Les parcelles de matières rares donnent davantage de ressources.',
     baseCost: 900,
     growth: 2.15,
-    effect: '+3 s de bonus rare / niveau',
+    effect: '+1 matière rare tous les 3 niveaux',
   },
   orders: {
-    name: 'Accords commerciaux',
-    description: 'Augmente la marge des commandes VIP.',
+    name: 'Finition de luxe',
+    description: 'Améliore la valeur de vente de chaque flacon grâce à une finition plus soignée.',
     baseCost: 750,
     growth: 1.95,
-    effect: '+10 % de paiement VIP / niveau',
+    effect: '+10 % de valeur de vente / niveau',
   },
 };
 
 export const MISSION_DEFINITIONS: MissionDefinition[] = [
   { id: 'first-machine', name: 'Premier atelier', description: 'Installe ton premier équipement.', target: 1, reward: 2, kind: 'machines' },
   { id: 'industrialist', name: 'Maison en expansion', description: 'Possède 5 équipements.', target: 5, reward: 15, kind: 'machines' },
-  { id: 'lifetime-perfumer', name: 'Mille flacons vendus', description: 'Vends 1 000 parfums au total.', target: 1000, reward: 500, kind: 'lifetime' },
+  { id: 'lifetime-perfumer', name: 'Mille flacons vendus', description: 'Vends 1 000 parfums au total.', target: 1000, reward: 500, kind: 'sold' },
   { id: 'world-explorer', name: 'Nez voyageur', description: 'Déverrouille un deuxième monde.', target: 2, reward: 150, kind: 'worlds' },
   { id: 'galactic-empire', name: 'Grand nez de l’Empire', description: 'Déverrouille les trois mondes.', target: 3, reward: 1000, kind: 'worlds' },
-  { id: 'first-order', name: 'Premier client VIP', description: 'Livre ta première commande au client VIP.', target: 1, reward: 8, kind: 'orders' },
 ];
 
 const MISSION_IDS: MissionId[] = MISSION_DEFINITIONS.map((mission) => mission.id);
@@ -371,6 +447,9 @@ export function createInitialState(now = Date.now()): GameState {
     harvestProgress: 0,
     ingredients: emptyMaterialStock(),
     materialDiscoveries: emptyMaterialStock(),
+    perfumeStock: emptyPerfumeStock(),
+    perfumesSold: 0,
+    customerOrdersCompleted: 0,
     lastHarvestedMaterial: null,
     machines: createEmptyMachineSave(),
     rebirths: 0,
@@ -395,6 +474,34 @@ export function createInitialState(now = Date.now()): GameState {
  * Purchase the starting outdoor plot. The serialized rampBuilt field is retained
  * for save compatibility; it now means the starter plot/workshop entrance exists.
  */
+/** Next garden expansion costs 2,500, then 25,000, then 250,000 coins. */
+export function botanicalExpansionCost(
+  state: Pick<GameState, 'outsideExpansions'>,
+): number {
+  const level = Math.max(0, Math.min(MAX_BOTANICAL_EXPANSIONS, Math.floor(state.outsideExpansions)));
+  if (level >= MAX_BOTANICAL_EXPANSIONS) return Number.POSITIVE_INFINITY;
+  return Math.ceil(BOTANICAL_EXPANSION_BASE_COST * BOTANICAL_EXPANSION_COST_GROWTH ** level);
+}
+
+export function canUnlockBotanicalExpansion(
+  state: Pick<GameState, 'outsideExpansions' | 'perfumeRevenue'>,
+): boolean {
+  return Number.isInteger(state.outsideExpansions) &&
+    state.outsideExpansions >= 0 &&
+    state.outsideExpansions < MAX_BOTANICAL_EXPANSIONS &&
+    state.perfumeRevenue >= botanicalExpansionCost(state);
+}
+
+/** Purchase a new physical garden bed without touching the stock or lifetime totals. */
+export function unlockBotanicalExpansion(state: GameState): GameState {
+  if (!canUnlockBotanicalExpansion(state)) return state;
+  return {
+    ...state,
+    perfumeRevenue: state.perfumeRevenue - botanicalExpansionCost(state),
+    outsideExpansions: state.outsideExpansions + 1,
+  };
+}
+
 export function buyStartingLand(state: GameState): GameState {
   if (state.rampBuilt || state.perfumeRevenue < STARTING_LAND_COST) return state;
   return { ...state, perfumeRevenue: state.perfumeRevenue - STARTING_LAND_COST, rampBuilt: true };
@@ -451,66 +558,136 @@ export function upgradeCost(state: GameState, upgradeId: UpgradeId): number {
   return Math.ceil(definition.baseCost * definition.growth ** level);
 }
 
-function chooseMaterial(roll: number): MaterialId {
-  const normalized = Math.max(0, Math.min(0.999999999, Number.isFinite(roll) ? roll : 0));
-  let threshold = 0;
-  for (const material of MATERIALS) {
-    threshold += material.weight;
-    if (normalized < threshold) return material.id;
-  }
-  return 'lavender';
-}
-
-function gatherOneMaterial(state: GameState, material: MaterialId): { state: GameState; crafted: number } {
+function gatherOneMaterial(state: GameState, material: MaterialId): GameState {
   const ingredients: MaterialStock = { ...state.ingredients, [material]: state.ingredients[material] + 1 };
   const materialDiscoveries: MaterialStock = { ...state.materialDiscoveries, [material]: state.materialDiscoveries[material] + 1 };
-  let progress = state.harvestProgress + 1;
-  let next: GameState = {
-    ...state,
-    ingredients,
-    materialDiscoveries,
-    lastHarvestedMaterial: material,
-  };
-  let crafted = 0;
-  if (progress >= INGREDIENTS_PER_PERFUME) {
-    let toConsume = INGREDIENTS_PER_PERFUME;
-    for (const definition of MATERIALS) {
-      const used = Math.min(toConsume, next.ingredients[definition.id]);
-      if (used > 0) {
-        next = { ...next, ingredients: { ...next.ingredients, [definition.id]: next.ingredients[definition.id] - used } };
-        toConsume -= used;
-      }
-      if (toConsume === 0) break;
-    }
-    progress -= INGREDIENTS_PER_PERFUME;
-    crafted = 1;
-    next = addPerfumeRevenue(next, crafted);
-  }
-  next = { ...next, harvestProgress: progress };
-  return { state: next, crafted };
+  const harvestProgress = Object.values(ingredients).reduce((sum, count) => sum + count, 0);
+  return { ...state, ingredients, materialDiscoveries, lastHarvestedMaterial: material, harvestProgress };
 }
 
-/**
- * Harvest a surprise botanical drop. A batch of ten ingredients is consumed
- * to formulate one perfume; click-power research gives a small chance of a bonus drop.
- */
-export function harvestIngredient(state: GameState, random: () => number = Math.random): HarvestResult {
-  const primary = chooseMaterial(random());
-  const nextClick: GameState = { ...state, gatherClicks: state.gatherClicks + 1 };
-  const first = gatherOneMaterial(nextClick, primary);
-  const bonusChance = Math.min(0.8, Math.max(0, state.upgrades.clickPower) * 0.08);
-  const materials: MaterialId[] = [primary];
-  let next = first.state;
-  let perfumesCreated = first.crafted;
-  if (random() < bonusChance) {
-    const bonus = chooseMaterial(random());
-    const second = gatherOneMaterial(next, bonus);
-    next = second.state;
-    materials.push(bonus);
-    perfumesCreated += second.crafted;
+/** Harvest a chosen material at a specific garden bed. No random roll is involved. */
+export function harvestMaterial(state: GameState, material: MaterialId, quantity = 1): HarvestResult {
+  if (!MATERIAL_IDS.includes(material) || !Number.isSafeInteger(quantity) || quantity < 1 || quantity > 100) {
+    return { state, materials: [] };
   }
-  next = { ...next, lastHarvestedMaterial: materials[materials.length - 1] ?? primary };
-  return { state: next, materials, perfumesCreated };
+  const rareYield = ['sandalwood', 'jasmine', 'resin'].includes(material) ? Math.floor(state.upgrades.rareBonus / 3) : 0;
+  const totalQuantity = quantity + Math.floor(state.upgrades.clickPower / 2) + rareYield;
+  let next = state;
+  for (let i = 0; i < totalQuantity; i++) next = gatherOneMaterial(next, material);
+  next = { ...next, gatherClicks: next.gatherClicks + 1 };
+  return { state: next, materials: Array.from({ length: totalQuantity }, () => material) };
+}
+
+export function canCraftPerfume(state: GameState, recipeId: RecipeId): boolean {
+  const recipe = PERFUME_RECIPES.find((item) => item.id === recipeId);
+  if (!recipe) return false;
+  return Object.entries(recipe.ingredients).every(([materialId, amount]) =>
+    state.ingredients[materialId as MaterialId] >= (amount ?? 0),
+  );
+}
+
+export function craftPerfume(state: GameState, recipeId: RecipeId): GameState {
+  const recipe = PERFUME_RECIPES.find((item) => item.id === recipeId);
+  if (!recipe || !canCraftPerfume(state, recipeId)) return state;
+  const ingredients = { ...state.ingredients };
+  for (const [materialId, amount] of Object.entries(recipe.ingredients)) {
+    const id = materialId as MaterialId;
+    ingredients[id] -= amount ?? 0;
+  }
+  const harvestProgress = Object.values(ingredients).reduce((sum, count) => sum + count, 0);
+  return {
+    ...state,
+    ingredients,
+    harvestProgress,
+    perfumeStock: { ...state.perfumeStock, [recipeId]: state.perfumeStock[recipeId] + 1 },
+  };
+}
+
+export function perfumeSalePrice(state: GameState, recipeId: RecipeId): number {
+  const recipe = PERFUME_RECIPES.find((item) => item.id === recipeId);
+  if (!recipe) return 0;
+  const finishingBonus = 1 + state.upgrades.orders * 0.1;
+  return Math.ceil(recipe.salePrice * getWorld(state.currentWorld).incomeMultiplier * REBIRTH_MULTIPLIER ** state.rebirths * essenceMultiplier(state) * finishingBonus);
+}
+
+export function sellPerfume(state: GameState, recipeId: RecipeId): GameState {
+  if (!RECIPE_IDS.includes(recipeId) || state.perfumeStock[recipeId] <= 0) return state;
+  const price = perfumeSalePrice(state, recipeId);
+  const withBottleSold: GameState = {
+    ...state,
+    perfumeStock: { ...state.perfumeStock, [recipeId]: state.perfumeStock[recipeId] - 1 },
+    perfumesSold: state.perfumesSold + 1,
+  };
+  return addPerfumeRevenue(withBottleSold, price);
+}
+
+const REPUTATION_POINTS_PER_ORDER = 25;
+const REPUTATION_POINTS_PER_RANK = 100;
+const MAX_REPUTATION_RANK = 10;
+
+/** Reputation comes from fulfilled orders and persists through customerOrdersCompleted. */
+export function getHouseReputation(
+  state: Pick<GameState, 'customerOrdersCompleted'>,
+): HouseReputation {
+  const completed = Number.isSafeInteger(state.customerOrdersCompleted)
+    ? Math.max(0, state.customerOrdersCompleted)
+    : 0;
+  const points = completed * REPUTATION_POINTS_PER_ORDER;
+  const rank = Math.min(MAX_REPUTATION_RANK, Math.floor(points / REPUTATION_POINTS_PER_RANK) + 1);
+  const pointsIntoRank = rank >= MAX_REPUTATION_RANK ? REPUTATION_POINTS_PER_RANK : points % REPUTATION_POINTS_PER_RANK;
+  const premiumPercent = 50 + Math.min(45, (rank - 1) * 5);
+  return {
+    points,
+    rank,
+    maxRank: MAX_REPUTATION_RANK,
+    pointsIntoRank,
+    progressPercent: rank >= MAX_REPUTATION_RANK ? 100 : pointsIntoRank,
+    premiumPercent,
+  };
+}
+
+/** The customer queue is a fixed rotation, so an order never depends on a random roll. */
+export function getActiveCustomerOrder(state: GameState): CustomerOrder {
+  const completed = Math.max(0, Math.floor(state.customerOrdersCompleted));
+  const template = CUSTOMER_ORDER_TEMPLATES[completed % CUSTOMER_ORDER_TEMPLATES.length];
+  const orderNumber = completed + 1;
+  const quantity = 1 + Math.min(4, Math.floor(completed / CUSTOMER_ORDER_TEMPLATES.length));
+  const unitPrice = perfumeSalePrice(state, template.recipeId);
+  const normalValue = unitPrice * quantity;
+  const reputation = getHouseReputation(state);
+  const reward = Math.ceil(normalValue * (1 + reputation.premiumPercent / 100));
+  return {
+    ...template,
+    orderNumber,
+    quantity,
+    unitPrice,
+    normalValue,
+    reward,
+    bonus: reward - normalValue,
+    premiumPercent: reputation.premiumPercent,
+  };
+}
+
+/** Orders can only be delivered when all required bottles are in stock. */
+export function canFulfillCustomerOrder(state: GameState): boolean {
+  const order = getActiveCustomerOrder(state);
+  return state.perfumeStock[order.recipeId] >= order.quantity;
+}
+
+/** Deliver the current order, consume the exact quantity, and pay a 50% premium. */
+export function fulfillCustomerOrder(state: GameState): GameState {
+  if (!canFulfillCustomerOrder(state)) return state;
+  const order = getActiveCustomerOrder(state);
+  const delivered: GameState = {
+    ...state,
+    perfumeStock: {
+      ...state.perfumeStock,
+      [order.recipeId]: state.perfumeStock[order.recipeId] - order.quantity,
+    },
+    perfumesSold: state.perfumesSold + order.quantity,
+    customerOrdersCompleted: state.customerOrdersCompleted + 1,
+  };
+  return addPerfumeRevenue(delivered, order.reward);
 }
 
 export function buyUpgrade(state: GameState, upgradeId: UpgradeId): GameState {
@@ -537,8 +714,8 @@ export function missionProgress(state: GameState, mission: MissionDefinition): n
     ? totalMachinesOwned(state)
     : mission.kind === 'lifetime'
       ? state.lifetimePerfumeRevenue
-      : mission.kind === 'orders'
-        ? state.ordersCompleted
+      : mission.kind === 'sold'
+        ? state.perfumesSold
         : state.unlockedWorlds.length;
   return Math.min(mission.target, progress);
 }
@@ -556,6 +733,7 @@ export function claimMission(state: GameState, missionId: MissionId): GameState 
   return { ...rewarded, claimedMissions: [...rewarded.claimedMissions, missionId] };
 }
 
+/** Gross machine output before the maintenance cost of the active collection. */
 export function productionPerSecond(
   state: Pick<GameState, 'machines' | 'currentWorld' | 'rebirths' | 'upgrades' | 'essences'>,
   worldId: WorldId = state.currentWorld,
@@ -569,28 +747,22 @@ export function productionPerSecond(
   return base * world.incomeMultiplier * REBIRTH_MULTIPLIER ** state.rebirths * productionUpgrade * essenceMultiplier(state);
 }
 
-export function customerOrderCost(state: Pick<GameState, 'ordersCompleted'>): number {
-  return Math.ceil(CUSTOMER_ORDER_BASE_COST * CUSTOMER_ORDER_COST_GROWTH ** state.ordersCompleted);
+/** Machines cost 1/600 of their base purchase price each second to operate. */
+export function operatingCostsPerSecond(
+  state: Pick<GameState, 'machines' | 'currentWorld'>,
+): number {
+  const world = getWorld(state.currentWorld);
+  return MACHINES.reduce((total, machine) => {
+    const count = state.machines[state.currentWorld][machine.id];
+    return total + count * machine.cost * world.costMultiplier / 600;
+  }, 0);
 }
 
-export function customerOrderReward(state: Pick<GameState, 'ordersCompleted' | 'upgrades'>): number {
-  const rewardMultiplier = CUSTOMER_ORDER_REWARD_MULTIPLIER * (1 + state.upgrades.orders * 0.1);
-  return Math.ceil(customerOrderCost(state) * rewardMultiplier);
-}
-
-export function canCompleteCustomerOrder(state: GameState): boolean {
-  return state.perfumeRevenue >= customerOrderCost(state);
-}
-
-export function completeCustomerOrder(state: GameState): GameState {
-  if (!canCompleteCustomerOrder(state)) return state;
-  const cost = customerOrderCost(state);
-  const reward = customerOrderReward(state);
-  const withMaterialsPaid = { ...state, perfumeRevenue: state.perfumeRevenue - cost };
-  return {
-    ...addPerfumeRevenue(withMaterialsPaid, reward),
-    ordersCompleted: state.ordersCompleted + 1,
-  };
+/** Net cashflow after paying the running costs of machines in the active collection. */
+export function netProductionPerSecond(
+  state: Pick<GameState, 'machines' | 'currentWorld' | 'rebirths' | 'upgrades' | 'essences'>,
+): number {
+  return Math.max(0, productionPerSecond(state) - operatingCostsPerSecond(state));
 }
 
 export function addPerfumeRevenue(state: GameState, amount: number): GameState {
@@ -604,6 +776,8 @@ export function addPerfumeRevenue(state: GameState, amount: number): GameState {
 }
 
 export function buyMachine(state: GameState, machineId: MachineId): GameState {
+  const machine = MACHINES.find((item) => item.id === machineId);
+  if (!machine || machine.floor !== state.currentFloor || !state.unlockedFloors.includes(machine.floor)) return state;
   const cost = machineCost(state, machineId);
   if (state.perfumeRevenue < cost) return state;
   return {
@@ -643,6 +817,7 @@ export function performRebirth(state: GameState): GameState {
     machines: createEmptyMachineSave(),
     ingredients: emptyMaterialStock(),
     harvestProgress: 0,
+    perfumeStock: emptyPerfumeStock(),
     lastHarvestedMaterial: null,
     rebirths: nextRebirths,
     rampBuilt: true,
@@ -697,7 +872,7 @@ export function applyOfflineProgress(state: GameState, now: number): GameState {
     MAX_OFFLINE_SECONDS,
     Math.max(0, (now - state.lastSavedAt) / 1000),
   );
-  return addPerfumeRevenue(state, productionPerSecond(state) * elapsedSeconds);
+  return addPerfumeRevenue(state, netProductionPerSecond(state) * elapsedSeconds);
 }
 
 function isFiniteNonNegative(value: unknown): value is number {
@@ -806,9 +981,7 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
     if (!unlockedWorlds.includes('glass-garden')) unlockedWorlds.unshift('glass-garden');
     const ingredients = parseMaterialStock(value.ingredients);
     const materialDiscoveries = parseMaterialStock(value.materialDiscoveries);
-    const parsedProgress = Number.isSafeInteger(value.harvestProgress) && (value.harvestProgress as number) >= 0
-      ? Math.min(INGREDIENTS_PER_PERFUME - 1, value.harvestProgress as number)
-      : Object.values(ingredients).reduce((sum, count) => sum + count, 0);
+    const parsedProgress = Object.values(ingredients).reduce((sum, count) => sum + count, 0);
     const parsedGatherClicks = Number.isSafeInteger(value.gatherClicks) && (value.gatherClicks as number) >= 0
       ? value.gatherClicks as number
       : 0;
@@ -820,6 +993,11 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       harvestProgress: parsedProgress,
       ingredients,
       materialDiscoveries,
+      perfumeStock: parsePerfumeStock(value.perfumeStock),
+      perfumesSold: Number.isSafeInteger(value.perfumesSold) && (value.perfumesSold as number) >= 0 ? Math.min(1_000_000_000, value.perfumesSold as number) : 0,
+      customerOrdersCompleted: Number.isSafeInteger(value.customerOrdersCompleted) && (value.customerOrdersCompleted as number) >= 0
+        ? Math.min(1_000_000_000, value.customerOrdersCompleted as number)
+        : 0,
       lastHarvestedMaterial: isMaterialId(value.lastHarvestedMaterial) ? value.lastHarvestedMaterial : null,
       machines,
       rebirths: value.rebirths as number,
@@ -870,12 +1048,19 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       state.totalRebirths > 0 ||
       state.essences > 0 ||
       state.ordersCompleted > 0 ||
+      state.customerOrdersCompleted > 0 ||
       state.rareFlaconsClaimed > 0 ||
       state.claimedMissions.length > 0 ||
       state.upgrades.production > 0 ||
       state.upgrades.clickPower > 0 ||
       state.upgrades.discount > 0 ||
+      state.upgrades.rareBonus > 0 ||
+      state.upgrades.orders > 0 ||
+      state.outsideExpansions > 0 ||
       state.gatherClicks > 0 ||
+      state.perfumesSold > 0 ||
+      Object.values(state.ingredients).some((count) => count > 0) ||
+      Object.values(state.perfumeStock).some((count) => count > 0) ||
       Object.values(state.materialDiscoveries).some((count) => count > 0) ||
       ownedMachineCount > 0;
     // Old prototype saves sometimes recorded an empty starting room as already built.

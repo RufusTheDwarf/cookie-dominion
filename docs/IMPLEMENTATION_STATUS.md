@@ -1,48 +1,53 @@
-# État d’implémentation — Parfum Empire 0.4.0
+# État d'implémentation de Parfum Empire
 
-## Gameplay et contenu
+## Boucle de jeu
 
 | Système | État | Détails |
 |---|---|---|
-| Récolte botanique | Implémenté | Chaque clic révèle une matière aléatoire parmi sept ingrédients |
-| Fabrication manuelle | Implémenté | Dix matières sont consommées pour composer un parfum ; compteur de progression affiché |
-| Carnet de découvertes | Implémenté | Les quantités découvertes sont suivies par matière et sauvegardées |
-| Recherche botanique | Implémenté | Chaque niveau ajoute 8 % de chance de récolter une matière bonus |
-| Producteurs | Implémenté | Dix types d'équipement, coûts croissants et production passive |
-| Économie de départ | Rééquilibrée | Première machine à faible coût, commandes VIP et premières récompenses réduites |
-| Améliorations | Implémenté | Production, récolte bonus, remise, bonus mythique et marge VIP ; dix niveaux chacune |
-| Flacon mythique | Implémenté | Événement temporaire, récompense ajustée à la progression et production ×2 |
-| Commandes VIP | Implémenté | Livraison par bouton, coût progressif, paiement et marge améliorables |
-| Contrats | Implémenté | Six objectifs avec récompenses à réclamer |
-| Honneurs | Implémenté | Registre de douze distinctions calculées à partir de la progression |
-| Collections | Implémenté | Jardin de Verre, Maison d’Ambre et Palais Astral ; inventaires séparés |
-| Rebirth normal | Implémenté | Réinitialise le stock du run, la récolte en cours et les producteurs ; conserve les recherches et le carnet |
-| Ascension totale | Implémenté | Réinitialise la progression normale et récompense des Essences originelles |
-| Illustrations | Implémenté | SVG originaux pour les matières premières, les flacons et les dix équipements |
-| Grand écran | Implémenté dans le CSS | Mise en page fixe à trois colonnes, hauteur du viewport, aucun défilement sur les grands écrans |
-| Écrans plus étroits | Implémenté dans le CSS | Grille responsive qui se replie en deux colonnes puis une colonne |
-| Contrôles | Implémenté | Actions de jeu au pointeur/tactile ; Tab et activation Enter/Espace désactivés |
-| Mode sombre | Implémenté | Palette sombre activable dans l'onglet Données |
-| Sauvegardes | Implémenté | LocalStorage, export/import JSON, validation, migration et carnet botanique persisté |
-| Progression hors ligne | Implémenté dans le moteur | Plafond de huit heures par chargement |
-| Comptes / cloud / multijoueur | Non implémenté | Aucun compte ni backend distant |
+| Atelier 2D | Implémenté | Jardin, laboratoire et boutique dans un monde plus grand que l'écran |
+| Caméra | Implémenté | Suit le joueur et reste dans les limites de la carte |
+| Identité visuelle des mondes | Implémenté | Fond, sols, chemins, séparations et mobilier adaptés à la collection active |
+| Étages accessibles | Implémenté | Escaliers montants et descendants, coûts, prérequis, sélection, persistance, catalogues filtrés et arrivée sur une case libre près de l'escalier opposé |
+| Architecture des étages | Implémenté | Lignes de conditionnement au 1er étage, chambres d’extraction au 2e, ouvertures encadrées |
+| Escaliers bidirectionnels | Implémenté | Escalier montant et descendant visibles selon l’étage, règles de navigation testées |
+| Animation du personnage | Implémenté | Orientation, marche, mouvement du corps et geste d'interaction |
+| Animation du décor | Implémenté | Plantes animées et particules temporaires lors des interactions |
+| Machines visibles | Implémenté | Laboratoire, comptoir et producteurs achetés dessinés comme des objets physiques |
+| Producteurs matérialisés | Implémenté | Emplacement par étage, animation subtile et badge de quantité installée |
+| Déplacement | Implémenté | Flèches, ZQSD, clic ou toucher pour marcher |
+| Collisions | Implémenté | Obstacles autour des parcelles, postes et machines achetées; glissement latéral et arrêt d’un déplacement bloqué |
+| Commandes tactiles | Implémenté | Pavé directionnel et bouton Interagir sur petits écrans |
+| Accessibilité clavier | Implémenté | Tab, focus visible, activation native des boutons sans déplacer le personnage par accident |
+| Effets sonores | Implémenté | Notes synthétiques d'action via Web Audio, paramètre persistant et désactivation possible |
+| Récolte botanique | Implémenté | Chaque parcelle fournit une matière précise, sans tirage aléatoire |
+| Carnet de formulations | Implémenté | Cinq recettes, sélection d'une formule et stock de flacons |
+| Laboratoire | Implémenté | Consomme les ingrédients nécessaires et crée le flacon choisi |
+| Comptoir | Implémenté | Vend le flacon sélectionné ou livre une commande client complète |
+| Commandes clients | Implémenté | Rotation déterministe de recettes, quantité vérifiée, progression sauvegardée et prime liée à la réputation |
+| Client dans la boutique | Implémenté | Personnage animé près du comptoir avec bulle synchronisée à la commande active |
+| Réputation de la maison | Implémenté | 25 points par livraison, 10 rangs, prime de commande de 50 à 95 % |
+| Coûts d'exploitation | Implémenté | Entretien des machines, rendement net affiché et calcul cohérent hors ligne |
+| Parcelles bonus | Implémenté | Trois parcelles achetables, invisibles avant achat et reliées à la récolte ciblée |
+| Producteurs | Implémenté | Dix équipements avec coûts croissants et production passive |
+| Recherches | Implémenté | Production, récolte ciblée, remise, extraction spécialisée et finition de luxe |
+| Contrats et honneurs | Implémenté | Objectifs liés aux ventes, équipements et collections |
+| Collections | Implémenté | Jardin de Verre, Maison d'Ambre et Palais Astral |
+| Rebirth et ascension | Implémenté | Réinitialisations de progression avec bonus persistants |
+| Sauvegarde | Implémenté | LocalStorage, copie de secours, restauration de secours, export/import JSON, validation et migration |
+| Production hors ligne | Implémenté | Plafond de huit heures, au chargement et au retour sur un onglet en arrière-plan |
+| Comptes, cloud, multijoueur | Non implémenté | Aucun backend distant |
 
-## Persistance
+## Persistance et compatibilité
 
-La progression de récolte en cours, les ingrédients non encore assemblés, le nombre total de récoltes et le carnet de découvertes sont enregistrés dans la sauvegarde. Les anciennes sauvegardes reçoivent des valeurs par défaut pour ces champs.
-
-Les champs historiques de déplacement et d'étages restent dans le format de sauvegarde par compatibilité, mais ne sont pas utilisés par la nouvelle interface clicker.
+Les champs historiques liés à d'anciennes mécaniques peuvent rester dans le format de sauvegarde afin d'importer les anciennes parties. Ils ne doivent pas réapparaître dans l'interface active.
 
 ## Vérifications
 
-- Tests Vitest : récolte en dix étapes, matière rare, bonus de récolte, persistance partielle, économie, producteurs, recherches, contrats, commandes VIP, rebirth, ascension et import/export.
-- GitHub Actions : installation npm, vérification TypeScript, tests et build Vite.
-- Inspection visuelle manuelle dans un navigateur réel : à effectuer.
-- Validation finale de la hauteur sur plusieurs tailles de moniteur : à effectuer.
+- TypeScript, tests unitaires et build Vite : vérifier le statut GitHub Actions du commit candidat avant toute fusion.
+- Tests unitaires de la destination d'arrivée aux étages : ajoutés dans `tests/workshop-scene.test.ts`.
+- Inspection visuelle dans un navigateur réel : à effectuer sur ordinateur et téléphone, notamment la proximité des nouveaux escaliers.
+- Test de santé économique des 30 combinaisons machine/monde ajouté; équilibrage sur une session longue, notamment la montée de quantité des commandes, la prime maximale de réputation et l'entretien : à effectuer.
 
-## Prochaines étapes
+## Limites
 
-1. Vérifier visuellement le jeu sur un grand écran et un petit ordinateur portable.
-2. Mesurer et équilibrer la progression sur une session de jeu plus longue.
-3. Ajouter des recettes qui exigent des combinaisons d'ingrédients spécifiques.
-4. Envisager un déploiement public et la synchronisation cloud séparément.
+La progression est encore stockée côté navigateur. La validation des données empêche certains états malformés, mais ne constitue pas une protection anti-triche contre un joueur qui modifie le client. Une future version en ligne devra valider les opérations économiques sur un serveur.
