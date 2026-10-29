@@ -773,7 +773,10 @@ function interactWithStation(station: WorkshopStation): void {
   if (MATERIALS.some((material) => material.id === station) || expansionMaterial) {
     const material: MaterialId = expansionMaterial ?? (station as MaterialId);
     const result = harvestMaterial(state, material);
-    if (result.state !== state) playSound('harvest');
+    if (result.state !== state) {
+      playSound('harvest');
+      if (typeof navigator.vibrate === 'function') navigator.vibrate(12);
+    }
     state = result.state;
     const definition = MATERIALS.find((item) => item.id === material)!;
     renderAll();
@@ -1119,7 +1122,11 @@ app.addEventListener('click', (event) => {
     return;
   }
   if (target.dataset.sceneMove) {
-    workshopScene?.move(target.dataset.sceneMove as MoveDirection);
+    if (target.dataset.holdMoved === 'true') {
+      target.dataset.holdMoved = 'false';
+    } else {
+      workshopScene?.move(target.dataset.sceneMove as MoveDirection);
+    }
     return;
   }
   if (target.id === 'scene-interact') {
@@ -1298,6 +1305,32 @@ workshopScene.setEnvironment(getWorld(state.currentWorld), state.currentFloor, M
   count: state.machines[state.currentWorld][machine.id],
 })), state.outsideExpansions, currentCustomerVisual());
 renderFloorNavigation();
+
+// Hold a direction on touchscreens for continuous movement, while preserving tap-to-step.
+const touchControls = document.querySelector<HTMLElement>('.scene-touch-controls');
+let touchMoveInterval: ReturnType<typeof setInterval> | null = null;
+let activeTouchDirection: HTMLButtonElement | null = null;
+const stopTouchMovement = (): void => {
+  if (touchMoveInterval !== null) clearInterval(touchMoveInterval);
+  touchMoveInterval = null;
+  activeTouchDirection = null;
+};
+touchControls?.addEventListener('pointerdown', (event) => {
+  const button = event.target instanceof Element
+    ? event.target.closest<HTMLButtonElement>('[data-scene-move]')
+    : null;
+  if (!button || button.disabled) return;
+  event.preventDefault();
+  stopTouchMovement();
+  activeTouchDirection = button;
+  button.dataset.holdMoved = 'true';
+  const direction = button.dataset.sceneMove as MoveDirection;
+  workshopScene?.move(direction);
+  touchMoveInterval = setInterval(() => workshopScene?.move(direction), 115);
+});
+window.addEventListener('pointerup', stopTouchMovement);
+window.addEventListener('pointercancel', stopTouchMovement);
+window.addEventListener('blur', stopTouchMovement);
 save();
 if (saveRecoveryMessage) setStatus(saveRecoveryMessage);
 requestAnimationFrame(gameTick);
