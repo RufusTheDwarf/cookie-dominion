@@ -326,7 +326,7 @@ export function findWorkshopPath(
         return true;
       };
       const smoothPath: WorkshopPathPoint[] = [];
-      let anchor: WorkshopPathPoint = { x: startX, y: startY };
+      let anchor: WorkshopPathPoint = start.point;
       let index = 0;
       while (index < path.length) {
         let furthest = index;
