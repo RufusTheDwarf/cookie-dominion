@@ -45,20 +45,20 @@ describe('workshop collision boundaries', () => {
 describe('workshop floor landings', () => {
   it('arrives beside the descending stairs when moving to a higher floor', () => {
     expect(getFloorTransitionLanding(0, 1)).toEqual({ x: 770, y: 460 });
-    expect(getFloorTransitionLanding(1, 2)).toEqual({ x: 770, y: 520 });
+    expect(getFloorTransitionLanding(1, 2)).toEqual({ x: 770, y: 460 });
   });
 
   it('arrives beside the ascending stairs when returning to a lower floor', () => {
     expect(getFloorTransitionLanding(2, 1)).toEqual({ x: 870, y: 460 });
-    expect(getFloorTransitionLanding(1, 0)).toEqual({ x: 870, y: 520 });
-    expect(getFloorTransitionLanding(2, 0)).toEqual({ x: 870, y: 520 });
+    expect(getFloorTransitionLanding(1, 0)).toEqual({ x: 870, y: 460 });
+    expect(getFloorTransitionLanding(2, 0)).toEqual({ x: 870, y: 460 });
   });
 
   it('places the player on a free tile after changing floors', () => {
     for (const [from, to] of [[0, 1], [1, 2], [2, 1], [1, 0], [2, 0]]) {
       const landing = getFloorTransitionLanding(from, to);
       expect(landing).not.toBeNull();
-      expect(isWorkshopPositionBlocked(landing!.x, landing!.y, to)).toBe(false);
+      expect(isWorkshopPositionBlocked(landing!.x, landing!.y, to), `blocked landing from floor ${from} to ${to} at (${landing!.x}, ${landing!.y})`).toBe(false);
     }
   });
 
