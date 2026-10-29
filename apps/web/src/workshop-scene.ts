@@ -973,6 +973,43 @@ export function createWorkshopScene(
     c.restore();
   }
 
+  function drawDestinationPath(): void {
+    if (destinationPath.length === 0 || destinationIndex >= destinationPath.length) return;
+    const c = context!;
+    c.save();
+    c.globalAlpha = 0.72;
+    c.strokeStyle = '#f2ce83';
+    c.lineWidth = 2.5;
+    c.lineCap = 'round';
+    c.setLineDash([4, 7]);
+    c.beginPath();
+    c.moveTo(player.x, player.y);
+    for (let i = destinationIndex; i < destinationPath.length; i++) {
+      const waypoint = destinationPath[i]!;
+      c.lineTo(waypoint.x, waypoint.y);
+    }
+    c.stroke();
+    c.setLineDash([]);
+    const target = destinationPath[destinationPath.length - 1]!;
+    const pulse = 10 + Math.sin(elapsedWorld * 6) * 2;
+    c.globalAlpha = 0.2;
+    c.fillStyle = '#f2ce83';
+    c.beginPath();
+    c.arc(target.x, target.y, pulse + 5, 0, Math.PI * 2);
+    c.fill();
+    c.globalAlpha = 0.95;
+    c.strokeStyle = '#fff0c6';
+    c.lineWidth = 2;
+    c.beginPath();
+    c.arc(target.x, target.y, pulse, 0, Math.PI * 2);
+    c.stroke();
+    c.fillStyle = '#fff0c6';
+    c.beginPath();
+    c.arc(target.x, target.y, 3, 0, Math.PI * 2);
+    c.fill();
+    c.restore();
+  }
+
   function draw(): void {
     const c = context!;
     c.setTransform(canvas.width / VIEW_WIDTH, 0, 0, canvas.height / VIEW_HEIGHT, 0, 0);
@@ -980,6 +1017,7 @@ export function createWorkshopScene(
     c.save();
     c.translate(-cameraX, -cameraY);
     drawGround();
+    drawDestinationPath();
     if (currentFloor === 0) {
       STATIONS.filter((station) =>
         MATERIAL_STATION_IDS.has(station.id) && isStationAvailable(station.id),
