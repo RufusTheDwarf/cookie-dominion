@@ -889,3 +889,64 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .theme-dark .botanical-expansion-panel{background:#302f25;border-color:#62563c}
 .theme-dark .botanical-expansion-card button:disabled{background:#39352a;border-color:#5d5139;color:#9a9075}
 .theme-dark .botanical-expansion-card button:disabled b{color:#9a9075}
+
+
+/* Mobile-first workshop controls and safe touch interaction. */
+.scene-touch-controls,
+.scene-pad button,
+.floor-choice,
+#scene-interact {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.scene-pad button {
+  min-width: 42px;
+  min-height: 42px;
+  touch-action: none;
+  border-radius: 7px;
+  box-shadow: 0 2px 0 rgba(41, 44, 36, .12);
+}
+.scene-pad button:active:not(:disabled) {
+  transform: translateY(1px);
+  background: var(--moss-light);
+}
+#workshop-canvas {
+  display: block;
+  width: 100%;
+  touch-action: pan-y;
+}
+@media(max-width:760px) {
+  .game-shell { padding: 8px; }
+  .topbar { align-items: flex-start; flex-direction: column; gap: 10px; padding: 10px; }
+  .brand { min-width: 0; }
+  .header-economy { width: 100%; justify-content: stretch; overflow-x: auto; }
+  .headline-money, .header-stat { flex: 1 0 92px; padding: 7px 9px; }
+  .headline-money { min-width: 112px; }
+  .icon-button { flex: 0 0 40px; margin-left: 5px; }
+  .progress-strip { flex-wrap: wrap; align-items: center; gap: 6px; }
+  #global-status { order: 5; flex: 1 0 100%; margin: 2px 0 0; white-space: normal; }
+  #save-indicator { margin-left: auto; }
+  .game-layout { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .workshop-column, .production-column { padding: 10px; }
+  .workshop-stage-frame { overflow: hidden; }
+  .scene-touch-controls { position: relative; z-index: 2; min-height: 96px; padding: 10px; }
+  .scene-pad { grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 42px); gap: 5px; }
+  .scene-touch-controls small { max-width: 100px; text-align: right; line-height: 1.35; }
+  .floor-buttons { gap: 5px; }
+  .floor-choice { min-height: 54px; padding: 7px 6px; }
+  .store-content { min-height: 260px; }
+  .game-footer { flex-wrap: wrap; gap: 6px 12px; }
+}
+@media(max-width:420px) {
+  .game-shell { padding: 5px; }
+  .brand-mark { flex-basis: 43px; width: 43px; height: 50px; }
+  .brand-mark img { width: 43px; height: 50px; }
+  .brand-text>strong { font-size: 24px; }
+  .header-stat { flex-basis: 82px; }
+  .scene-help { gap: 6px; padding: 7px; }
+  .scene-help button { min-height: 38px; font-size: 8px; }
+  .floor-navigation-heading { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .floor-navigation-heading strong { text-align: left; }
+  .recipe-row { grid-template-columns: 42px minmax(0, 1fr) 76px; gap: 6px; }
+  .recipe-actions { min-width: 0; }
+}
