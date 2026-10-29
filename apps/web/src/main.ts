@@ -820,6 +820,7 @@ function interactWithStation(station: WorkshopStation): void {
   if (station === 'stairs-down') {
     const targetFloor = state.currentFloor - 1;
     if (targetFloor < 0 || !state.unlockedFloors.includes(targetFloor)) {
+      playGameEffect('failure', 'ÉTAGE INACCESSIBLE', ['#floor-buttons']);
       setStatus('Cet étage inférieur n’est pas accessible depuis cet escalier.');
       return;
     }
@@ -843,12 +844,14 @@ function interactWithStation(station: WorkshopStation): void {
       const installed = MACHINES.filter((machine) => machine.floor === state.currentFloor)
         .reduce((total, machine) => total + state.machines[state.currentWorld][machine.id], 0);
       if (installed < requiredMachines) {
+        playGameEffect('failure', 'ÉQUIPEMENT REQUIS', ['#floor-buttons', '#machine-count']);
         setStatus('Pour ouvrir l’étage ' + targetFloor + ', installe encore ' +
           (requiredMachines - installed) + ' équipement(s) à l’étage actuel.');
         return;
       }
       const cost = floorUnlockCost(targetFloor);
       if (state.perfumeRevenue < cost) {
+        playGameEffect('failure', 'ACCÈS TROP CHER', ['#header-money', '#floor-buttons']);
         setStatus('L’accès à l’étage ' + targetFloor + ' coûte ' + format(cost) +
           ' pièces. Il t’en manque ' + format(cost - state.perfumeRevenue) + '.');
         return;
@@ -872,6 +875,7 @@ function interactWithStation(station: WorkshopStation): void {
   if (selectedRecipeId === order.recipeId) {
     const available = state.perfumeStock[selectedRecipeId];
     if (available < order.quantity) {
+      playGameEffect('failure', 'STOCK INSUFFISANT', ['#customer-order-panel', '#perfume-stock-count']);
       setStatus('Commande de ' + order.customer + ' : ' + order.quantity + ' flacon(s) de ' + recipe.name +
         ' requis, ' + available + ' disponible(s). Prépare les flacons au laboratoire avant de revenir au comptoir.');
       return;
@@ -893,6 +897,7 @@ function interactWithStation(station: WorkshopStation): void {
     return;
   }
   if (state.perfumeStock[selectedRecipeId] <= 0) {
+    playGameEffect('failure', 'AUCUN FLACON EN STOCK', ['#perfume-stock-count', '.recipe-row.is-current-recipe']);
     setStatus('Aucun flacon de ' + recipe.name + ' en stock. Compose cette recette au laboratoire avant de la vendre.');
     return;
   }
@@ -1059,6 +1064,7 @@ function buyMachineById(machineId: MachineId): void {
   const previous = state;
   state = buyMachine(state, machineId);
   if (state === previous) {
+    playGameEffect('failure', 'FONDS INSUFFISANTS', ['[data-buy-machine="' + machineId + '"]', '#header-money']);
     setStatus('Il te faut encore ' + format(Math.max(0, machineCost(state, machineId) - state.perfumeRevenue)) + ' parfums pour cet équipement.');
     return;
   }
@@ -1078,6 +1084,8 @@ function buyUpgradeById(upgradeId: UpgradeId): void {
   state = buyUpgrade(state, upgradeId);
   if (state === previous) {
     const cost = upgradeCost(state, upgradeId);
+    playGameEffect('failure', state.upgrades[upgradeId] >= MAX_UPGRADE_LEVEL ? 'NIVEAU MAXIMAL' : 'FONDS INSUFFISANTS',
+      ['[data-buy-upgrade="' + upgradeId + '"]', '#header-money']);
     setStatus(state.upgrades[upgradeId] >= MAX_UPGRADE_LEVEL
       ? 'Cette recherche a atteint son niveau maximal.'
       : 'Fonds insuffisants : il manque ' + format(Math.max(0, cost - state.perfumeRevenue)) + ' parfums.');
@@ -1104,6 +1112,7 @@ function claimContract(missionId: MissionId): void {
 function switchWorld(worldId: WorldId): void {
   if (!state.unlockedWorlds.includes(worldId)) {
     const world = getWorld(worldId);
+    playGameEffect('failure', 'COLLECTION VERROUILLÉE', ['#store-content']);
     setStatus('Cette collection requiert ' + world.unlockRebirths + ' rebirth(s) normaux.');
     return;
   }
@@ -1244,6 +1253,7 @@ app.addEventListener('click', (event) => {
     const plotName = EXPANSION_PLOT_NAMES[state.outsideExpansions - 1] ?? 'nouvelle parcelle';
     playSound('unlock');
     renderAll();
+    playGameEffect('unlock', 'PARCELLE DÉBLOQUÉE', ['#botanical-expansion-panel', '#harvest-progress-bar']);
     setStatus(plotName + ' est maintenant accessible dans le jardin.');
     saveSoon();
     return;
