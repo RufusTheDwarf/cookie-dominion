@@ -51,3 +51,8 @@ Les champs historiques liés à d'anciennes mécaniques peuvent rester dans le f
 ## Limites
 
 La progression est encore stockée côté navigateur. La validation des données empêche certains états malformés, mais ne constitue pas une protection anti-triche contre un joueur qui modifie le client. Une future version en ligne devra valider les opérations économiques sur un serveur.
+
+
+### Click-to-move pathfinding
+
+Tap/click movement uses grid-based A* routing to navigate around blocked stations, purchased machines, and closed wall sections. Automated route tests cover obstacle avoidance and cross-workshop movement; browser/device feel still needs manual verification.

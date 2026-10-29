@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getFloorTransitionLanding, isClosedWallCrossingBlocked, isWorkshopPositionBlocked } from '../apps/web/src/workshop-scene';
+import { findWorkshopPath, getFloorTransitionLanding, isClosedWallCrossingBlocked, isWorkshopPositionBlocked } from '../apps/web/src/workshop-scene';
 
 
 describe('workshop wall crossings', () => {
@@ -74,5 +74,38 @@ describe('workshop floor landings', () => {
     expect(getFloorTransitionLanding(-1, 0)).toBeNull();
     expect(getFloorTransitionLanding(0, 3)).toBeNull();
     expect(getFloorTransitionLanding(0.5, 1)).toBeNull();
+  });
+});
+
+describe('workshop click pathfinding', () => {
+  it('routes around garden beds and reaches a walkable point near the requested target', () => {
+    const path = findWorkshopPath(735, 520, 112, 172, 0);
+    expect(path.length).toBeGreaterThan(0);
+    expect(Math.hypot(path.at(-1)!.x - 112, path.at(-1)!.y - 172)).toBeLessThan(75);
+    for (const point of path) expect(isWorkshopPositionBlocked(point.x, point.y, 0)).toBe(false);
+  });
+
+  it('finds a route across the workshop through the doorway', () => {
+    const path = findWorkshopPath(500, 350, 1200, 350, 0);
+    expect(path.length).toBeGreaterThan(0);
+    expect(path.at(-1)!.x).toBeGreaterThan(1100);
+    let previous = { x: 500, y: 350 };
+    for (const point of path) {
+      expect(isWorkshopPositionBlocked(point.x, point.y, 0)).toBe(false);
+      for (const wall of [650, 1000]) {
+        const crossesWall = (previous.x < wall && point.x > wall) ||
+          (previous.x > wall && point.x < wall);
+        if (crossesWall) {
+          expect(previous.y).toBeGreaterThanOrEqual(295);
+          expect(previous.y).toBeLessThanOrEqual(415);
+        }
+      }
+      previous = point;
+    }
+  });
+
+  it('rejects invalid input and invalid floors', () => {
+    expect(findWorkshopPath(0, 0, 100, 100, 9)).toEqual([]);
+    expect(findWorkshopPath(Number.NaN, 0, 100, 100, 0)).toEqual([]);
   });
 });
