@@ -440,10 +440,12 @@ export function createWorkshopScene(
   const context = canvas.getContext('2d');
   if (!context) throw new Error('Canvas 2D indisponible');
 
-  const player = { x: 735, y: 520 };
+  // Begin beside the first botanical plot so the opening action is obvious and reachable.
+  const player = { x: 160, y: 210 };
   const keys = new Set<string>();
   const particles: Particle[] = [];
   const effectPulses: EffectPulse[] = [];
+  let pendingStationInteraction: WorkshopStation | null = null;
   let destinationPath: WorkshopPathPoint[] = [];
   let destinationIndex = 0;
   let destinationTarget: WorkshopPathPoint | null = null;
@@ -1235,6 +1237,9 @@ export function createWorkshopScene(
     if (keys.has('arrowup') || keys.has('w') || keys.has('z')) dy -= 1;
     if (keys.has('arrowdown') || keys.has('s')) dy += 1;
     if (dx !== 0 || dy !== 0) {
+      // Manual movement cancels a click-to-interact request, so the player never
+      // interacts unexpectedly after taking control back.
+      pendingStationInteraction = null;
       destinationPath = [];
       destinationIndex = 0;
       destinationTarget = null;
@@ -1268,6 +1273,18 @@ export function createWorkshopScene(
           : [];
         destinationIndex = 0;
         destinationTarget = destinationPath.length > 0 ? destinationPath[destinationPath.length - 1]! : null;
+      }
+    }
+
+    // Clicking a station means "go there and use it". Manual walking remains available
+    // with the keyboard and touch pad, and cancels this pending action.
+    if (pendingStationInteraction && destinationPath.length === 0 && !walking) {
+      const stationId = pendingStationInteraction;
+      const station = STATIONS.find((item) => item.id === stationId);
+      pendingStationInteraction = null;
+      if (station && isStationAvailable(stationId) &&
+          Math.hypot(player.x - station.x, player.y - station.y) < 88) {
+        triggerInteraction(stationId);
       }
     }
 
@@ -1321,6 +1338,7 @@ export function createWorkshopScene(
     const station = STATIONS.find((item) =>
       isStationAvailable(item.id) && Math.hypot(item.x - x, item.y - y) < 58,
     );
+    pendingStationInteraction = station?.id ?? null;
     let targetX = x;
     let targetY = y;
     if (station) {
@@ -1350,6 +1368,7 @@ export function createWorkshopScene(
       if (direction === 'down') movePlayer(0, distance);
       if (direction === 'left') movePlayer(-distance, 0);
       if (direction === 'right') movePlayer(distance, 0);
+      pendingStationInteraction = null;
       destinationPath = [];
       destinationIndex = 0;
       destinationTarget = null;
@@ -1372,6 +1391,7 @@ export function createWorkshopScene(
       if (landing) {
         player.x = landing.x;
         player.y = landing.y;
+        pendingStationInteraction = null;
         destinationPath = [];
         destinationIndex = 0;
         destinationTarget = null;
