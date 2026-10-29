@@ -247,8 +247,14 @@ export function findWorkshopPath(
   const pointOf = (column: number, row: number): WorkshopPathPoint => ({
     x: minX + column * step, y: minY + row * step,
   });
-  const valid = (point: WorkshopPathPoint): boolean =>
-    !isWorkshopPositionBlocked(point.x, point.y, floor, machines, botanicalExpansions);
+  const valid = (point: WorkshopPathPoint): boolean => {
+    const insideSolidWall = WALLS.some((wall) =>
+      Math.abs(point.x - wall) < PLAYER_RADIUS &&
+      (point.y < DOOR_TOP + PLAYER_RADIUS || point.y > DOOR_BOTTOM - PLAYER_RADIUS),
+    );
+    return !insideSolidWall &&
+      !isWorkshopPositionBlocked(point.x, point.y, floor, machines, botanicalExpansions);
+  };
 
   for (let row = 0; row < rows; row++) {
     for (let column = 0; column < columns; column++) {
