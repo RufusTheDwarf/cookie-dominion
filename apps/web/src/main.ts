@@ -1309,11 +1309,9 @@ renderFloorNavigation();
 // Hold a direction on touchscreens for continuous movement, while preserving tap-to-step.
 const touchControls = document.querySelector<HTMLElement>('.scene-touch-controls');
 let touchMoveInterval: ReturnType<typeof setInterval> | null = null;
-let activeTouchDirection: HTMLButtonElement | null = null;
 const stopTouchMovement = (): void => {
   if (touchMoveInterval !== null) clearInterval(touchMoveInterval);
   touchMoveInterval = null;
-  activeTouchDirection = null;
 };
 touchControls?.addEventListener('pointerdown', (event) => {
   const button = event.target instanceof Element
@@ -1322,7 +1320,6 @@ touchControls?.addEventListener('pointerdown', (event) => {
   if (!button || button.disabled) return;
   event.preventDefault();
   stopTouchMovement();
-  activeTouchDirection = button;
   button.dataset.holdMoved = 'true';
   const direction = button.dataset.sceneMove as MoveDirection;
   workshopScene?.move(direction);
