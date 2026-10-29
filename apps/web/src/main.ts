@@ -1232,10 +1232,15 @@ function hasSavedProgress(): boolean {
   const hasPerfumes = Object.values(state.perfumeStock).some((count) => count > 0);
   const hasUpgrades = Object.values(state.upgrades).some((level) => level > 0);
 
-  return state.lifetimePerfumeRevenue > 0 ||
+  return state.perfumeRevenue > 0 ||
+    state.lifetimePerfumeRevenue > 0 ||
+    state.runPerfumeRevenue > 0 ||
     state.perfumesSold > 0 ||
     state.gatherClicks > 0 ||
     state.customerOrdersCompleted > 0 ||
+    state.ordersCompleted > 0 ||
+    state.rareFlaconsClaimed > 0 ||
+    state.claimedMissions.length > 0 ||
     state.rebirths > 0 ||
     state.totalRebirths > 0 ||
     state.essences > 0 ||
@@ -1304,8 +1309,10 @@ app.addEventListener('click', (event) => {
     activeTab = 'save';
     renderStore();
     hideMainMenu();
-    setStatus('Les paramètres audio et d’affichage se trouvent dans le panneau Sauvegarde.');
-    byId('store-content').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setStatus('Paramètres audio et affichage : utilise les commandes ci-dessous.');
+    const soundSetting = byId<HTMLInputElement>('sound-enabled-toggle');
+    soundSetting.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    soundSetting.focus({ preventScroll: true });
     return;
   }
 
