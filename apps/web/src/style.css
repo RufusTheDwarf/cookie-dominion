@@ -1177,3 +1177,139 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
     touch-action: manipulation;
   }
 }
+
+
+/* Main tycoon start screen: legible, keyboard-accessible, and responsive. */
+.main-menu {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  padding: clamp(14px, 3vw, 36px);
+  color: #f7f1e4;
+  background:
+    radial-gradient(ellipse at 14% 12%, rgba(94, 133, 91, .36), transparent 34%),
+    radial-gradient(ellipse at 88% 84%, rgba(178, 138, 77, .24), transparent 38%),
+    #17271f;
+}
+.main-menu.is-hidden { display: none; }
+.main-menu-card {
+  width: min(100%, 620px);
+  padding: clamp(22px, 5vw, 48px);
+  border: 1px solid rgba(226, 204, 153, .34);
+  background: linear-gradient(152deg, rgba(39, 62, 47, .98), rgba(20, 37, 29, .99));
+  box-shadow: 0 26px 90px rgba(0, 0, 0, .42), inset 0 1px rgba(255,255,255,.07);
+}
+.main-menu-brand { text-align: center; }
+.main-menu-emblem {
+  display: grid;
+  place-items: center;
+  width: 78px;
+  height: 78px;
+  margin: 0 auto 22px;
+  padding: 9px;
+  border: 1px solid #d7bc79;
+  background: #f0e4c6;
+  box-shadow: 0 7px 0 rgba(0,0,0,.16);
+  transform: rotate(-4deg);
+}
+.main-menu-emblem img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.main-menu-brand > .eyebrow {
+  color: #ddc78d;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 2px;
+}
+.main-menu-brand h1 {
+  margin: 12px 0;
+  color: #faf4e6;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: clamp(34px, 7vw, 51px);
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  line-height: 1;
+}
+.main-menu-brand h1 span { color: #ddc287; }
+.main-menu-brand > p:last-child {
+  max-width: 440px;
+  margin: 0 auto;
+  color: #d1d5c7;
+  font-size: 13px;
+  line-height: 1.7;
+}
+.main-menu-save-state {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 26px 0 18px;
+  padding: 14px 15px;
+  border: 1px solid rgba(222, 209, 171, .22);
+  background: rgba(9, 24, 17, .36);
+}
+.main-menu-status-dot {
+  flex: 0 0 9px;
+  width: 9px;
+  height: 9px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: #b9cb8e;
+  box-shadow: 0 0 0 4px rgba(185, 203, 142, .12);
+}
+.main-menu-save-state strong {
+  display: block;
+  color: #e6d29d;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 1.2px;
+}
+.main-menu-save-state p {
+  margin: 6px 0 0;
+  color: #e5e4da;
+  font-size: 11px;
+  line-height: 1.5;
+}
+.main-menu-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+.main-menu-actions button {
+  min-height: 46px;
+  padding: 12px 14px;
+  border: 1px solid rgba(222, 207, 165, .4);
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: .8px;
+  transition: background .16s ease, border-color .16s ease, transform .16s ease;
+}
+.main-menu-actions button:hover { transform: translateY(-1px); }
+.main-menu-actions button:focus-visible { outline: 3px solid #e5ca86; outline-offset: 3px; }
+.main-menu-primary {
+  grid-column: 1 / -1;
+  background: linear-gradient(100deg, #d4b56e, #e5ce92);
+  border-color: #e8d5a5 !important;
+  color: #1d3022;
+}
+.main-menu-primary:hover { background: #f1dca0; }
+.main-menu-secondary { background: rgba(246, 239, 220, .04); color: #f6f0e2; }
+.main-menu-secondary:hover { background: rgba(246, 239, 220, .11); border-color: #d9c17f; }
+.main-menu-footer {
+  margin: 22px 0 0;
+  color: #aeb8a8;
+  font-size: 9px;
+  line-height: 1.6;
+  text-align: center;
+}
+@media (max-width: 520px) {
+  .main-menu { align-items: start; padding: 12px; }
+  .main-menu-card { padding: 22px 17px; }
+  .main-menu-emblem { width: 60px; height: 60px; margin-bottom: 17px; }
+  .main-menu-brand h1 { font-size: clamp(31px, 10vw, 42px); }
+  .main-menu-brand > p:last-child { font-size: 11px; }
+  .main-menu-save-state { margin: 20px 0 14px; padding: 11px; }
+  .main-menu-actions { grid-template-columns: 1fr; gap: 7px; }
+  .main-menu-primary { grid-column: auto; }
+  .main-menu-actions button { min-height: 44px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .main-menu-actions button { transition: none; }
+  .main-menu-actions button:hover { transform: none; }
+}
