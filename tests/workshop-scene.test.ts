@@ -1,6 +1,34 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { findWorkshopPath, getFloorTransitionLanding, isClosedWallCrossingBlocked, isWorkshopPositionBlocked, WORKSHOP_EFFECT_PROFILES } from '../apps/web/src/workshop-scene';
+import { findWorkshopPath, getFloorTransitionLanding, isClosedWallCrossingBlocked, isWorkshopPositionBlocked, isWorkshopStationAvailable, shouldTriggerInteractionKey, WORKSHOP_EFFECT_PROFILES } from '../apps/web/src/workshop-scene';
+
+
+describe('first-run land and progression gating', () => {
+  it('shows only the starter land sign until the first plot is purchased', () => {
+    expect(isWorkshopStationAvailable('starting-land', 0, 0, false, [])).toBe(true);
+    expect(isWorkshopStationAvailable('lavender', 0, 0, false, [])).toBe(false);
+    expect(isWorkshopStationAvailable('laboratory', 0, 0, false, [])).toBe(false);
+    expect(isWorkshopStationAvailable('starting-land', 0, 0, true, ['lavender', 'mint'])).toBe(false);
+  });
+
+  it('unlocks only the opening materials before the first perfume sale', () => {
+    expect(isWorkshopStationAvailable('lavender', 0, 0, true, ['lavender', 'mint'])).toBe(true);
+    expect(isWorkshopStationAvailable('mint', 0, 0, true, ['lavender', 'mint'])).toBe(true);
+    expect(isWorkshopStationAvailable('rose', 0, 0, true, ['lavender', 'mint'])).toBe(false);
+    expect(isWorkshopStationAvailable('rose', 0, 0, true, ['lavender', 'mint', 'rose'])).toBe(true);
+  });
+});
+
+describe('interaction key edge triggering', () => {
+  it('does not repeat harvest or interaction when E or Space is held', () => {
+    expect(shouldTriggerInteractionKey('e', false)).toBe(true);
+    expect(shouldTriggerInteractionKey('E', false)).toBe(true);
+    expect(shouldTriggerInteractionKey(' ', false)).toBe(true);
+    expect(shouldTriggerInteractionKey('e', true)).toBe(false);
+    expect(shouldTriggerInteractionKey(' ', true)).toBe(false);
+    expect(shouldTriggerInteractionKey('q', false)).toBe(false);
+  });
+});
 
 
 describe('workshop wall crossings', () => {
@@ -190,6 +218,7 @@ describe('tycoon start menu', () => {
 describe('application HTML structure', () => {
   it('keeps the workshop, manufacture, and office inside one valid grid', () => {
     const source = readFileSync(new URL('../apps/web/src/main.ts', import.meta.url), 'utf8');
+    const styles = readFileSync(new URL('../apps/web/src/style.css', import.meta.url), 'utf8');
     const tick = String.fromCharCode(96);
     const templateStart = source.indexOf('app.innerHTML = ' + tick);
     const templateEnd = source.indexOf(tick + ';\n\nfunction byId', templateStart);
@@ -243,5 +272,9 @@ describe('application HTML structure', () => {
 
     const workshop = findByClass(layout!, 'workshop-column');
     expect(workshop!.children.some((child) => child.className.split(/\s+/).includes('mini-metrics'))).toBe(true);
+    expect(styles).toContain('.workshop-column {\n    grid-column: 1 / -1;\n    grid-row: 2;');
+    expect(styles).toContain('max-width: 760px;');
+    expect(styles).toContain('@media (max-width: 720px)');
+  });
   });
 });
