@@ -87,3 +87,13 @@ Tap/click movement uses grid-based A* routing to navigate around blocked station
 - Les changements d'onglet et de recette ont une transition légère; les éléments de formulation, matières et machines ont des micro-animations à l'interaction.
 - La préférence système de réduction des mouvements reste appliquée aux nouveaux effets.
 - Les tests contrôlent la présence et la cohérence des profils; une vérification manuelle dans un navigateur réel reste nécessaire.
+
+
+### Ergonomie et scène de jeu — correctifs
+- L'atelier occupe désormais la colonne principale sur écran large; les panneaux de manufacture et de bureau sont regroupés dans la colonne latérale.
+- Le canvas respecte son ratio logique 960:440 afin d'éviter la déformation de la scène.
+- La partie commence à proximité de la première parcelle, plutôt qu'au milieu d'une zone vide.
+- Un clic sur une parcelle ou un poste déclenche automatiquement l'action à l'arrivée; le déplacement manuel annule l'action en attente.
+- Les textes d'aide expliquent le contrôle par clic et les commandes clavier.
+- Les tests vérifient que la position de départ est libre et qu'un chemin vers la première parcelle est calculable.
+- Les tests automatisés ne remplacent pas l'inspection visuelle sur navigateur et téléphone.
