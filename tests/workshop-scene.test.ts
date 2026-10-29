@@ -167,6 +167,26 @@ describe('workshop starting position', () => {
 
 
 
+describe('tycoon start menu', () => {
+  it('provides working entry, new-game, save-import, settings, and return-to-menu controls', () => {
+    const source = readFileSync(new URL('../apps/web/src/main.ts', import.meta.url), 'utf8');
+    const styles = readFileSync(new URL('../apps/web/src/style.css', import.meta.url), 'utf8');
+
+    for (const id of ['main-menu', 'menu-continue', 'menu-new-game', 'menu-load-save', 'menu-settings', 'open-main-menu']) {
+      expect(source, 'missing menu control ' + id).toContain('id="' + id + '"');
+    }
+    for (const id of ['menu-continue', 'menu-new-game', 'menu-load-save', 'menu-settings', 'open-main-menu']) {
+      expect(source, 'missing action binding for ' + id).toContain("target.id === '" + id + "'");
+    }
+    expect(source).toContain("event.key !== 'Escape'");
+    expect(source).toContain('function hasSavedProgress(): boolean');
+    expect(source).toContain("activeTab = 'save'");
+    expect(styles).toContain('.main-menu.is-hidden { display: none; }');
+    expect(styles).toContain('@media (max-width: 520px)');
+  });
+});
+
+
 describe('application HTML structure', () => {
   it('keeps the workshop, manufacture, and office inside one valid grid', () => {
     const source = readFileSync(new URL('../apps/web/src/main.ts', import.meta.url), 'utf8');

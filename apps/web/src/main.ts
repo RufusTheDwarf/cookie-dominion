@@ -209,6 +209,7 @@ app.innerHTML = `
         <div class="header-stat"><span>PRODUCTION NETTE</span><strong id="header-cps">0</strong><small>après entretien / s</small></div>
         <div class="header-stat"><span>MATIÈRES</span><strong id="header-click">0</strong><small>ingrédients en stock</small></div>
         <div class="header-stat"><span>REVENU DU RUN</span><strong id="header-run">0</strong><small>pièces gagnées ce run</small></div>
+        <button id="open-main-menu" class="icon-button" type="button" title="Ouvrir le menu principal" aria-label="Ouvrir le menu principal">☰</button>
         <button id="open-settings" class="icon-button" type="button" title="Paramètres et sauvegarde" aria-label="Paramètres et sauvegarde">☷</button>
       </div>
     </header>
@@ -306,6 +307,27 @@ app.innerHTML = `
       <span>PRODUCTION CONTINUE · SAUVEGARDE AUTOMATIQUE</span>
       <span id="footer-version">V. 0.4.0 · ATELIER INTERACTIF</span>
     </footer>
+    <section id="main-menu" class="main-menu" role="dialog" aria-modal="true" aria-hidden="false" aria-labelledby="main-menu-title">
+      <div class="main-menu-card">
+        <div class="main-menu-brand">
+          <span class="main-menu-emblem"><img src="/assets/perfume-emblem.svg" alt="" /></span>
+          <span class="eyebrow">MAISON DES ESSENCES · TYCOON 2D</span>
+          <h1 id="main-menu-title">PARFUM <span>EMPIRE</span></h1>
+          <p>Pars d’un petit atelier, récolte tes matières premières, compose tes fragrances et construis une maison de parfum qui tourne toute seule.</p>
+        </div>
+        <div class="main-menu-save-state">
+          <span class="main-menu-status-dot" aria-hidden="true"></span>
+          <div><strong id="menu-save-status">NOUVELLE AVENTURE</strong><p id="menu-save-description">Ton atelier t’attend. Chaque grand empire commence avec une première récolte.</p></div>
+        </div>
+        <nav class="main-menu-actions" aria-label="Menu principal">
+          <button id="menu-continue" class="main-menu-primary" type="button">COMMENCER</button>
+          <button id="menu-new-game" class="main-menu-secondary" type="button">NOUVELLE PARTIE</button>
+          <button id="menu-load-save" class="main-menu-secondary" type="button">CHARGER / IMPORTER</button>
+          <button id="menu-settings" class="main-menu-secondary" type="button">PARAMÈTRES</button>
+        </nav>
+        <p class="main-menu-footer">Sauvegarde locale automatique · Flèches ou ZQSD pour se déplacer · Échap pour revenir au menu</p>
+      </div>
+    </section>
     <input id="import-file" type="file" accept=".json,.txt,application/json,text/plain" hidden />
   </main>
 `;
@@ -1184,8 +1206,8 @@ function applyImportedSave(raw: string): void {
   setStatus('Sauvegarde importée avec succès.');
 }
 
-function eraseSave(): void {
-  if (!window.confirm('Effacer définitivement la progression locale et recommencer depuis zéro ?')) return;
+function eraseSave(): boolean {
+  if (!window.confirm('Effacer définitivement la progression locale et recommencer depuis zéro ?')) return false;
   state = normalizeGameState(createInitialState());
   try {
     localStorage.removeItem(SAVE_KEY);
@@ -1198,6 +1220,58 @@ function eraseSave(): void {
   save();
   playGameEffect('ascension', 'NOUVELLE PARTIE', ['#header-money', '#header-cps', '#store-content']);
   setStatus('Nouvelle partie créée. Ta maison repart de zéro.');
+  return true;
+}
+
+function hasSavedProgress(): boolean {
+  const hasMachines = Object.values(state.machines).some((worldMachines) =>
+    Object.values(worldMachines).some((count) => count > 0),
+  );
+  const hasIngredients = Object.values(state.ingredients).some((count) => count > 0);
+  const hasDiscoveries = Object.values(state.materialDiscoveries).some((count) => count > 0);
+  const hasPerfumes = Object.values(state.perfumeStock).some((count) => count > 0);
+  const hasUpgrades = Object.values(state.upgrades).some((level) => level > 0);
+
+  return state.perfumeRevenue > 0 ||
+    state.lifetimePerfumeRevenue > 0 ||
+    state.runPerfumeRevenue > 0 ||
+    state.perfumesSold > 0 ||
+    state.gatherClicks > 0 ||
+    state.customerOrdersCompleted > 0 ||
+    state.ordersCompleted > 0 ||
+    state.rareFlaconsClaimed > 0 ||
+    state.claimedMissions.length > 0 ||
+    state.rebirths > 0 ||
+    state.totalRebirths > 0 ||
+    state.essences > 0 ||
+    state.outsideExpansions > 0 ||
+    state.wallsBuilt ||
+    state.unlockedFloors.length > 1 ||
+    state.unlockedWorlds.length > 1 ||
+    hasMachines || hasIngredients || hasDiscoveries || hasPerfumes || hasUpgrades;
+}
+
+function updateMainMenuSummary(): void {
+  const savedProgress = hasSavedProgress();
+  byId<HTMLButtonElement>('menu-continue').textContent = savedProgress ? 'CONTINUER LA PARTIE' : 'COMMENCER À JOUER';
+  byId('menu-save-status').textContent = savedProgress ? 'PROGRESSION RETROUVÉE' : 'NOUVELLE AVENTURE';
+  byId('menu-save-description').textContent = savedProgress
+    ? 'Ta maison de parfum est prête. Reprends exactement là où tu t’es arrêté.'
+    : 'Ton atelier t’attend. Récolte tes premières matières et crée ta première fragrance.';
+}
+
+function hideMainMenu(): void {
+  const menu = byId('main-menu');
+  menu.classList.add('is-hidden');
+  menu.setAttribute('aria-hidden', 'true');
+}
+
+function showMainMenu(): void {
+  updateMainMenuSummary();
+  const menu = byId('main-menu');
+  menu.classList.remove('is-hidden');
+  menu.setAttribute('aria-hidden', 'false');
+  byId<HTMLButtonElement>('menu-continue').focus();
 }
 
 // Keep native Tab and Enter/Space behavior available to keyboard users.
@@ -1205,6 +1279,42 @@ app.addEventListener('click', (event) => {
   if (!(event instanceof MouseEvent)) return;
   const target = event.target instanceof Element ? event.target.closest<HTMLElement>('button') : null;
   if (!target) return;
+
+  if (target.id === 'open-main-menu') {
+    showMainMenu();
+    return;
+  }
+  if (target.id === 'menu-continue') {
+    hideMainMenu();
+    setStatus(hasSavedProgress()
+      ? 'Partie reprise. Continue à développer ta maison de parfum.'
+      : 'Bienvenue dans Parfum Empire. Clique sur une parcelle pour commencer ta première récolte.');
+    return;
+  }
+  if (target.id === 'menu-new-game') {
+    if (eraseSave()) {
+      updateMainMenuSummary();
+      hideMainMenu();
+    }
+    return;
+  }
+  if (target.id === 'menu-load-save') {
+    activeTab = 'save';
+    renderStore();
+    hideMainMenu();
+    setStatus('Sauvegarde ouverte. Tu peux importer un fichier JSON ou coller les données d’une autre partie.');
+    return;
+  }
+  if (target.id === 'menu-settings') {
+    activeTab = 'save';
+    renderStore();
+    hideMainMenu();
+    setStatus('Paramètres audio et affichage : utilise les commandes ci-dessous.');
+    const soundSetting = byId<HTMLInputElement>('sound-enabled-toggle');
+    soundSetting.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    soundSetting.focus({ preventScroll: true });
+    return;
+  }
 
   if (target.dataset.selectRecipe) {
     selectedRecipeId = target.dataset.selectRecipe as RecipeId;
@@ -1368,6 +1478,12 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 window.addEventListener('beforeunload', save);
+window.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return;
+  const menu = byId('main-menu');
+  if (!menu.classList.contains('is-hidden')) return;
+  showMainMenu();
+});
 
 function gameTick(now: number): void {
   const elapsed = Math.min(1, Math.max(0, (now - lastTick) / 1000));
@@ -1395,6 +1511,7 @@ function gameTick(now: number): void {
 }
 
 renderAll();
+updateMainMenuSummary();
 workshopScene = createWorkshopScene(byId<HTMLCanvasElement>('workshop-canvas'), interactWithStation, (station) => {
   nearbyStation = station;
   renderSceneSelection();
