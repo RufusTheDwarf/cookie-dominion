@@ -231,7 +231,7 @@ app.innerHTML = `
         <div class="workshop-card">
           <div class="workshop-card-topline"><span>ATELIER 2D</span><span id="harvest-mode-label">RÉCOLTE MANUELLE</span></div>
           <div class="workshop-stage-frame workshop-stage" id="workshop-stage-frame">
-            <canvas id="workshop-canvas" aria-label="Atelier 2D. Déplace-toi avec ZQSD ou les flèches. Clique au sol pour marcher. Appuie sur E près d'un poste pour interagir." role="img"></canvas>
+            <canvas id="workshop-canvas" aria-label="Atelier 2D. Clique sur une parcelle ou un poste pour t’y rendre et agir automatiquement. Clique au sol pour marcher librement. Flèches ou ZQSD pour diriger le personnage. E permet d’interagir à proximité." role="img"></canvas>
             <div class="scene-help"><span id="scene-prompt">Déplace-toi vers une parcelle pour récolter.</span><button id="scene-interact" type="button" disabled>INTERAGIR · E</button></div>
             <div class="scene-touch-controls" aria-label="Commandes tactiles"><div class="scene-pad"><button type="button" data-scene-move="up" aria-label="Avancer">↑</button><button type="button" data-scene-move="left" aria-label="Aller à gauche">←</button><button type="button" data-scene-move="down" aria-label="Reculer">↓</button><button type="button" data-scene-move="right" aria-label="Aller à droite">→</button></div><small>Commandes tactiles</small></div>
           </div>
@@ -249,7 +249,7 @@ app.innerHTML = `
           <div id="botanical-expansion-panel" class="botanical-expansion-panel"></div>
           <div class="workshop-instructions">
             <strong>Travaille à chaque poste</strong>
-            <span>Approche les parcelles pour récolter une matière précise. Choisis une recette, formule-la au laboratoire et vends le flacon au comptoir.</span>
+            <span>Clique sur une parcelle pour la rejoindre et récolter automatiquement. Choisis une formule, puis clique le laboratoire pour fabriquer. Au comptoir, clique pour vendre ou livrer. Utilise les flèches ou ZQSD pour marcher librement.</span>
           </div>
           <div class="material-codex-heading"><span>CARNET BOTANIQUE</span><span id="material-discovered-count">0 découvertes</span></div>
           <div id="material-inventory" class="material-inventory"></div>
@@ -746,7 +746,7 @@ function renderSceneSelection(): void {
   const orderReady = selectedRecipeIsOrder && canFulfillCustomerOrder(state);
   button.disabled = nearbyStation === null;
   if (!nearbyStation) {
-    prompt.textContent = 'Marche jusqu’à un poste, puis appuie sur E ou Interagir.';
+    prompt.textContent = 'Clique une parcelle ou un poste : le personnage s’y rend et lance l’action automatiquement.';
   } else if (nearbyStation === 'laboratory') {
     prompt.textContent = stationNames[nearbyStation] + ' · composer la recette active';
   } else if (nearbyStation === 'counter') {
