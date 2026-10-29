@@ -56,3 +56,11 @@ La progression est encore stockée côté navigateur. La validation des données
 ### Click-to-move pathfinding
 
 Tap/click movement uses grid-based A* routing to navigate around blocked stations, purchased machines, and closed wall sections. Automated route tests cover obstacle avoidance and cross-workshop movement; browser/device feel still needs manual verification.
+
+
+### Mobile-first controls and feedback
+- Les boutons directionnels tactiles acceptent un appui prolongé pour marcher en continu; un simple tap reste fonctionnel.
+- Les commandes tactiles ont une zone de pression agrandie, sans sélection de texte ni surbrillance parasite.
+- L'interface se réorganise en une colonne sur téléphone, avec statistiques défilantes et contrôles d'étage accessibles.
+- Une brève vibration confirme les récoltes réussies sur les appareils qui prennent en charge l'API Vibration.
+- Les effets sonores d'action étaient déjà présents; le test visuel réel sur appareil reste à faire.
