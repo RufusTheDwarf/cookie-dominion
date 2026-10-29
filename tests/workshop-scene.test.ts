@@ -54,6 +54,13 @@ describe('workshop floor landings', () => {
     expect(getFloorTransitionLanding(2, 0)).toEqual({ x: 870, y: 460 });
   });
 
+  it('keeps the visible staircase objects fixed while landings stay clear', () => {
+    expect(isWorkshopPositionBlocked(925, 520, 0)).toBe(true);
+    expect(isWorkshopPositionBlocked(720, 520, 1)).toBe(true);
+    expect(isWorkshopPositionBlocked(770, 460, 1)).toBe(false);
+    expect(isWorkshopPositionBlocked(870, 460, 0)).toBe(false);
+  });
+
   it('places the player on a free tile after changing floors', () => {
     for (const [from, to] of [[0, 1], [1, 2], [2, 1], [1, 0], [2, 0]]) {
       const landing = getFloorTransitionLanding(from, to);
