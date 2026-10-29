@@ -1187,7 +1187,8 @@ export function createWorkshopScene(
       if (landing) {
         player.x = landing.x;
         player.y = landing.y;
-        destination = null;
+        destinationPath = [];
+        destinationIndex = 0;
         keys.clear();
         actionStation = null;
         actionUntil = 0;
