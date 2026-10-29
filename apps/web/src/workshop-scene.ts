@@ -75,6 +75,8 @@ export interface FloorLanding {
   readonly y: number;
 }
 
+const STAIR_UP_POSITION: FloorLanding = { x: 925, y: 520 };
+const STAIR_DOWN_POSITION: FloorLanding = { x: 720, y: 520 };
 const FLOOR_UP_STAIR: FloorLanding = { x: 870, y: 460 };
 const FLOOR_DOWN_STAIR: FloorLanding = { x: 770, y: 460 };
 
@@ -109,8 +111,8 @@ const STATIONS: Station[] = [
   { id: 'mint-plot-2', x: 292, y: 545, title: 'MENTHE II', detail: 'Parcelle agrandie 09', color: '#6f9c77' },
   { id: 'rose-plot-2', x: 590, y: 172, title: 'ROSIER II', detail: 'Parcelle agrandie 10', color: '#b96e7b' },
   { id: 'laboratory', x: 820, y: 355, title: 'LABORATOIRE', detail: 'Formuler un parfum', color: '#b28a4d' },
-  { id: 'stairs', x: FLOOR_UP_STAIR.x, y: FLOOR_UP_STAIR.y, title: 'ESCALIER ↑', detail: 'Monter d’un étage', color: '#8e7051' },
-  { id: 'stairs-down', x: FLOOR_DOWN_STAIR.x, y: FLOOR_DOWN_STAIR.y, title: 'ESCALIER ↓', detail: 'Descendre d’un étage', color: '#657f87' },
+  { id: 'stairs', x: STAIR_UP_POSITION.x, y: STAIR_UP_POSITION.y, title: 'ESCALIER ↑', detail: 'Monter d’un étage', color: '#8e7051' },
+  { id: 'stairs-down', x: STAIR_DOWN_POSITION.x, y: STAIR_DOWN_POSITION.y, title: 'ESCALIER ↓', detail: 'Descendre d’un étage', color: '#657f87' },
   { id: 'counter', x: 1225, y: 355, title: 'COMPTOIR', detail: 'Vendre un flacon', color: '#53694c' },
 ];
 
