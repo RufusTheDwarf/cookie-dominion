@@ -265,8 +265,6 @@ app.innerHTML = `
           </div>
         </div>
 
-        </div>
-
 
         <div class="mini-metrics">
           <div><span>Revenus cumulés</span><strong id="lifetime-sales">0</strong></div>

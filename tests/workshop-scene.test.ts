@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { findWorkshopPath, getFloorTransitionLanding, isClosedWallCrossingBlocked, isWorkshopPositionBlocked, WORKSHOP_EFFECT_PROFILES } from '../apps/web/src/workshop-scene';
 
@@ -161,5 +162,66 @@ describe('workshop starting position', () => {
   it('starts beside the first botanical plot and outside the collision box', () => {
     expect(isWorkshopPositionBlocked(160, 210, 0)).toBe(false);
     expect(findWorkshopPath(160, 210, 166, 192, 0).length).toBeGreaterThan(0);
+  });
+});
+
+
+
+describe('application HTML structure', () => {
+  it('keeps the workshop, manufacture, and office inside one valid grid', () => {
+    const source = readFileSync(new URL('../apps/web/src/main.ts', import.meta.url), 'utf8');
+    const tick = String.fromCharCode(96);
+    const templateStart = source.indexOf('app.innerHTML = ' + tick);
+    const templateEnd = source.indexOf(tick + ';\n\nfunction byId', templateStart);
+    expect(templateStart, 'the application HTML template must exist').toBeGreaterThanOrEqual(0);
+    expect(templateEnd, 'the application HTML template must close').toBeGreaterThan(templateStart);
+    const html = source.slice(templateStart + ('app.innerHTML = ' + tick).length, templateEnd);
+
+    type ElementNode = { tag: string; className: string; children: ElementNode[] };
+    const root: ElementNode = { tag: '#root', className: '', children: [] };
+    const stack: ElementNode[] = [root];
+    const voidTags = new Set([
+      'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input',
+      'link', 'meta', 'param', 'source', 'track', 'wbr',
+    ]);
+
+    for (const tokenMatch of html.matchAll(/<!--[\s\S]*?-->|<\/?[a-zA-Z][^>]*>/g)) {
+      const token = tokenMatch[0];
+      if (token.startsWith('<!--')) continue;
+      const closing = /^<\//.test(token);
+      const name = token.match(/^<\/?\s*([a-zA-Z][\w:-]*)/)?.[1]?.toLowerCase();
+      if (!name) continue;
+
+      if (closing) {
+        expect(stack.length, 'unexpected closing tag ' + token).toBeGreaterThan(1);
+        expect(stack[stack.length - 1]!.tag, 'mismatched closing tag ' + token).toBe(name);
+        stack.pop();
+        continue;
+      }
+
+      const className = token.match(/\bclass=["']([^"']*)["']/)?.[1] ?? '';
+      const element: ElementNode = { tag: name, className, children: [] };
+      stack[stack.length - 1]!.children.push(element);
+      if (!voidTags.has(name) && !/\/\s*>$/.test(token)) stack.push(element);
+    }
+
+    expect(stack.map((element) => element.tag), 'all HTML tags must be properly closed').toEqual(['#root']);
+    const findByClass = (node: ElementNode, className: string): ElementNode | undefined => {
+      if (node.className.split(/\s+/).includes(className)) return node;
+      for (const child of node.children) {
+        const found = findByClass(child, className);
+        if (found) return found;
+      }
+      return undefined;
+    };
+
+    const layout = findByClass(root, 'game-layout');
+    expect(layout, 'the main layout grid must exist').toBeDefined();
+    expect(layout!.children.map((child) => child.className.split(/\s+/).find((name) =>
+      ['workshop-column', 'production-column', 'store-column'].includes(name),
+    ))).toEqual(['workshop-column', 'production-column', 'store-column']);
+
+    const workshop = findByClass(layout!, 'workshop-column');
+    expect(workshop!.children.some((child) => child.className.split(/\s+/).includes('mini-metrics'))).toBe(true);
   });
 });
