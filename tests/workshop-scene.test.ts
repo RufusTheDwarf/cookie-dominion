@@ -44,12 +44,12 @@ describe('workshop collision boundaries', () => {
 
 describe('workshop floor landings', () => {
   it('arrives beside the descending stairs when moving to a higher floor', () => {
-    expect(getFloorTransitionLanding(0, 1)).toEqual({ x: 770, y: 520 });
+    expect(getFloorTransitionLanding(0, 1)).toEqual({ x: 770, y: 460 });
     expect(getFloorTransitionLanding(1, 2)).toEqual({ x: 770, y: 520 });
   });
 
   it('arrives beside the ascending stairs when returning to a lower floor', () => {
-    expect(getFloorTransitionLanding(2, 1)).toEqual({ x: 870, y: 520 });
+    expect(getFloorTransitionLanding(2, 1)).toEqual({ x: 870, y: 460 });
     expect(getFloorTransitionLanding(1, 0)).toEqual({ x: 870, y: 520 });
     expect(getFloorTransitionLanding(2, 0)).toEqual({ x: 870, y: 520 });
   });
