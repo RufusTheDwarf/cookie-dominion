@@ -139,6 +139,8 @@ export interface GameState {
   totalRebirths: number;
   essences: number;
   rampBuilt: boolean;
+  /** Distinguishes a genuinely purchased starter plot from old prototype saves that forced rampBuilt=true. */
+  startingPlotPurchased: boolean;
   wallsBuilt: boolean;
   outsideExpansions: number;
   lastSavedAt: number;
@@ -464,6 +466,7 @@ export function createInitialState(now = Date.now()): GameState {
     totalRebirths: 0,
     essences: 0,
     rampBuilt: false,
+    startingPlotPurchased: false,
     wallsBuilt: false,
     outsideExpansions: 0,
     lastSavedAt: now,
@@ -504,7 +507,7 @@ export function unlockBotanicalExpansion(state: GameState): GameState {
 
 export function buyStartingLand(state: GameState): GameState {
   if (state.rampBuilt || state.perfumeRevenue < STARTING_LAND_COST) return state;
-  return { ...state, perfumeRevenue: state.perfumeRevenue - STARTING_LAND_COST, rampBuilt: true };
+  return { ...state, perfumeRevenue: state.perfumeRevenue - STARTING_LAND_COST, rampBuilt: true, startingPlotPurchased: true };
 }
 
 export function getWorld(worldId: WorldId): WorldDefinition {
@@ -821,6 +824,7 @@ export function performRebirth(state: GameState): GameState {
     lastHarvestedMaterial: null,
     rebirths: nextRebirths,
     rampBuilt: true,
+    startingPlotPurchased: true,
     wallsBuilt: false,
     outsideExpansions: 0,
     unlockedFloors: [0],
@@ -1032,6 +1036,7 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
         ? value.essences as number
         : 0,
       rampBuilt: value.rampBuilt === undefined ? true : value.rampBuilt === true,
+      startingPlotPurchased: value.startingPlotPurchased === true,
       wallsBuilt: value.wallsBuilt === true,
       outsideExpansions: Number.isSafeInteger(value.outsideExpansions) && (value.outsideExpansions as number) >= 0
         ? Math.min(3, value.outsideExpansions as number)
@@ -1062,10 +1067,13 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       Object.values(state.ingredients).some((count) => count > 0) ||
       Object.values(state.perfumeStock).some((count) => count > 0) ||
       Object.values(state.materialDiscoveries).some((count) => count > 0) ||
-      ownedMachineCount > 0;
-    // Old prototype saves sometimes recorded an empty starting room as already built.
-    // If nothing was ever earned or bought, migrate that false positive back to the real first-run state.
-    if (!hasMeaningfulProgress && value.rampBuilt === undefined) {
+      ownedMachineCount > 0 ||
+      state.startingPlotPurchased;
+    // Earlier app versions forced rampBuilt=true even for a completely untouched save.
+    // Keep genuine progress but migrate those empty false positives to an unpurchased plot.
+    if (state.rampBuilt && hasMeaningfulProgress) state.startingPlotPurchased = true;
+    if (state.startingPlotPurchased) state.rampBuilt = true;
+    if (!hasMeaningfulProgress && value.startingPlotPurchased !== true && value.rampBuilt !== false) {
       state.rampBuilt = false;
       state.wallsBuilt = false;
       state.outsideExpansions = 0;
