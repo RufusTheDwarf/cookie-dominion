@@ -6,6 +6,8 @@ import {
   unlockBotanicalExpansion,
   MAX_BOTANICAL_EXPANSIONS,
   buyMachine,
+  buyStartingLand,
+  STARTING_LAND_COST,
   buyUpgrade,
   canClaimMission,
   canCraftPerfume,
@@ -152,11 +154,16 @@ function normalizeGameState(value: GameState): GameState {
     : 0;
   return {
     ...value,
-    rampBuilt: true,
+    rampBuilt: value.startingPlotPurchased === true || value.rampBuilt === true,
+    startingPlotPurchased: value.startingPlotPurchased === true,
     currentFloor: unlockedFloors.includes(requestedFloor) ? requestedFloor : 0,
     unlockedFloors,
     lastSavedAt: Date.now(),
   };
+}
+
+function createFreshGameState(): GameState {
+  return normalizeGameState({ ...createInitialState(), perfumeRevenue: STARTING_LAND_COST });
 }
 
 try {
@@ -178,14 +185,14 @@ try {
     backupNeedsRepair = true;
     saveRecoveryMessage = 'Une ancienne sauvegarde a été récupérée. Exporte une copie après vérification.';
   } else {
-    state = normalizeGameState(createInitialState());
+    state = createFreshGameState();
     if (primary !== null || backup !== null || legacy !== null) {
       backupNeedsRepair = true;
       saveRecoveryMessage = 'Les sauvegardes existantes sont illisibles. Une nouvelle partie a été créée; vérifie tes exports avant de continuer.';
     }
   }
 } catch {
-  state = normalizeGameState(createInitialState());
+  state = createFreshGameState();
   saveRecoveryMessage = 'Le stockage local est indisponible. La progression peut ne pas être conservée.';
 }
 
@@ -226,8 +233,8 @@ app.innerHTML = `
     <div class="game-layout">
       <section class="column workshop-column">
         <div class="section-heading workshop-heading">
-          <div><span class="eyebrow">01 · CRÉATION</span><h1>Le parfumeur</h1></div>
-          <span class="stamped-tag">ATELIER</span>
+          <div><span id="workshop-section-eyebrow" class="eyebrow">01 · TERRAIN</span><h1 id="workshop-section-title">Le terrain</h1></div>
+          <span id="workshop-stamped-tag" class="stamped-tag">CHANTIER</span>
         </div>
         <div class="workshop-card">
           <div class="workshop-card-topline"><span>ATELIER 2D</span><span id="harvest-mode-label">RÉCOLTE MANUELLE</span></div>
@@ -236,25 +243,25 @@ app.innerHTML = `
             <div class="scene-help"><span id="scene-prompt">Déplace-toi vers une parcelle pour récolter.</span><button id="scene-interact" type="button" disabled>INTERAGIR · E</button></div>
             <div class="scene-touch-controls" aria-label="Commandes tactiles"><div class="scene-pad"><button type="button" data-scene-move="up" aria-label="Avancer">↑</button><button type="button" data-scene-move="left" aria-label="Aller à gauche">←</button><button type="button" data-scene-move="down" aria-label="Reculer">↓</button><button type="button" data-scene-move="right" aria-label="Aller à droite">→</button></div><small>Commandes tactiles</small></div>
           </div>
-          <section class="floor-navigation" aria-label="Étages de la maison">
+          <section id="floor-navigation" class="floor-navigation" aria-label="Étages de la maison">
             <div class="floor-navigation-heading"><span class="eyebrow">ATELIER VERTICAL</span><strong id="active-floor-label">Artisanat · étage 0</strong></div>
             <div id="floor-buttons" class="floor-buttons"></div>
             <small id="floor-navigation-hint">Approche l'escalier pour ouvrir le prochain étage.</small>
           </section>
-          <div class="harvest-summary" aria-live="polite">
+          <div id="harvest-summary" class="harvest-summary" aria-live="polite">
             <span class="last-drop-icon"><img id="harvest-last-icon" src="/assets/material-unknown.svg" alt="" /></span>
             <span class="last-drop-copy"><small>DERNIÈRE DÉCOUVERTE</small><strong id="harvest-last-name">Objet inconnu</strong><em id="harvest-last-rarity">La nature réserve une surprise.</em></span>
             <span class="harvest-counter"><strong id="harvest-progress">0</strong><small>en stock</small></span>
           </div>
-          <div class="harvest-progress-track"><i id="harvest-progress-bar"></i></div>
+          <div id="harvest-progress-track" class="harvest-progress-track"><i id="harvest-progress-bar"></i></div>
           <div id="botanical-expansion-panel" class="botanical-expansion-panel"></div>
-          <div class="workshop-instructions">
+          <div id="workshop-instructions" class="workshop-instructions">
             <strong>Travaille à chaque poste</strong>
             <span>Clique sur une parcelle pour la rejoindre et récolter automatiquement. Choisis une formule, puis clique le laboratoire pour fabriquer. Au comptoir, clique pour vendre ou livrer. Utilise les flèches ou ZQSD pour marcher librement.</span>
           </div>
-          <div class="material-codex-heading"><span>CARNET BOTANIQUE</span><span id="material-discovered-count">0 découvertes</span></div>
+          <div id="material-codex-heading" class="material-codex-heading"><span>CARNET BOTANIQUE</span><span id="material-discovered-count">0 découvertes</span></div>
           <div id="material-inventory" class="material-inventory"></div>
-          <section class="recipe-workshop" aria-labelledby="recipe-workshop-title">
+          <section id="recipe-workshop" class="recipe-workshop" aria-labelledby="recipe-workshop-title">
             <div class="recipe-workshop-heading"><div><span class="eyebrow">FORMULATION ARTISANALE</span><h2 id="recipe-workshop-title">Carnet de formulations</h2></div><span id="perfume-stock-count">0 flacon</span></div>
             <p class="recipe-workshop-intro">Choisis une recette, récolte les ingrédients dans le jardin, puis rejoins le laboratoire pour la composer. Le comptoir sert à vendre les flacons.</p>
             <p class="selected-recipe-note">Recette active : <strong id="selected-recipe-name">Brise verte</strong></p>
@@ -529,6 +536,10 @@ function renderStats(): void {
 
 function renderMachines(): void {
   const list = byId('machine-list');
+  if (!state.rampBuilt) {
+    list.innerHTML = '<div class="empty-progression-panel"><strong>Le terrain est encore à acheter</strong><p>Achète la première parcelle sur la carte avant d’installer des machines.</p></div>';
+    return;
+  }
   const current = state.machines[state.currentWorld];
   const catalog = MACHINES.filter((machine) => machine.floor === state.currentFloor);
   const markup = catalog.map((machine) => {
@@ -727,10 +738,51 @@ function renderFloorNavigation(): void {
     (state.currentFloor > 0 ? ' L’escalier descendant ramène à l’étage ' + (state.currentFloor - 1) + '.' : '');
 }
 
+function renderStartingGuide(): string {
+  return '<div class="tab-panel-heading"><span class="eyebrow">DÉMARRAGE DU TYCOON</span><h2>Ton premier terrain</h2><p>Tu pars sans bâtiment ni parcelle. Tu disposes de ' +
+    format(STARTING_LAND_COST, 0) + ' pièces pour acheter le terrain indiqué sur la carte.</p></div>' +
+    '<div class="start-guide-steps"><p><strong>1.</strong> Rejoins le panneau « TERRAIN À VENDRE » au centre de la carte.</p>' +
+    '<p><strong>2.</strong> Appuie sur <kbd>E</kbd> pour acheter la parcelle.</p>' +
+    '<p><strong>3.</strong> Récolte lavande et menthe, compose « Brise verte », puis vends ton flacon pour financer la première machine.</p></div>';
+}
+
+function renderFirstMachineGuide(): string {
+  return '<div class="tab-panel-heading"><span class="eyebrow">PREMIERS INVESTISSEMENTS</span><h2>Créer une chaîne rentable</h2><p>Récolte deux ingrédients, formule une fragrance au laboratoire, puis vends-la au comptoir. Chaque vente finance tes machines.</p></div>' +
+    '<div class="start-guide-steps"><p><strong>1.</strong> Commence par « Brise verte » (lavande + menthe).</p>' +
+    '<p><strong>2.</strong> Vends plusieurs flacons avant d’acheter ta première table de formulation.</p>' +
+    '<p><strong>3.</strong> Les recherches, contrats et autres systèmes arrivent progressivement.</p></div>';
+}
+
+function storeTabIsVisible(tab: StoreTab): boolean {
+  const owned = totalMachinesOwned();
+  if (tab === 'save' || tab === 'upgrades') return true;
+  if (tab === 'contracts') return state.perfumesSold >= 1 || owned > 0;
+  if (tab === 'honours') return state.claimedMissions.length > 0 || state.perfumesSold >= 3;
+  if (tab === 'worlds') return state.rebirths >= 1 || state.unlockedWorlds.length > 1;
+  if (tab === 'prestige') return canRebirth(state) || state.rebirths > 0;
+  return false;
+}
+
 function renderStore(): void {
+  const tabButtons = Array.from(document.querySelectorAll<HTMLButtonElement>('.store-tabs [data-tab]'));
+  for (const button of tabButtons) {
+    const tab = button.dataset.tab as StoreTab;
+    button.hidden = !storeTabIsVisible(tab);
+    if (tab === 'upgrades') {
+      button.textContent = !state.rampBuilt
+        ? 'Démarrage'
+        : totalMachinesOwned() === 0
+          ? 'Catalogue'
+          : 'Recherches';
+    }
+  }
+  const visibleTabs = tabButtons.filter((button) => !button.hidden).length;
+  const tabNav = document.querySelector<HTMLElement>('.store-tabs');
+  if (tabNav) tabNav.style.gridTemplateColumns = 'repeat(' + Math.min(3, Math.max(1, visibleTabs)) + ', minmax(0, 1fr))';
+  if (!storeTabIsVisible(activeTab)) activeTab = 'upgrades';
   const content = byId('store-content');
   const panels: Record<StoreTab, () => string> = {
-    upgrades: renderUpgrades,
+    upgrades: () => !state.rampBuilt ? renderStartingGuide() : totalMachinesOwned() === 0 ? renderFirstMachineGuide() : renderUpgrades(),
     contracts: renderContracts,
     honours: renderHonours,
     worlds: renderWorlds,
@@ -752,6 +804,7 @@ function renderSceneSelection(): void {
   const prompt = byId('scene-prompt');
   const button = byId<HTMLButtonElement>('scene-interact');
   const stationNames: Record<WorkshopStation, string> = {
+    'starting-land': 'Terrain de départ',
     lavender: 'Parcelle de lavande', mint: 'Parcelle de menthe', rose: 'Roseraie',
     bergamot: 'Bergamotiers', sandalwood: 'Bois de santal', jasmine: 'Jardin de jasmin',
     resin: 'Résine ambrée', laboratory: 'Laboratoire de formulation', counter: 'Comptoir de vente',
@@ -767,6 +820,8 @@ function renderSceneSelection(): void {
   button.disabled = nearbyStation === null;
   if (!nearbyStation) {
     prompt.textContent = 'Clique une parcelle ou un poste : le personnage s’y rend et lance l’action automatiquement.';
+  } else if (nearbyStation === 'starting-land') {
+    prompt.textContent = stationNames[nearbyStation] + ' · acheter la première parcelle (' + format(STARTING_LAND_COST, 0) + ' pièces)';
   } else if (nearbyStation === 'laboratory') {
     prompt.textContent = stationNames[nearbyStation] + ' · composer la recette active';
   } else if (nearbyStation === 'counter') {
@@ -784,7 +839,9 @@ function renderSceneSelection(): void {
   } else {
     prompt.textContent = stationNames[nearbyStation] + ' · récolter une matière choisie';
   }
-  button.textContent = nearbyStation === 'laboratory'
+  button.textContent = nearbyStation === 'starting-land'
+    ? 'ACHETER TERRAIN · E'
+    : nearbyStation === 'laboratory'
     ? 'FORMULER · E'
     : nearbyStation === 'counter'
       ? selectedRecipeIsOrder ? (orderReady ? 'LIVRER · E' : 'COMMANDE · E') : 'VENDRE · E'
@@ -796,6 +853,22 @@ function renderSceneSelection(): void {
 }
 
 function interactWithStation(station: WorkshopStation): void {
+  if (station === 'starting-land') {
+    const purchased = buyStartingLand(state);
+    if (purchased === state) {
+      playGameEffect('failure', 'TERRAIN NON ACHETÉ');
+      setStatus('Il te faut ' + format(STARTING_LAND_COST, 0) + ' pièces pour acheter ce terrain.');
+      return;
+    }
+    state = purchased;
+    playSound('unlock');
+    renderAll();
+    playGameEffect('unlock', 'TERRAIN ACHETÉ', ['#header-money', '#workshop-canvas']);
+    setStatus('Terrain acheté. Le jardin est ouvert : commence par la lavande et la menthe, puis compose ta première fragrance au laboratoire.');
+    saveSoon();
+    return;
+  }
+
   const expansionMaterial = EXPANSION_PLOT_MATERIALS[station];
   if (MATERIALS.some((material) => material.id === station) || expansionMaterial) {
     const material: MaterialId = expansionMaterial ?? (station as MaterialId);
@@ -946,7 +1019,7 @@ function renderAll(): void {
   workshopScene?.setEnvironment(getWorld(state.currentWorld), state.currentFloor, MACHINES.map((machine) => ({
     id: machine.id, short: machine.short, name: machine.name, floor: machine.floor,
     count: state.machines[state.currentWorld][machine.id],
-  })), state.outsideExpansions, currentCustomerVisual());
+  })), state.outsideExpansions, currentCustomerVisual(), state.rampBuilt, unlockedMaterialsForState());
   renderStats();
   renderFloorNavigation();
   renderHarvestView();
@@ -955,6 +1028,22 @@ function renderAll(): void {
   renderSceneSelection();
   renderMachines();
   renderStore();
+  syncProgressionVisibility();
+}
+
+function syncProgressionVisibility(): void {
+  const purchased = state.rampBuilt;
+  const hideUntilPurchased = [
+    'floor-navigation', 'harvest-summary', 'harvest-progress-track',
+    'botanical-expansion-panel', 'workshop-instructions', 'material-codex-heading',
+    'material-inventory', 'recipe-workshop',
+  ];
+  for (const id of hideUntilPurchased) byId(id).hidden = !purchased;
+  const metrics = document.querySelector<HTMLElement>('.mini-metrics');
+  if (metrics) metrics.hidden = !purchased;
+  byId('workshop-section-title').textContent = purchased ? 'Le parfumeur' : 'Le terrain';
+  byId('workshop-section-eyebrow').textContent = purchased ? '01 · CRÉATION' : '01 · TERRAIN';
+  byId('workshop-stamped-tag').textContent = purchased ? 'ATELIER' : 'CHANTIER';
 }
 
 let gameAnimationSequence = 0;
@@ -1026,11 +1115,34 @@ function floatText(label: string, event?: MouseEvent): void {
   window.setTimeout(() => floating.remove(), 950);
 }
 
+function isRecipeUnlocked(recipeId: RecipeId): boolean {
+  if (recipeId === 'green-whisper') return true;
+  if (recipeId === 'soft-rose' || recipeId === 'citrus-dawn') {
+    return state.perfumesSold >= 1 || state.materialDiscoveries.rose > 0 || state.materialDiscoveries.bergamot > 0;
+  }
+  if (recipeId === 'royal-bouquet') {
+    return state.perfumesSold >= 3 || state.materialDiscoveries.jasmine > 0;
+  }
+  return state.perfumesSold >= 5 || state.materialDiscoveries.resin > 0;
+}
+
+function unlockedMaterialsForState(): string[] {
+  const materials = ['lavender', 'mint'];
+  if (state.perfumesSold >= 1 || state.materialDiscoveries.rose > 0 || state.materialDiscoveries.bergamot > 0) {
+    materials.push('rose', 'bergamot');
+  }
+  if (state.perfumesSold >= 3 || state.materialDiscoveries.sandalwood > 0 || state.materialDiscoveries.jasmine > 0) {
+    materials.push('sandalwood', 'jasmine');
+  }
+  if (state.perfumesSold >= 5 || state.materialDiscoveries.resin > 0) materials.push('resin');
+  return materials;
+}
+
 function renderRecipeWorkshop(): void {
   const totalStock = Object.values(state.perfumeStock).reduce((sum, count) => sum + count, 0);
   byId('perfume-stock-count').textContent = format(totalStock, 0) + ' flacon' + (totalStock === 1 ? '' : 's');
   byId('selected-recipe-name').textContent = PERFUME_RECIPES.find((recipe) => recipe.id === selectedRecipeId)?.name ?? 'Aucune';
-  byId('recipe-list').innerHTML = PERFUME_RECIPES.map((recipe) => {
+  byId('recipe-list').innerHTML = PERFUME_RECIPES.filter((recipe) => isRecipeUnlocked(recipe.id)).map((recipe) => {
     const stock = state.perfumeStock[recipe.id];
     const ingredients = Object.entries(recipe.ingredients).map(([id, amount]) => {
       const material = MATERIALS.find((item) => item.id === id)!;
@@ -1050,6 +1162,13 @@ function renderRecipeWorkshop(): void {
 }
 
 function renderCustomerOrder(): void {
+  const panel = byId('customer-order-panel');
+  if (!state.rampBuilt || state.perfumesSold < 1) {
+    panel.hidden = true;
+    panel.innerHTML = '';
+    return;
+  }
+  panel.hidden = false;
   const order = getActiveCustomerOrder(state);
   const recipe = PERFUME_RECIPES.find((item) => item.id === order.recipeId)!;
   const stock = state.perfumeStock[order.recipeId];
@@ -1208,7 +1327,9 @@ function applyImportedSave(raw: string): void {
 
 function eraseSave(): boolean {
   if (!window.confirm('Effacer définitivement la progression locale et recommencer depuis zéro ?')) return false;
-  state = normalizeGameState(createInitialState());
+  state = createFreshGameState();
+  selectedRecipeId = 'green-whisper';
+  activeTab = 'upgrades';
   try {
     localStorage.removeItem(SAVE_KEY);
     localStorage.removeItem(BACKUP_SAVE_KEY);
@@ -1232,7 +1353,7 @@ function hasSavedProgress(): boolean {
   const hasPerfumes = Object.values(state.perfumeStock).some((count) => count > 0);
   const hasUpgrades = Object.values(state.upgrades).some((level) => level > 0);
 
-  return state.perfumeRevenue > 0 ||
+  return state.startingPlotPurchased || state.rampBuilt ||
     state.lifetimePerfumeRevenue > 0 ||
     state.runPerfumeRevenue > 0 ||
     state.perfumesSold > 0 ||
@@ -1519,7 +1640,7 @@ workshopScene = createWorkshopScene(byId<HTMLCanvasElement>('workshop-canvas'), 
 workshopScene.setEnvironment(getWorld(state.currentWorld), state.currentFloor, MACHINES.map((machine) => ({
   id: machine.id, short: machine.short, name: machine.name, floor: machine.floor,
   count: state.machines[state.currentWorld][machine.id],
-})), state.outsideExpansions, currentCustomerVisual());
+})), state.outsideExpansions, currentCustomerVisual(), state.rampBuilt, unlockedMaterialsForState());
 renderFloorNavigation();
 
 // Hold a direction on touchscreens for continuous movement, while preserving tap-to-step.
@@ -1546,4 +1667,5 @@ window.addEventListener('pointercancel', stopTouchMovement);
 window.addEventListener('blur', stopTouchMovement);
 save();
 if (saveRecoveryMessage) setStatus(saveRecoveryMessage);
+else if (!state.rampBuilt) setStatus('Objectif : rejoins le panneau TERRAIN À VENDRE et appuie sur E pour acheter ta première parcelle.');
 requestAnimationFrame(gameTick);

@@ -55,6 +55,7 @@ describe('tycoon economy', () => {
   it('starts with an empty workshop and preserves built legacy saves only when they have progress', () => {
     const initial = createInitialState(100);
     expect(initial.rampBuilt).toBe(false);
+    expect(initial.startingPlotPurchased).toBe(false);
     expect(initial.wallsBuilt).toBe(false);
     expect(initial.outsideExpansions).toBe(0);
 
@@ -68,6 +69,7 @@ describe('tycoon economy', () => {
       outsideExpansions: undefined,
     }), 100);
     expect(olderProgress.rampBuilt).toBe(true);
+    expect(olderProgress.startingPlotPurchased).toBe(true);
     expect(olderProgress.wallsBuilt).toBe(false);
 
     const staleEmptySave = parseSavedState(JSON.stringify({
@@ -88,8 +90,9 @@ describe('tycoon economy', () => {
     expect(expandedLegacySave.outsideExpansions).toBe(1);
     expect(expandedLegacySave.rampBuilt).toBe(true);
 
-    const explicitRampSave = parseSavedState(JSON.stringify({ ...initial, rampBuilt: true }), 100);
-    expect(explicitRampSave.rampBuilt).toBe(true);
+    const staleExplicitRampSave = parseSavedState(JSON.stringify({ ...initial, rampBuilt: true }), 100);
+    expect(staleExplicitRampSave.rampBuilt).toBe(false);
+    expect(staleExplicitRampSave.startingPlotPurchased).toBe(false);
   });
 
   it('migrates an empty first-generation save to the unbuilt starting room', () => {
@@ -135,6 +138,7 @@ describe('tycoon economy', () => {
     const funded = { ...broke, perfumeRevenue: STARTING_LAND_COST };
     const purchased = buyStartingLand(funded);
     expect(purchased.rampBuilt).toBe(true);
+    expect(purchased.startingPlotPurchased).toBe(true);
     expect(purchased.perfumeRevenue).toBe(0);
     expect(buyStartingLand(purchased)).toBe(purchased);
   });

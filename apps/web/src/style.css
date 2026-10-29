@@ -1313,3 +1313,185 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .main-menu-actions button { transition: none; }
   .main-menu-actions button:hover { transform: none; }
 }
+
+
+/* Core tycoon pacing and layout: dashboard first, compact centered map below. */
+[hidden] { display: none !important; }
+
+.empty-progression-panel {
+  padding: 18px 16px;
+  border: 1px dashed #b2a47f;
+  background: #f3ead6;
+}
+.empty-progression-panel strong {
+  display: block;
+  margin-bottom: 6px;
+  color: #3f5037;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 16px;
+}
+.empty-progression-panel p {
+  margin: 0;
+  color: #68634f;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.start-guide-steps {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+.start-guide-steps p {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  gap: 8px;
+  margin: 0;
+  padding: 10px 11px;
+  border-left: 2px solid var(--brass);
+  background: rgba(214, 201, 171, .27);
+  color: #4f4b3e;
+  font-size: 11px;
+  line-height: 1.55;
+}
+.start-guide-steps p strong { color: var(--moss-dark); }
+.start-guide-steps kbd {
+  padding: 1px 5px;
+  border: 1px solid #b8aa88;
+  background: #f8f0dc;
+  font: 700 10px ui-monospace, monospace;
+}
+
+/* Desktop: keep production and office side-by-side; center the smaller map on row two. */
+@media (min-width: 1121px) {
+  .game-shell { max-width: 1480px; padding: 10px 16px 20px; }
+  .topbar { align-items: center; gap: 10px; padding: 10px 14px; }
+  .brand { min-width: 220px; gap: 10px; }
+  .brand-mark, .brand-mark img { width: 47px; height: 54px; }
+  .brand-mark { flex-basis: 47px; }
+  .brand-text > strong { font-size: clamp(23px, 2vw, 30px); }
+  .header-economy { flex: 1 1 700px; min-width: 0; }
+  .headline-money, .header-stat { min-width: 0; padding: 5px 9px; }
+  .headline-money { min-width: 118px; }
+  .headline-money > span, .header-stat > span { font-size: 7px; letter-spacing: .8px; }
+  .header-stat strong { font-size: 15px; }
+  .progress-strip { gap: 8px; padding: 8px 10px; }
+  #global-status { white-space: normal; line-height: 1.3; }
+  .game-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 12px;
+  }
+  .production-column { grid-column: 1; grid-row: 1; }
+  .store-column { grid-column: 2; grid-row: 1; }
+  .workshop-column {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: min(100%, 820px);
+    justify-self: center;
+  }
+  .workshop-stage { min-height: 0; height: auto; align-items: center; }
+  #workshop-canvas {
+    display: block;
+    width: min(100%, 760px);
+    max-width: 760px;
+    height: auto;
+    aspect-ratio: 960 / 440;
+    min-height: 0;
+    flex: 0 0 auto;
+  }
+  .scene-help { width: min(100%, 760px); flex: 0 0 auto; }
+  .scene-touch-controls { width: min(100%, 760px); }
+}
+
+/* Tablet: same hierarchy with denser panels and map beneath the dashboard. */
+@media (min-width: 721px) and (max-width: 1120px) {
+  .game-shell { padding: 8px 10px 18px; }
+  .topbar { flex-wrap: wrap; gap: 8px; padding: 9px 12px; }
+  .brand { min-width: 190px; }
+  .brand-mark, .brand-mark img { width: 42px; height: 48px; }
+  .brand-mark { flex-basis: 42px; }
+  .header-economy { flex: 1 1 100%; width: 100%; justify-content: stretch; }
+  .headline-money, .header-stat { flex: 1 1 0; min-width: 0; padding: 5px 7px; }
+  .headline-money { min-width: 0; }
+  .header-stat > span, .headline-money > span { font-size: 7px; letter-spacing: .4px; }
+  .header-stat strong, .headline-money strong { font-size: 14px; }
+  .progress-strip { flex-wrap: wrap; gap: 6px 9px; padding: 8px 10px; }
+  #global-status { flex: 1 1 100%; margin-left: 0; white-space: normal; line-height: 1.35; }
+  .game-layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: 10px;
+  }
+  .production-column { grid-column: 1; grid-row: 1; }
+  .store-column { grid-column: 2; grid-row: 1; }
+  .workshop-column {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: min(100%, 760px);
+    justify-self: center;
+  }
+  .workshop-stage { min-height: 0; height: auto; align-items: center; }
+  #workshop-canvas {
+    display: block;
+    width: min(100%, 700px);
+    max-width: 700px;
+    height: auto;
+    aspect-ratio: 960 / 440;
+    min-height: 0;
+    flex: 0 0 auto;
+  }
+  .scene-help { width: min(100%, 700px); flex: 0 0 auto; }
+  .scene-touch-controls { width: min(100%, 700px); }
+}
+
+/* Mobile: readable stack, with the game map last and centered. */
+@media (max-width: 720px) {
+  .game-shell { padding: 7px 7px 16px; }
+  .topbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 8px; }
+  .brand { min-width: 0; flex: 1 1 100%; gap: 8px; }
+  .brand-mark, .brand-mark img { width: 36px; height: 42px; }
+  .brand-mark { flex-basis: 36px; }
+  .brand-text > strong { font-size: 24px; }
+  .brand-text > small { font-size: 8px; }
+  .header-economy { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); flex: 1 1 100%; width: 100%; }
+  .headline-money, .header-stat { min-width: 0; padding: 5px 6px; }
+  .headline-money { grid-column: span 3; min-width: 0; border-left: 0; border-bottom: 1px solid rgba(238,232,209,.2); }
+  .headline-money > span, .header-stat > span { font-size: 7px; letter-spacing: .4px; }
+  .header-stat strong { font-size: 14px; }
+  .header-stat small { font-size: 8px; }
+  .header-economy #header-run { display: none; }
+  .progress-strip { flex-wrap: wrap; gap: 6px; padding: 8px; }
+  #current-world-line, #current-rank { font-size: 9px; }
+  #global-status { flex: 1 1 100%; order: 4; margin-left: 0; white-space: normal; line-height: 1.4; }
+  #save-indicator { order: 5; }
+  .game-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: 9px; }
+  .production-column { grid-column: 1; grid-row: 1; }
+  .store-column { grid-column: 1; grid-row: 2; }
+  .workshop-column {
+    grid-column: 1;
+    grid-row: 3;
+    width: min(100%, 620px);
+    justify-self: center;
+    padding: 9px;
+  }
+  .production-column { padding: 10px; }
+  .section-heading h1 { font-size: 20px; }
+  .workshop-stage { min-height: 0; height: auto; align-items: center; }
+  #workshop-canvas {
+    display: block;
+    width: 100%;
+    max-width: 600px;
+    height: auto;
+    aspect-ratio: 960 / 440;
+    min-height: 0;
+    flex: 0 0 auto;
+  }
+  .scene-help { width: 100%; flex: 0 0 auto; }
+  .scene-touch-controls { width: 100%; }
+  .store-tabs { position: sticky; top: 0; z-index: 4; }
+  .store-tab { padding: 9px 5px; font-size: 8px; }
+  .game-footer { flex-wrap: wrap; justify-content: center; text-align: center; gap: 6px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .start-guide-steps p { scroll-behavior: auto; }
+}
