@@ -7,7 +7,7 @@
 | Atelier 2D | Implémenté | Jardin, laboratoire et boutique dans un monde plus grand que l'écran |
 | Caméra | Implémenté | Suit le joueur et reste dans les limites de la carte |
 | Identité visuelle des mondes | Implémenté | Fond, sols, chemins, séparations et mobilier adaptés à la collection active |
-| Étages accessibles | Implémenté | Escaliers montants et descendants, coûts, prérequis, sélection, persistance, catalogues filtrés et arrivée près de l'escalier opposé |
+| Étages accessibles | Implémenté | Escaliers montants et descendants, coûts, prérequis, sélection, persistance, catalogues filtrés et arrivée sur une case libre près de l'escalier opposé |
 | Architecture des étages | Implémenté | Lignes de conditionnement au 1er étage, chambres d’extraction au 2e, ouvertures encadrées |
 | Escaliers bidirectionnels | Implémenté | Escalier montant et descendant visibles selon l’étage, règles de navigation testées |
 | Animation du personnage | Implémenté | Orientation, marche, mouvement du corps et geste d'interaction |
