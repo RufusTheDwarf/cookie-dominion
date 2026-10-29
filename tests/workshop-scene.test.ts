@@ -155,3 +155,11 @@ describe('workshop action animation profiles', () => {
     expect(WORKSHOP_EFFECT_PROFILES['level-up'].duration).toBeGreaterThan(WORKSHOP_EFFECT_PROFILES.failure.duration);
   });
 });
+
+
+describe('workshop starting position', () => {
+  it('starts beside the first botanical plot and outside the collision box', () => {
+    expect(isWorkshopPositionBlocked(160, 210, 0)).toBe(false);
+    expect(findWorkshopPath(160, 210, 166, 192, 0).length).toBeGreaterThan(0);
+  });
+});
