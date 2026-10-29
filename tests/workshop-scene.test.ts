@@ -89,7 +89,19 @@ describe('workshop click pathfinding', () => {
     const path = findWorkshopPath(500, 350, 1200, 350, 0);
     expect(path.length).toBeGreaterThan(0);
     expect(path.at(-1)!.x).toBeGreaterThan(1100);
-    for (const point of path) expect(isWorkshopPositionBlocked(point.x, point.y, 0)).toBe(false);
+    let previous = { x: 500, y: 350 };
+    for (const point of path) {
+      expect(isWorkshopPositionBlocked(point.x, point.y, 0)).toBe(false);
+      for (const wall of [650, 1000]) {
+        const crossesWall = (previous.x < wall && point.x > wall) ||
+          (previous.x > wall && point.x < wall);
+        if (crossesWall) {
+          expect(previous.y).toBeGreaterThanOrEqual(295);
+          expect(previous.y).toBeLessThanOrEqual(415);
+        }
+      }
+      previous = point;
+    }
   });
 
   it('rejects invalid input and invalid floors', () => {
