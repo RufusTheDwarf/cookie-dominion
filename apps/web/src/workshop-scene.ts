@@ -75,8 +75,8 @@ export interface FloorLanding {
   readonly y: number;
 }
 
-const FLOOR_UP_STAIR: FloorLanding = { x: 925, y: 520 };
-const FLOOR_DOWN_STAIR: FloorLanding = { x: 720, y: 520 };
+const FLOOR_UP_STAIR: FloorLanding = { x: 870, y: 520 };
+const FLOOR_DOWN_STAIR: FloorLanding = { x: 770, y: 520 };
 
 /** Return the landing beside the opposite staircase, or null when no floor change occurs. */
 export function getFloorTransitionLanding(previousFloor: number, nextFloor: number): FloorLanding | null {
