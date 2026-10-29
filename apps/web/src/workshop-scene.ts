@@ -224,6 +224,115 @@ export function isWorkshopPositionBlocked(
   });
 }
 
+export interface WorkshopPathPoint {
+  readonly x: number;
+  readonly y: number;
+}
+
+/** Finds a walkable route on a coarse grid so tap-to-move can route around obstacles. */
+export function findWorkshopPath(
+  startX: number, startY: number, targetX: number, targetY: number, floor: number,
+  machines: readonly WorkshopMachineVisual[] = [], botanicalExpansions = 0,
+): WorkshopPathPoint[] {
+  if (![startX, startY, targetX, targetY].every(Number.isFinite) ||
+      !Number.isInteger(floor) || floor < 0 || floor > 2) return [];
+
+  const step = 24;
+  const minX = 22;
+  const minY = 76;
+  const columns = Math.floor((WORLD_WIDTH - 44) / step) + 1;
+  const rows = Math.floor((WORLD_HEIGHT - 100) / step) + 1;
+  const points: WorkshopPathPoint[] = [];
+  const keyOf = (column: number, row: number): string => column + "," + row;
+  const pointOf = (column: number, row: number): WorkshopPathPoint => ({
+    x: minX + column * step, y: minY + row * step,
+  });
+  const valid = (point: WorkshopPathPoint): boolean =>
+    !isWorkshopPositionBlocked(point.x, point.y, floor, machines, botanicalExpansions);
+
+  for (let row = 0; row < rows; row++) {
+    for (let column = 0; column < columns; column++) {
+      const point = pointOf(column, row);
+      if (valid(point)) points.push(point);
+    }
+  }
+  if (points.length === 0) return [];
+
+  const nearest = (x: number, y: number): { column: number; row: number; point: WorkshopPathPoint } => {
+    let best = points[0]!;
+    let bestDistance = (best.x - x) ** 2 + (best.y - y) ** 2;
+    for (let i = 1; i < points.length; i++) {
+      const candidate = points[i]!;
+      const distance = (candidate.x - x) ** 2 + (candidate.y - y) ** 2;
+      if (distance < bestDistance) { best = candidate; bestDistance = distance; }
+    }
+    return {
+      column: Math.round((best.x - minX) / step),
+      row: Math.round((best.y - minY) / step),
+      point: best,
+    };
+  };
+  const start = nearest(startX, startY);
+  const target = nearest(targetX, targetY);
+  const startKey = keyOf(start.column, start.row);
+  const targetKey = keyOf(target.column, target.row);
+  if (startKey === targetKey) return [target.point];
+
+  const open = [startKey];
+  const openSet = new Set(open);
+  const closed = new Set<string>();
+  const cameFrom = new Map<string, string>();
+  const gScore = new Map<string, number>([[startKey, 0]]);
+  const fScore = new Map<string, number>([[
+    startKey, Math.abs(start.column - target.column) + Math.abs(start.row - target.row),
+  ]]);
+  const directions = [[1, 0], [-1, 0], [0, 1], [0, -1]] as const;
+
+  while (open.length > 0) {
+    let bestIndex = 0;
+    for (let i = 1; i < open.length; i++) {
+      if ((fScore.get(open[i]!) ?? Infinity) < (fScore.get(open[bestIndex]!) ?? Infinity)) bestIndex = i;
+    }
+    const currentKey = open.splice(bestIndex, 1)[0]!;
+    openSet.delete(currentKey);
+    if (currentKey === targetKey) {
+      const path: WorkshopPathPoint[] = [];
+      let cursor: string | undefined = currentKey;
+      while (cursor && cursor !== startKey) {
+        const [column, row] = cursor.split(",").map(Number);
+        path.push(pointOf(column!, row!));
+        cursor = cameFrom.get(cursor);
+      }
+      path.reverse();
+      return path;
+    }
+    closed.add(currentKey);
+    const [column, row] = currentKey.split(",").map(Number);
+    const current = pointOf(column!, row!);
+    for (const [dx, dy] of directions) {
+      const nextColumn = column! + dx;
+      const nextRow = row! + dy;
+      if (nextColumn < 0 || nextColumn >= columns || nextRow < 0 || nextRow >= rows) continue;
+      const nextKey = keyOf(nextColumn, nextRow);
+      if (closed.has(nextKey)) continue;
+      const next = pointOf(nextColumn, nextRow);
+      if (!valid(next) || isClosedWallCrossingBlocked(current.x, next.x, current.y)) continue;
+      const trappedBesideWall = WALLS.some((wall) =>
+        Math.abs(current.x - wall) < PLAYER_RADIUS &&
+        (next.y < DOOR_TOP + PLAYER_RADIUS || next.y > DOOR_BOTTOM - PLAYER_RADIUS),
+      );
+      if (trappedBesideWall) continue;
+      const tentative = (gScore.get(currentKey) ?? Infinity) + 1;
+      if (tentative >= (gScore.get(nextKey) ?? Infinity)) continue;
+      cameFrom.set(nextKey, currentKey);
+      gScore.set(nextKey, tentative);
+      fScore.set(nextKey, tentative + Math.abs(nextColumn - target.column) + Math.abs(nextRow - target.row));
+      if (!openSet.has(nextKey)) { open.push(nextKey); openSet.add(nextKey); }
+    }
+  }
+  return [];
+}
+
 function blendColor(base: number, overlay: number, amount: number): number {
   const ratio = Math.max(0, Math.min(1, amount));
   const channel = (shift: number): number => {
@@ -260,7 +369,8 @@ export function createWorkshopScene(
   const player = { x: 735, y: 520 };
   const keys = new Set<string>();
   const particles: Particle[] = [];
-  let destination: { x: number; y: number } | null = null;
+  let destinationPath: WorkshopPathPoint[] = [];
+  let destinationIndex = 0;
   let frame = 0;
   let lastFrame = performance.now();
   let nearby: WorkshopStation | null = null;
@@ -956,19 +1066,35 @@ export function createWorkshopScene(
     if (keys.has('arrowright') || keys.has('d')) dx += 1;
     if (keys.has('arrowup') || keys.has('w') || keys.has('z')) dy -= 1;
     if (keys.has('arrowdown') || keys.has('s')) dy += 1;
-    if (dx !== 0 || dy !== 0) destination = null;
-    if (destination) {
-      const tx = destination.x - player.x;
-      const ty = destination.y - player.y;
+    if (dx !== 0 || dy !== 0) {
+      destinationPath = [];
+      destinationIndex = 0;
+    }
+    while (destinationIndex < destinationPath.length) {
+      const waypoint = destinationPath[destinationIndex]!;
+      const tx = waypoint.x - player.x;
+      const ty = waypoint.y - player.y;
       const distance = Math.hypot(tx, ty);
-      if (distance < 5) destination = null;
-      else { dx = tx / distance; dy = ty / distance; }
+      if (distance < 7) {
+        destinationIndex++;
+        continue;
+      }
+      dx = tx / distance;
+      dy = ty / distance;
+      break;
+    }
+    if (destinationIndex >= destinationPath.length) {
+      destinationPath = [];
+      destinationIndex = 0;
     }
     walking = dx !== 0 || dy !== 0;
     if (walking) {
       const length = Math.hypot(dx, dy);
       const moved = movePlayer(dx / length * PLAYER_SPEED * elapsed, dy / length * PLAYER_SPEED * elapsed);
-      if (destination && !moved) destination = null;
+      if (destinationPath.length > 0 && !moved) {
+        destinationPath = [];
+        destinationIndex = 0;
+      }
     }
 
     for (let i = particles.length - 1; i >= 0; i--) {
@@ -1013,13 +1139,18 @@ export function createWorkshopScene(
     const station = STATIONS.find((item) =>
       isStationAvailable(item.id) && Math.hypot(item.x - x, item.y - y) < 58,
     );
+    let targetX = x;
+    let targetY = y;
     if (station) {
       const offset = station.id === 'counter' || station.id === 'laboratory' ||
         station.id === 'stairs' || station.id === 'rose-plot-2' ? -54 : 54;
-      destination = { x: station.x + offset, y: station.y + (station.id === 'counter' ? 5 : 20) };
-    } else {
-      destination = { x, y };
+      targetX = station.x + offset;
+      targetY = station.y + (station.id === 'counter' ? 5 : 20);
     }
+    destinationPath = findWorkshopPath(
+      player.x, player.y, targetX, targetY, currentFloor, placedMachines, unlockedBotanicalExpansions,
+    );
+    destinationIndex = 0;
   };
   const observer = new ResizeObserver(resize);
   observer.observe(canvas);
@@ -1036,7 +1167,8 @@ export function createWorkshopScene(
       if (direction === 'down') movePlayer(0, distance);
       if (direction === 'left') movePlayer(-distance, 0);
       if (direction === 'right') movePlayer(distance, 0);
-      destination = null;
+      destinationPath = [];
+      destinationIndex = 0;
       draw();
       nearby = nearestStation()?.id ?? null;
       onNearbyChange(nearby);
