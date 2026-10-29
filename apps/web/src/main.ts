@@ -367,7 +367,12 @@ function tierName(floor: number): string {
 
 function setStatus(message: string): void {
   statusMessage = message;
-  byId('global-status').textContent = message;
+  const status = byId('global-status');
+  status.textContent = message;
+  status.classList.remove('status-pop');
+  // Restart the short feedback animation when a new game action reports its result.
+  void status.offsetWidth;
+  status.classList.add('status-pop');
 }
 
 function save(): void {

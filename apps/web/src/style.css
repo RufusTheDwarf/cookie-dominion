@@ -950,3 +950,89 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
   .recipe-row { grid-template-columns: 42px minmax(0, 1fr) 76px; gap: 6px; }
   .recipe-actions { min-width: 0; }
 }
+
+
+/* Polished presentation and short, readable game-feedback animations. */
+:root {
+  --panel-shadow: 0 8px 22px rgba(53, 48, 34, .08);
+}
+.topbar {
+  background: linear-gradient(118deg, #2f4234 0%, #344735 58%, #435641 100%);
+  box-shadow: 0 5px 15px rgba(37, 45, 34, .13);
+}
+.brand-mark img { transition: transform .35s ease, filter .35s ease; }
+.brand:hover .brand-mark img {
+  transform: translateY(-2px) rotate(-4deg);
+  filter: drop-shadow(0 5px 5px rgba(0,0,0,.24));
+}
+.progress-strip {
+  box-shadow: 0 3px 8px rgba(53, 48, 34, .04);
+}
+.live-indicator { animation: live-breathe 2.4s ease-in-out infinite; }
+@keyframes live-breathe {
+  0%,100% { box-shadow: 0 0 0 3px rgba(83,105,76,.12); }
+  50% { box-shadow: 0 0 0 6px rgba(83,105,76,.06); }
+}
+.column {
+  box-shadow: var(--panel-shadow);
+  transition: box-shadow .22s ease, border-color .22s ease, transform .22s ease;
+}
+.workshop-column, .production-column { background: linear-gradient(160deg, #faf5e9 0%, var(--paper-hi) 48%, #f0e7d4 100%); }
+.section-heading h1, .section-heading h2 { text-wrap: balance; }
+.workshop-card, .floor-navigation, .store-panel, .production-card {
+  box-shadow: 0 3px 9px rgba(53, 48, 34, .055);
+}
+.workshop-stage-frame {
+  background-image: radial-gradient(ellipse at 50% 12%, rgba(255,250,228,.55), transparent 65%);
+}
+#workshop-canvas { outline: none; }
+#global-status.status-pop { animation: status-pop .38s ease-out; }
+@keyframes status-pop {
+  0% { opacity: .55; transform: translateY(3px); }
+  55% { opacity: 1; transform: translateY(-1px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.primary-button, .secondary-button, .buy-building, .prestige-button,
+.scene-help button, .floor-choice, .tab-button, .icon-button {
+  transition: transform .16s ease, box-shadow .16s ease, background-color .16s ease,
+    border-color .16s ease, filter .16s ease;
+}
+.primary-button:hover:not(:disabled), .secondary-button:hover:not(:disabled),
+.buy-building:hover:not(:disabled), .prestige-button:hover:not(:disabled),
+.floor-choice:hover:not(:disabled), .tab-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 9px rgba(41,44,36,.12);
+}
+.primary-button:active:not(:disabled), .secondary-button:active:not(:disabled),
+.buy-building:active:not(:disabled), .prestige-button:active:not(:disabled),
+.floor-choice:active:not(:disabled), .tab-button:active:not(:disabled) {
+  transform: translateY(0) scale(.99);
+}
+.rare-event, .recipe-row, .mission-row, .upgrade-row, .machine-row {
+  transition: background-color .2s ease, border-color .2s ease, box-shadow .2s ease;
+}
+.rare-event:hover, .recipe-row:hover, .mission-row:hover, .upgrade-row:hover, .machine-row:hover {
+  box-shadow: 0 4px 12px rgba(53,48,34,.07);
+}
+#workshop-canvas { animation: canvas-arrive .55s ease-out both; }
+@keyframes canvas-arrive {
+  from { opacity: .55; filter: saturate(.75); }
+  to { opacity: 1; filter: saturate(1); }
+}
+.scene-help button:not(:disabled) { box-shadow: 0 2px 0 rgba(41,44,36,.14); }
+.scene-help button:not(:disabled):hover { filter: brightness(1.04); transform: translateY(-1px); }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+  }
+}
+@media (hover: none) {
+  .column { box-shadow: 0 3px 10px rgba(53,48,34,.06); }
+  .primary-button:active:not(:disabled), .buy-building:active:not(:disabled),
+  .floor-choice:active:not(:disabled), .tab-button:active:not(:disabled) {
+    filter: brightness(1.06);
+  }
+}

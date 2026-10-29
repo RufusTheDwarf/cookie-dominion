@@ -70,3 +70,11 @@ Tap/click movement uses grid-based A* routing to navigate around blocked station
 - Le déplacement par toucher/clic fusionne les segments droits lorsque le trajet reste libre d'obstacles.
 - Si le personnage est bloqué pendant un trajet, le chemin est recalculé vers sa destination au lieu d'être immédiatement abandonné.
 - Les tests échantillonnent les segments lissés pour vérifier qu'ils ne traversent ni objets solides ni murs fermés.
+
+
+### Présentation et animations
+- Hiérarchie visuelle renforcée par des dégradés subtils, des ombres plus cohérentes et des transitions courtes sur les contrôles.
+- Le statut de jeu anime brièvement chaque retour d'action; les indicateurs d'activité respirent doucement.
+- L'atelier affiche des particules d'ambiance discrètes, tandis que le poste à proximité utilise un contour pulsé.
+- Les animations CSS respectent la préférence système de réduction des mouvements.
+- Le rendu sur navigateur mobile et ordinateur reste à vérifier manuellement.

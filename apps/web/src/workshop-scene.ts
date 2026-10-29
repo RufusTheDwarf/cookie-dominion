@@ -523,12 +523,13 @@ export function createWorkshopScene(
     c.font = '10px system-ui';
     c.fillText(station.detail, 0, 62);
     if (nearby === station.id) {
-      c.strokeStyle = '#f2ce83';
-      c.lineWidth = 3;
+      const pulse = (Math.sin(elapsedWorld * 5) + 1) / 2;
+      c.strokeStyle = `rgba(242,206,131,${.62 + pulse * .38})`;
+      c.lineWidth = 2 + pulse * 1.5;
       c.beginPath();
-      c.ellipse(0, 0, 51, 42, 0, 0, Math.PI * 2);
+      c.ellipse(0, 0, 51 + pulse * 4, 42 + pulse * 3, 0, 0, Math.PI * 2);
       c.stroke();
-      roundedRect(-24, -60, 48, 22, 6, '#344735', '#f2ce83');
+      roundedRect(-24, -60 - pulse * 2, 48, 22, 6, '#344735', '#f2ce83');
       c.fillStyle = '#fff7e4';
       c.font = 'bold 13px system-ui';
       c.fillText('E · AGIR', 0, -45);
@@ -1001,6 +1002,22 @@ export function createWorkshopScene(
     c.restore();
   }
 
+  function drawAmbientMotes(): void {
+    const c = context!;
+    // Slow, low-contrast fragrance motes add depth without obscuring navigation.
+    for (let i = 0; i < 22; i++) {
+      const phase = elapsedWorld * (7 + (i % 5) * 1.8) + i * 37.7;
+      const x = (i * 173 + Math.sin(phase * .17) * 24 + WORLD_WIDTH) % WORLD_WIDTH;
+      const y = (WORLD_HEIGHT - ((phase * 9 + i * 61) % WORLD_HEIGHT));
+      const radius = 1 + (i % 3) * .45;
+      const alpha = .08 + (Math.sin(phase * .31) + 1) * .045;
+      c.fillStyle = `rgba(255,244,205,${alpha})`;
+      c.beginPath();
+      c.arc(x, y, radius, 0, Math.PI * 2);
+      c.fill();
+    }
+  }
+
   function drawDestinationPath(): void {
     if (destinationPath.length === 0 || destinationIndex >= destinationPath.length) return;
     const c = context!;
@@ -1045,6 +1062,7 @@ export function createWorkshopScene(
     c.save();
     c.translate(-cameraX, -cameraY);
     drawGround();
+    drawAmbientMotes();
     drawDestinationPath();
     if (currentFloor === 0) {
       STATIONS.filter((station) =>
