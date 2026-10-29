@@ -58,7 +58,7 @@ import {
   type WorldId,
 } from './economy';
 import './style.css';
-import { createWorkshopScene, type WorkshopScene, type WorkshopStation, type MoveDirection } from './workshop-scene';
+import { createWorkshopScene, type WorkshopScene, type WorkshopStation, type MoveDirection, type WorkshopEffect } from './workshop-scene';
 
 
 const SAVE_KEY = 'parfum-empire-save-v1';
@@ -66,7 +66,7 @@ const BACKUP_SAVE_KEY = 'parfum-empire-save-backup-v1';
 const LEGACY_SAVE_KEY = 'cookie-dominion-save-v1';
 const SOUND_KEY = 'parfum-empire-sound-enabled-v1';
 
-type SoundEffect = 'harvest' | 'craft' | 'sell' | 'order' | 'purchase' | 'unlock' | 'prestige';
+type SoundEffect = 'harvest' | 'craft' | 'sell' | 'order' | 'purchase' | 'unlock' | 'prestige' | 'mission' | 'level-up';
 const SOUND_NOTES: Record<SoundEffect, number[]> = {
   harvest: [660, 880],
   craft: [392, 494, 659],
@@ -75,6 +75,8 @@ const SOUND_NOTES: Record<SoundEffect, number[]> = {
   purchase: [440, 554, 659],
   unlock: [330, 440, 554, 740],
   prestige: [392, 494, 587, 784, 988],
+  mission: [523, 659, 784],
+  'level-up': [659, 784, 988, 1318],
 };
 const app = document.querySelector<HTMLDivElement>('#app');
 if (!app) throw new Error('Missing app root');
@@ -778,13 +780,17 @@ function interactWithStation(station: WorkshopStation): void {
   if (MATERIALS.some((material) => material.id === station) || expansionMaterial) {
     const material: MaterialId = expansionMaterial ?? (station as MaterialId);
     const result = harvestMaterial(state, material);
-    if (result.state !== state) {
-      playSound('harvest');
-      if (typeof navigator.vibrate === 'function') navigator.vibrate(12);
+    if (result.state === state) {
+      playGameEffect('failure', 'RIEN À RÉCOLTER');
+      setStatus('Cette parcelle ne fournit rien pour le moment.');
+      return;
     }
+    playSound('harvest');
+    if (typeof navigator.vibrate === 'function') navigator.vibrate(12);
     state = result.state;
     const definition = MATERIALS.find((item) => item.id === material)!;
     renderAll();
+    playGameEffect('harvest', undefined, ['#harvest-last-icon', '#harvest-progress-bar', '#material-inventory .is-latest', '#header-click']);
     floatText('+' + definition.name);
     setStatus('Récolte ciblée : ' + definition.name + '. Retourne au laboratoire pour formuler.');
     saveSoon();
@@ -799,12 +805,14 @@ function interactWithStation(station: WorkshopStation): void {
           const material = MATERIALS.find((item) => item.id === id)!;
           return material.name + ' × ' + Math.max(0, (amount ?? 0) - state.ingredients[material.id]);
         });
+      playGameEffect('failure', 'INGRÉDIENTS MANQUANTS', ['#recipe-list']);
       setStatus('Formulation impossible. Il manque ' + missing.join(', ') + '. Récolte ces matières dans le jardin.');
       return;
     }
     state = craftPerfume(state, selectedRecipeId);
     playSound('craft');
     renderAll();
+    playGameEffect('craft', 'FLACON FORMULÉ', ['#perfume-stock-count', '.recipe-row.is-current-recipe .recipe-bottle', '#customer-order-panel']);
     setStatus(recipe.name + ' formulé au laboratoire. Le flacon attend au comptoir.');
     saveSoon();
     return;
@@ -818,6 +826,7 @@ function interactWithStation(station: WorkshopStation): void {
     state = enterFloor(state, targetFloor);
     playSound('unlock');
     renderAll();
+    playGameEffect('floor', 'ÉTAGE ' + targetFloor, ['#active-floor-label', '#floor-buttons']);
     setStatus('Tu es redescendu à l’étage ' + targetFloor + ' · ' +
       ['Artisanat', 'Manufacture', 'Essences rares'][targetFloor] + '.');
     saveSoon();
@@ -853,6 +862,7 @@ function interactWithStation(station: WorkshopStation): void {
     }
     state = enterFloor(state, targetFloor);
     renderAll();
+    playGameEffect('floor', 'ÉTAGE ' + targetFloor + ' OUVERT', ['#active-floor-label', '#floor-buttons']);
     setStatus('Étage ouvert : ' + ['Artisanat', 'Manufacture', 'Essences rares'][targetFloor] +
       '. Les machines de cet étage sont maintenant accessibles.');
     saveSoon();
@@ -866,9 +876,16 @@ function interactWithStation(station: WorkshopStation): void {
         ' requis, ' + available + ' disponible(s). Prépare les flacons au laboratoire avant de revenir au comptoir.');
       return;
     }
+    const reputationBefore = getHouseReputation(state);
     state = fulfillCustomerOrder(state);
+    const reputationAfter = getHouseReputation(state);
     playSound('order');
     renderAll();
+    playGameEffect('order', undefined, ['#header-money', '#lifetime-sales', '#customer-order-panel', '#perfume-stock-count']);
+    if (reputationAfter.rank > reputationBefore.rank) {
+      window.setTimeout(() => playSound('level-up'), 220);
+      playGameEffect('level-up', 'RANG DE RÉPUTATION ' + reputationAfter.rank, ['.customer-reputation', '#customer-order-panel']);
+    }
     setStatus('Commande #' + order.orderNumber + ' livrée à ' + order.customer + ' : ' +
       order.quantity + ' × ' + recipe.name + ', prime comprise : +' + format(order.reward) + ' pièces.');
     floatText('+' + format(order.reward) + ' pièces');
@@ -883,6 +900,7 @@ function interactWithStation(station: WorkshopStation): void {
   state = sellPerfume(state, selectedRecipeId);
   playSound('sell');
   renderAll();
+  playGameEffect('sell', undefined, ['#header-money', '#header-run', '#lifetime-sales', '#perfume-stock-count']);
   setStatus(recipe.name + ' vendu au comptoir pour ' + format(price) + ' pièces.');
   saveSoon();
 }
@@ -912,6 +930,57 @@ function renderAll(): void {
   renderSceneSelection();
   renderMachines();
   renderStore();
+}
+
+let gameAnimationSequence = 0;
+
+function animateUiElements(selectors: string[], effect: WorkshopEffect): void {
+  const sequence = ++gameAnimationSequence;
+  for (const selector of selectors) {
+    document.querySelectorAll<HTMLElement>(selector).forEach((element) => {
+      element.classList.remove('game-feedback-pulse');
+      for (const className of Array.from(element.classList)) {
+        if (className.startsWith('game-feedback--')) element.classList.remove(className);
+      }
+      element.dataset.feedbackSequence = String(sequence);
+      void element.offsetWidth;
+      element.classList.add('game-feedback-pulse', 'game-feedback--' + effect);
+      window.setTimeout(() => {
+        if (element.dataset.feedbackSequence !== String(sequence)) return;
+        element.classList.remove('game-feedback-pulse', 'game-feedback--' + effect);
+        delete element.dataset.feedbackSequence;
+      }, effect === 'ascension' || effect === 'rebirth' || effect === 'world' ? 1400 : 820);
+    });
+  }
+}
+
+function playGameEffect(effect: WorkshopEffect, label?: string, selectors: string[] = []): void {
+  const stage = byId('workshop-stage-frame');
+  const sequence = ++gameAnimationSequence;
+  workshopScene?.playEffect(effect);
+  for (const className of Array.from(stage.classList)) {
+    if (className.startsWith('game-effect--')) stage.classList.remove(className);
+  }
+  stage.dataset.gameEffectSequence = String(sequence);
+  stage.classList.remove('game-effect-active');
+  void stage.offsetWidth;
+  stage.classList.add('game-effect-active', 'game-effect--' + effect);
+  window.setTimeout(() => {
+    if (stage.dataset.gameEffectSequence !== String(sequence)) return;
+    stage.classList.remove('game-effect-active', 'game-effect--' + effect);
+    delete stage.dataset.gameEffectSequence;
+  }, effect === 'ascension' || effect === 'rebirth' || effect === 'world' ? 1450 : 850);
+
+  stage.querySelector('.game-action-label')?.remove();
+  if (label) {
+    const chip = document.createElement('div');
+    chip.className = 'game-action-label game-action-label--' + effect;
+    chip.textContent = label;
+    chip.setAttribute('aria-hidden', 'true');
+    stage.appendChild(chip);
+    window.setTimeout(() => chip.remove(), 1300);
+  }
+  animateUiElements(selectors, effect);
 }
 
 function saveSoon(): void {
@@ -995,6 +1064,7 @@ function buyMachineById(machineId: MachineId): void {
   }
   playSound('purchase');
   renderAll();
+  playGameEffect('purchase', 'ÉQUIPEMENT INSTALLÉ', ['[data-buy-machine="' + machineId + '"]', '#machine-count', '#factory-cps', '#header-money']);
   setStatus(getMachineLabel(machineId) + ' installé : la production automatique augmente.');
   saveSoon();
 }
@@ -1015,6 +1085,7 @@ function buyUpgradeById(upgradeId: UpgradeId): void {
   }
   playSound('purchase');
   renderAll();
+  playGameEffect('purchase', 'RECHERCHE AMÉLIORÉE', ['[data-buy-upgrade="' + upgradeId + '"]', '#header-money', '#header-cps']);
   setStatus('Recherche appliquée : ' + UPGRADES[upgradeId].name + '.');
   saveSoon();
 }
@@ -1023,7 +1094,9 @@ function claimContract(missionId: MissionId): void {
   if (!canClaimMission(state, missionId)) return;
   state = claimMission(state, missionId);
   const mission = MISSION_DEFINITIONS.find((item) => item.id === missionId);
+  playSound('mission');
   renderAll();
+  playGameEffect('mission', 'CONTRAT ACCOMPLI', ['#header-money', '#store-content .mission-row', '#header-run']);
   setStatus('Contrat réclamé : +' + format(mission?.reward ?? 0) + ' parfums.');
   saveSoon();
 }
@@ -1036,6 +1109,7 @@ function switchWorld(worldId: WorldId): void {
   }
   state = enterWorld(state, worldId);
   renderAll();
+  playGameEffect('world', getWorld(worldId).name.toUpperCase(), ['#current-world-line', '#store-content']);
   setStatus('Collection active : ' + getWorld(worldId).name + '.');
   saveSoon();
 }
@@ -1049,6 +1123,7 @@ function doRebirth(): void {
   state = normalizeGameState(performRebirth(state));
   playSound('prestige');
   renderAll();
+  playGameEffect('rebirth', 'REBIRTH · +60 % DE PRODUCTION', ['#header-cps', '#current-rank', '#header-money', '#store-content']);
   setStatus('Rebirth effectué. La prochaine maison produira 60 % plus vite.');
   save();
 }
@@ -1064,6 +1139,7 @@ function doTotalRebirth(): void {
   state = normalizeGameState(performTotalRebirth(state));
   playSound('prestige');
   renderAll();
+  playGameEffect('ascension', 'ASCENSION · ESSENCE ORIGINELLE', ['#header-cps', '#current-rank', '#header-money', '#store-content']);
   setStatus('Ascension accomplie. Les Essences originelles renforcent définitivement tes prochaines maisons.');
   save();
 }
@@ -1083,18 +1159,21 @@ function downloadSave(): void {
   link.download = 'parfum-empire-save.json';
   link.click();
   URL.revokeObjectURL(url);
+  playGameEffect('save', 'EXPORT PRÊT', ['#save-indicator', '#store-content']);
   setStatus('Sauvegarde JSON exportée.');
 }
 
 function applyImportedSave(raw: string): void {
   const imported = parseImportedSave(raw);
   if (!imported) {
+    playGameEffect('failure', 'IMPORT REFUSÉ');
     setStatus('Fichier invalide. La partie actuelle n’a pas été modifiée.');
     return;
   }
   state = normalizeGameState(imported);
   renderAll();
   save();
+  playGameEffect('unlock', 'SAUVEGARDE IMPORTÉE', ['#header-money', '#header-cps', '#save-indicator']);
   setStatus('Sauvegarde importée avec succès.');
 }
 
@@ -1110,6 +1189,7 @@ function eraseSave(): void {
   }
   renderAll();
   save();
+  playGameEffect('ascension', 'NOUVELLE PARTIE', ['#header-money', '#header-cps', '#store-content']);
   setStatus('Nouvelle partie créée. Ta maison repart de zéro.');
 }
 
@@ -1123,6 +1203,7 @@ app.addEventListener('click', (event) => {
     selectedRecipeId = target.dataset.selectRecipe as RecipeId;
     renderRecipeWorkshop();
     renderSceneSelection();
+    playGameEffect('selection', undefined, ['.recipe-row.is-current-recipe', '#selected-recipe-name']);
     setStatus('Recette active : ' + (PERFUME_RECIPES.find((recipe) => recipe.id === selectedRecipeId)?.name ?? selectedRecipeId) + '. Rejoins le laboratoire pour composer ou le comptoir pour vendre.');
     return;
   }
@@ -1146,6 +1227,7 @@ app.addEventListener('click', (event) => {
   if (target.dataset.tab) {
     activeTab = target.dataset.tab as StoreTab;
     renderStore();
+    animateUiElements(['#store-content'], 'selection');
     return;
   }
   if (target.dataset.buyMachine) {
@@ -1179,6 +1261,7 @@ app.addEventListener('click', (event) => {
     if (Number.isInteger(floor) && state.unlockedFloors.includes(floor)) {
       state = enterFloor(state, floor);
       renderAll();
+      playGameEffect('floor', 'ÉTAGE ' + floor, ['#active-floor-label', '#floor-buttons']);
       setStatus('Tu es maintenant à l’étage ' + floor + ' : ' +
         ['Artisanat', 'Manufacture', 'Essences rares'][floor] + '.');
       saveSoon();
@@ -1199,6 +1282,7 @@ app.addEventListener('click', (event) => {
   }
   if (target.id === 'save-now') {
     save();
+    playGameEffect('save', 'PROGRESSION SAUVEGARDÉE', ['#save-indicator', '#header-money']);
     setStatus('Progression sauvegardée localement.');
     return;
   }
@@ -1246,6 +1330,7 @@ app.addEventListener('change', (event) => {
       // The preference remains active for this tab even without storage.
     }
     if (soundEnabled) playSound('unlock');
+    animateUiElements(['#open-settings'], 'selection');
     setStatus(soundEnabled ? 'Effets sonores activés.' : 'Effets sonores désactivés.');
   }
 });
@@ -1270,6 +1355,7 @@ document.addEventListener('visibilitychange', () => {
   save();
   renderAll();
   if (revenueGained > 0) {
+    playGameEffect('level-up', 'REVENUS HORS LIGNE · +' + format(revenueGained), ['#header-money', '#header-run', '#factory-cps']);
     setStatus('Pendant ton absence, la manufacture a généré ' + format(revenueGained) + ' pièces nettes.');
   }
 });
