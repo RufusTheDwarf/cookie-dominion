@@ -43,6 +43,7 @@ import {
   operatingCostsPerSecond,
   parseImportedSave,
   parseSavedState,
+  stampSavedState,
   performRebirth,
   performTotalRebirth,
   productionPerSecond,
@@ -154,7 +155,9 @@ function normalizeGameState(value: GameState): GameState {
     : 0;
   return {
     ...value,
-    rampBuilt: value.startingPlotPurchased === true || value.rampBuilt === true,
+    rampBuilt: value.startingPlotPurchased === undefined
+      ? value.rampBuilt === true
+      : value.startingPlotPurchased === true,
     startingPlotPurchased: value.startingPlotPurchased === true,
     currentFloor: unlockedFloors.includes(requestedFloor) ? requestedFloor : 0,
     unlockedFloors,
@@ -406,7 +409,7 @@ function setStatus(message: string): void {
 
 function save(): void {
   const now = Date.now();
-  state = { ...state, lastSavedAt: now, rampBuilt: true };
+  state = stampSavedState(state, now);
   try {
     const previous = localStorage.getItem(SAVE_KEY);
     const previousIsValid = previous !== null && parseImportedSave(previous) !== null;
@@ -1662,9 +1665,19 @@ touchControls?.addEventListener('pointerdown', (event) => {
   workshopScene?.move(direction);
   touchMoveInterval = setInterval(() => workshopScene?.move(direction), 115);
 });
+const clearTouchHoldMarkers = (): void => {
+  touchControls?.querySelectorAll<HTMLButtonElement>('[data-hold-moved="true"]')
+    .forEach((button) => { button.dataset.holdMoved = 'false'; });
+};
 window.addEventListener('pointerup', stopTouchMovement);
-window.addEventListener('pointercancel', stopTouchMovement);
-window.addEventListener('blur', stopTouchMovement);
+window.addEventListener('pointercancel', () => {
+  stopTouchMovement();
+  clearTouchHoldMarkers();
+});
+window.addEventListener('blur', () => {
+  stopTouchMovement();
+  clearTouchHoldMarkers();
+});
 save();
 if (saveRecoveryMessage) setStatus(saveRecoveryMessage);
 else if (!state.rampBuilt) setStatus('Objectif : rejoins le panneau TERRAIN À VENDRE et appuie sur E pour acheter ta première parcelle.');
