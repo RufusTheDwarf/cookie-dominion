@@ -33,6 +33,7 @@ import {
   MAX_OFFLINE_SECONDS,
   parseImportedSave,
   parseSavedState,
+  stampSavedState,
   performRebirth,
   performTotalRebirth,
   productionPerSecond,
@@ -65,6 +66,7 @@ describe('tycoon economy', () => {
       lifetimePerfumeRevenue: 20,
       runPerfumeRevenue: 20,
       rampBuilt: undefined,
+      startingPlotPurchased: undefined,
       wallsBuilt: undefined,
       outsideExpansions: undefined,
     }), 100);
@@ -85,6 +87,7 @@ describe('tycoon economy', () => {
     const expandedLegacySave = parseSavedState(JSON.stringify({
       ...initial,
       rampBuilt: undefined,
+      startingPlotPurchased: undefined,
       outsideExpansions: 1,
     }), 100);
     expect(expandedLegacySave.outsideExpansions).toBe(1);
@@ -93,6 +96,34 @@ describe('tycoon economy', () => {
     const staleExplicitRampSave = parseSavedState(JSON.stringify({ ...initial, rampBuilt: true }), 100);
     expect(staleExplicitRampSave.rampBuilt).toBe(false);
     expect(staleExplicitRampSave.startingPlotPurchased).toBe(false);
+  });
+
+  it('keeps the starter plot unpurchased when a fresh game is saved and reloaded', () => {
+    const fresh = {
+      ...createInitialState(100),
+      perfumeRevenue: STARTING_LAND_COST,
+    };
+    const saved = stampSavedState(fresh, 200);
+    const restored = parseSavedState(JSON.stringify(saved), 200);
+
+    expect(saved.rampBuilt).toBe(false);
+    expect(restored.rampBuilt).toBe(false);
+    expect(restored.startingPlotPurchased).toBe(false);
+    expect(restored.perfumeRevenue).toBe(STARTING_LAND_COST);
+  });
+
+  it('uses an explicit unpurchased flag instead of mistaking a buggy save for a legacy purchase', () => {
+    const previousBuggySave = {
+      ...createInitialState(100),
+      perfumeRevenue: STARTING_LAND_COST,
+      rampBuilt: true,
+      startingPlotPurchased: false,
+    };
+    const restored = parseSavedState(JSON.stringify(previousBuggySave), 100);
+
+    expect(restored.rampBuilt).toBe(false);
+    expect(restored.startingPlotPurchased).toBe(false);
+    expect(restored.perfumeRevenue).toBe(STARTING_LAND_COST);
   });
 
   it('migrates an empty first-generation save to the unbuilt starting room', () => {

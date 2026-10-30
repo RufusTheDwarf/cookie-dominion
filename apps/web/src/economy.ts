@@ -871,6 +871,11 @@ export function collectParfums(state: GameState, amount: number): GameState {
   return addPerfumeRevenue(state, amount);
 }
 
+/** Update only the save timestamp; progression flags must remain untouched. */
+export function stampSavedState(state: GameState, now = Date.now()): GameState {
+  return { ...state, lastSavedAt: now };
+}
+
 export function applyOfflineProgress(state: GameState, now: number): GameState {
   const elapsedSeconds = Math.min(
     MAX_OFFLINE_SECONDS,
@@ -1035,7 +1040,10 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       essences: Number.isSafeInteger(value.essences) && (value.essences as number) >= 0
         ? value.essences as number
         : 0,
-      rampBuilt: value.rampBuilt === undefined ? true : value.rampBuilt === true,
+      // The explicit modern flag is authoritative. Older saves without it still use rampBuilt.
+      rampBuilt: value.startingPlotPurchased === undefined
+        ? (value.rampBuilt === undefined ? true : value.rampBuilt === true)
+        : value.startingPlotPurchased === true,
       startingPlotPurchased: value.startingPlotPurchased === true,
       wallsBuilt: value.wallsBuilt === true,
       outsideExpansions: Number.isSafeInteger(value.outsideExpansions) && (value.outsideExpansions as number) >= 0
@@ -1071,7 +1079,9 @@ export function parseSavedState(raw: string | null, now = Date.now()): GameState
       state.startingPlotPurchased;
     // Earlier app versions forced rampBuilt=true even for a completely untouched save.
     // Keep genuine progress but migrate those empty false positives to an unpurchased plot.
-    if (state.rampBuilt && hasMeaningfulProgress) state.startingPlotPurchased = true;
+    if (value.startingPlotPurchased === undefined && state.rampBuilt && hasMeaningfulProgress) {
+      state.startingPlotPurchased = true;
+    }
     if (state.startingPlotPurchased) state.rampBuilt = true;
     if (!hasMeaningfulProgress && value.startingPlotPurchased !== true && value.rampBuilt !== false) {
       state.rampBuilt = false;
