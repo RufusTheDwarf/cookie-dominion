@@ -140,12 +140,38 @@ export function getFloorTransitionLanding(previousFloor: number, nextFloor: numb
 }
 
 /** Keeps the player's full body clear of closed wall sections while allowing doorway traversal. */
-export function isClosedWallCrossingBlocked(fromX: number, toX: number, y: number): boolean {
-  return WALLS.some((wall) =>
-    ((fromX < wall - PLAYER_RADIUS && toX >= wall - PLAYER_RADIUS) ||
-      (fromX > wall + PLAYER_RADIUS && toX <= wall + PLAYER_RADIUS)) &&
-    (y < DOOR_TOP + PLAYER_RADIUS || y > DOOR_BOTTOM - PLAYER_RADIUS),
-  );
+export function isClosedWallCrossingBlocked(
+  fromX: number,
+  toX: number,
+  fromY: number,
+  toY = fromY,
+): boolean {
+  const safeTop = DOOR_TOP + PLAYER_RADIUS;
+  const safeBottom = DOOR_BOTTOM - PLAYER_RADIUS;
+  return WALLS.some((wall) => {
+    const minX = wall - PLAYER_RADIUS;
+    const maxX = wall + PLAYER_RADIUS;
+    const deltaX = toX - fromX;
+
+    // A vertical move beside a wall must stay within the doorway for its full height.
+    if (Math.abs(deltaX) < Number.EPSILON) {
+      if (fromX <= minX || fromX >= maxX) return false;
+      return Math.min(fromY, toY) < safeTop || Math.max(fromY, toY) > safeBottom;
+    }
+
+    // Clip the movement segment to the wall's collision strip and inspect both
+    // vertical endpoints. This also catches diagonal motion that leaves the doorway
+    // after entering the strip, rather than checking only the old player position.
+    const first = (minX - fromX) / deltaX;
+    const second = (maxX - fromX) / deltaX;
+    const segmentStart = Math.max(0, Math.min(first, second));
+    const segmentEnd = Math.min(1, Math.max(first, second));
+    if (segmentStart >= segmentEnd) return false;
+
+    const startY = fromY + (toY - fromY) * segmentStart;
+    const endY = fromY + (toY - fromY) * segmentEnd;
+    return Math.min(startY, endY) < safeTop || Math.max(startY, endY) > safeBottom;
+  });
 }
 
 const STATIONS: Station[] = [
@@ -387,8 +413,10 @@ export function findWorkshopPath(
         for (let sample = 1; sample <= samples; sample++) {
           const ratio = sample / samples;
           const point = { x: from.x + (to.x - from.x) * ratio, y: from.y + (to.y - from.y) * ratio };
-          if (isWorkshopPositionBlocked(point.x, point.y, floor, machines, botanicalExpansions) ||
-              isClosedWallCrossingBlocked(previous.x, point.x, previous.y)) return false;
+          if (isWorkshopPositionBlocked(
+            point.x, point.y, floor, machines, botanicalExpansions, startingPlotPurchased, unlockedMaterials,
+          ) || (startingPlotPurchased &&
+            isClosedWallCrossingBlocked(previous.x, point.x, previous.y, point.y))) return false;
           previous = point;
         }
         return true;
@@ -1281,13 +1309,14 @@ export function createWorkshopScene(
     const startX = player.x;
     const startY = player.y;
     const nextX = Math.max(22, Math.min(WORLD_WIDTH - 22, player.x + dx));
-    const crossesWall = startingPlotPurchased && isClosedWallCrossingBlocked(player.x, nextX, player.y);
+    const nextY = Math.max(76, Math.min(WORLD_HEIGHT - 24, player.y + dy));
+    const crossesWall = startingPlotPurchased &&
+      isClosedWallCrossingBlocked(player.x, nextX, player.y, nextY);
     if (!crossesWall &&
         !isWorkshopPositionBlocked(nextX, player.y, currentFloor, placedMachines, unlockedBotanicalExpansions, startingPlotPurchased, unlockedMaterials)) {
       player.x = nextX;
     }
 
-    const nextY = Math.max(76, Math.min(WORLD_HEIGHT - 24, player.y + dy));
     const trappedInWall = startingPlotPurchased && WALLS.some((wall) =>
       Math.abs(player.x - wall) < PLAYER_RADIUS &&
       (nextY < DOOR_TOP + PLAYER_RADIUS || nextY > DOOR_BOTTOM - PLAYER_RADIUS),

@@ -38,6 +38,17 @@ describe('workshop wall crossings', () => {
     expect(isClosedWallCrossingBlocked(630, 670, 350)).toBe(false);
     expect(isClosedWallCrossingBlocked(630, 635, 250)).toBe(false);
   });
+
+  it('checks the full diagonal segment instead of only its starting height', () => {
+    expect(isClosedWallCrossingBlocked(630, 670, 414, 422)).toBe(true);
+    expect(isClosedWallCrossingBlocked(630, 670, 414, 410)).toBe(false);
+  });
+
+  it('blocks vertical movement out of the doorway while inside the wall strip', () => {
+    expect(isClosedWallCrossingBlocked(645, 645, 410, 420)).toBe(true);
+    expect(isClosedWallCrossingBlocked(645, 645, 350, 360)).toBe(false);
+    expect(isClosedWallCrossingBlocked(640, 640, 250, 260)).toBe(false);
+  });
 });
 
 describe('workshop collision boundaries', () => {
@@ -107,6 +118,14 @@ describe('workshop floor landings', () => {
 });
 
 describe('workshop click pathfinding', () => {
+  it('smooths empty-land paths without treating locked stations as obstacles', () => {
+    const path = findWorkshopPath(620, 500, 1120, 500, 0, [], 0, false, []);
+    expect(path).toHaveLength(1);
+    for (const point of path) {
+      expect(isWorkshopPositionBlocked(point.x, point.y, 0, [], 0, false, [])).toBe(false);
+    }
+  });
+
   it('routes around garden beds and reaches a walkable point near the requested target', () => {
     const path = findWorkshopPath(735, 520, 112, 172, 0);
     expect(path.length).toBeGreaterThan(0);
