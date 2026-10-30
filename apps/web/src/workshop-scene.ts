@@ -415,7 +415,8 @@ export function findWorkshopPath(
           const point = { x: from.x + (to.x - from.x) * ratio, y: from.y + (to.y - from.y) * ratio };
           if (isWorkshopPositionBlocked(
             point.x, point.y, floor, machines, botanicalExpansions, startingPlotPurchased, unlockedMaterials,
-          ) || isClosedWallCrossingBlocked(previous.x, point.x, previous.y, point.y)) return false;
+          ) || (startingPlotPurchased &&
+            isClosedWallCrossingBlocked(previous.x, point.x, previous.y, point.y))) return false;
           previous = point;
         }
         return true;
